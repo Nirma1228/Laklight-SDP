@@ -1,0 +1,1064 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Catalog Management - Laklights Food Products</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8f9fa;
+            color: #333;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, rgb(132, 213, 147) 0%, #4caf50 100%);
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem;
+        }
+
+        .logo-img {
+            width: 40px;
+            height: auto;
+            margin-right: 10px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-menu a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .nav-menu a:hover {
+            color: #c8e6c9;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .admin-badge {
+            background: #ff6b35;
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .btn {
+            padding: 0.7rem 1.5rem;
+            border: none;
+            border-radius: 25px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: white;
+            border: 2px solid white;
+        }
+
+        .btn-secondary:hover {
+            background: white;
+            color: #2e7d32;
+        }
+
+        .btn-primary {
+            background: #4caf50;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #388e3c;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+
+        .btn-info {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .btn-info:hover {
+            background: #138496;
+        }
+
+        .btn-small {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+
+        /* Main Content */
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-header {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .page-title {
+            color: #2e7d32;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .page-description {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+            text-align: center;
+            border-left: 4px solid #4caf50;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #2e7d32;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        /* Filter Section */
+        .filter-section {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+        }
+
+        .filter-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-group label {
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select {
+            padding: 0.7rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #4caf50;
+        }
+
+        /* Products Grid */
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .product-card {
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+            overflow: hidden;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 30px rgba(0,0,0,0.15);
+        }
+
+        .product-image {
+            width: 100%;
+            height: 300px;
+            background: linear-gradient(135deg, #e8f5e9, #c8e6c9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            overflow: visible;
+        }
+        
+        .product-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .product-info {
+            padding: 1.5rem;
+        }
+
+        .product-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 0.5rem;
+        }
+
+        .product-name {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #2e7d32;
+        }
+
+        .product-category {
+            display: inline-block;
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.75rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .product-description {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+            line-height: 1.5;
+        }
+
+        .product-details {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .product-detail-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.9rem;
+        }
+
+        .detail-label {
+            color: #666;
+            font-weight: 500;
+        }
+
+        .detail-value {
+            color: #333;
+            font-weight: 600;
+        }
+
+        .price-value {
+            color: #2e7d32;
+            font-size: 1.1rem;
+        }
+
+        .stock-badge {
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .stock-good {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .stock-warning {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .stock-critical {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .product-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .product-actions button {
+            flex: 1;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background: white;
+            margin: 2rem auto;
+            padding: 2rem;
+            border-radius: 15px;
+            max-width: 600px;
+            box-shadow: 0 5px 30px rgba(0,0,0,0.3);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .modal-title {
+            color: #2e7d32;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .close {
+            font-size: 2rem;
+            color: #999;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+
+        .close:hover {
+            color: #333;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .form-row.full-width {
+            grid-template-columns: 1fr;
+        }
+
+        .form-group textarea {
+            padding: 0.7rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #4caf50;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        /* Status badges */
+        .status-active {
+            background: #e8f5e9;
+            color: #2e7d32;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.85rem;
+        }
+
+        .status-inactive {
+            background: #ffebee;
+            color: #c62828;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.85rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .page-header {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .quick-actions {
+                width: 100%;
+                flex-direction: column;
+            }
+
+            .products-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .logo {
+                font-size: 1.2rem;
+            }
+
+            .logo-img {
+                width: 30px;
+            }
+
+            .nav-container {
+                padding: 0 1rem;
+                flex-wrap: wrap;
+            }
+
+            .nav-menu {
+                display: none;
+            }
+
+            .btn {
+                padding: 0.5rem 1rem;
+                font-size: 0.85rem;
+            }
+
+            .page-title {
+                font-size: 1.5rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .filter-section {
+                padding: 1rem;
+            }
+
+            .filter-row {
+                grid-template-columns: 1fr;
+            }
+
+            .product-card {
+                margin: 0 auto;
+                max-width: 400px;
+            }
+
+            .modal-content {
+                margin: 1rem;
+                max-width: calc(100% - 2rem);
+            }
+
+            .modal-body {
+                padding: 1rem;
+            }
+
+            .modal-header {
+                padding: 1rem;
+            }
+
+            .modal-footer {
+                padding: 1rem;
+                flex-direction: column;
+            }
+
+            .modal-footer .btn {
+                width: 100%;
+            }
+
+            .main-content {
+                padding: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-card {
+                padding: 1rem;
+            }
+
+            .product-actions {
+                flex-direction: column;
+            }
+
+            .product-actions button {
+                width: 100%;
+            }
+
+            .page-description {
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <nav class="nav-container">
+            <div class="logo">
+                <img src='Logo.png' alt="Laklights Food Products" class="logo-img">
+                Laklights Food Products
+            </div>
+            <ul class="nav-menu">
+                <li><a href="AdminDahboard.html">Dashboard</a></li>
+                <li><a href="AnalyticsDashboard.html">Analytics</a></li>
+                <li><a href="UserManagement.html">Users</a></li>
+                <li><a href="AdminInventory.html">Inventory</a></li>
+                <li><a href="ProductCatalog.html">Products</a></li>
+            </ul>
+            <div class="user-info">
+                <span class="admin-badge">ADMIN</span>
+                <span>Administrator</span>
+                <a href="AdminDahboard.html" class="btn btn-secondary">Dashboard</a>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Page Header -->
+        <div class="page-header">
+            <div>
+                <h1 class="page-title">Product Catalog Management</h1>
+                <p class="page-description">Add, edit, and manage products with pricing controls</p>
+            </div>
+            <div class="quick-actions">
+                <button class="btn btn-primary" onclick="showAddProductModal()">+ Add New Product</button>
+                <button class="btn btn-warning" onclick="exportProducts()">Export Catalog</button>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">156</div>
+                <div class="stat-label">Total Products</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">142</div>
+                <div class="stat-label">Active Products</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">8</div>
+                <div class="stat-label">Product Categories</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">Rs 245,890</div>
+                <div class="stat-label">Avg. Catalog Value</div>
+            </div>
+        </div>
+
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <div class="filter-row">
+                <div class="form-group">
+                    <label for="searchProduct">Search Products</label>
+                    <input type="text" id="searchProduct" placeholder="Search by name or SKU..." oninput="filterProducts()">
+                </div>
+                <div class="form-group">
+                    <label for="filterCategory">Filter by Category</label>
+                    <select id="filterCategory" onchange="filterProducts()">
+                        <option value="">All Categories</option>
+                        <option value="jams">Jams & Preserves</option>
+                        <option value="juice">Juices & Beverages</option>
+                        <option value="powder">Powders & Mixes</option>
+                        <option value="fresh">Fresh Produce</option>
+                        <option value="dried">Dried Fruits</option>
+                        <option value="snacks">Snacks</option>
+                        <option value="condiments">Condiments</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="filterStatus">Filter by Status</label>
+                    <select id="filterStatus" onchange="filterProducts()">
+                        <option value="">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="sortBy">Sort By</label>
+                    <select id="sortBy" onchange="sortProducts()">
+                        <option value="name-asc">Name A-Z</option>
+                        <option value="name-desc">Name Z-A</option>
+                        <option value="price-asc">Price Low-High</option>
+                        <option value="price-desc">Price High-Low</option>
+                        <option value="stock-asc">Stock Low-High</option>
+                        <option value="stock-desc">Stock High-Low</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Products Grid -->
+        <div class="products-grid" id="productsGrid">
+            <!-- Product Card 1 -->
+            <div class="product-card" data-category="jams" data-status="active">
+                <div class="product-image"><img src="Mango Jelly.png" alt="Mango Jelly"></div>
+                <div class="product-info">
+                    <div class="product-header">
+                        <div>
+                            <div class="product-name">Mango Jelly</div>
+                            <span class="product-category">Jams & Preserves</span>
+                        </div>
+                        <span class="status-active">Active</span>
+                    </div>
+                    <p class="product-description">Premium mango jelly made from fresh Ceylon mangoes</p>
+                    <div class="product-details">
+                        <div class="product-detail-row">
+                            <span class="detail-label">ID:</span>
+                            <span class="detail-value">PRD-001</span>
+                        </div>
+                        <div class="product-detail-row">
+                            <span class="detail-label">Price:</span>
+                            <span class="detail-value price-value">Rs 450.00</span>
+                        </div>
+                        <div class="product-detail-row">
+                            <span class="detail-label">Unit:</span>
+                            <span class="detail-value">100g pack</span>
+                        </div>
+                        <div class="product-detail-row">
+                            <span class="detail-label">Stock:</span>
+                            <span class="stock-badge stock-good">145 units</span>
+                        </div>
+                    </div>
+                    <div class="product-actions">
+                        <button class="btn btn-info btn-small" onclick="editProduct('PRD-001')">Edit</button>
+                        <button class="btn btn-warning btn-small" onclick="viewProduct('PRD-001')">View</button>
+                        <button class="btn btn-danger btn-small" onclick="deleteProduct('PRD-001')">Delete</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product Card 2 -->
+            <div class="product-card" data-category="juice" data-status="active">
+                <div class="product-image"><img src="Lime Mix.png" alt="Lime Mix"></div>
+                <div class="product-info">
+                    <div class="product-header">
+                        <div>
+                            <div class="product-name">Lime Mix Cordial</div>
+                            <span class="product-category">Juices & Beverages</span>
+                        </div>
+                        <span class="status-active">Active</span>
+                    </div>
+                    <p class="product-description">Refreshing lime cordial made from fresh lime extracts</p>
+                    <div class="product-details">
+                        <div class="product-detail-row">
+                            <span class="detail-label">ID:</span>
+                            <span class="detail-value">PRD-002</span>
+                        </div>
+                        <div class="product-detail-row">
+                            <span class="detail-label">Price:</span>
+                            <span class="detail-value price-value">Rs 380.00</span>
+                        </div>
+                        <div class="product-detail-row">
+                            <span class="detail-label">Unit:</span>
+                            <span class="detail-value">350ml bottle</span>
+                        </div>
+                        <div class="product-detail-row">
+                            <span class="detail-label">Stock:</span>
+                            <span class="stock-badge stock-good">223 units</span>
+                        </div>
+                    </div>
+                    <div class="product-actions">
+                        <button class="btn btn-info btn-small" onclick="editProduct('PRD-002')">Edit</button>
+                        <button class="btn btn-warning btn-small" onclick="viewProduct('PRD-002')">View</button>
+                        <button class="btn btn-danger btn-small" onclick="deleteProduct('PRD-002')">Delete</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product Card 3 -->
+            <div class="product-card" data-category="juice" data-status="active">
+                <div class="product-image"><img src="Wood Apple Juice.png" alt="Wood Apple Juice"></div>
+                <div class="product-info">
+                    <div class="product-header">
+                        <div>
+                            <div class="product-name">Wood Apple Juice</div>
+                            <span class="product-category">Juices & Beverages</span>
+                        </div>
+                        <span class="status-active">Active</span>
+                    </div>
+                    <p class="product-description">Traditional wood apple juice, rich in nutrients</p>
+                    <div class="product-details">
+                        <div class="product-detail-row">
+                            <span class="detail-label">ID:</span>
+                            <span class="detail-value">PRD-003</span>
+                        </div>
+                        <div class="product-detail-row">
+                            <span class="detail-label">Price:</span>
+                            <span class="detail-value price-value">Rs 420.00</span>
+                        </div>
+                        <div class="product-detail-row">
+                            <span class="detail-label">Unit:</span>
+                            <span class="detail-value">200ml bottle</span>
+                        </div>
+                        <div class="product-detail-row">
+                            <span class="detail-label">Stock:</span>
+                            <span class="stock-badge stock-warning">35 units</span>
+                        </div>
+                    </div>
+                    <div class="product-actions">
+                        <button class="btn btn-info btn-small" onclick="editProduct('PRD-003')">Edit</button>
+                        <button class="btn btn-warning btn-small" onclick="viewProduct('PRD-003')">View</button>
+                        <button class="btn btn-danger btn-small" onclick="deleteProduct('PRD-003')">Delete</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Product Card 4 -->
+            <div class="product-card" data-category="powder" data-status="active">
+                <div class="product-image"><img src="Custard powder.png" alt="Custard Powder"></div>
+                <div class="product-info">
+                    <div class="product-header">
+                        <div>
+                            <div class="product-name">Custard Powder</div>
+                            <span class="product-category">Powders & Mixes</span>
+                        </div>
+                        <span class="status-active">Active</span>
+                    </div>
+                    <p class="product-description">Premium quality vanilla custard powder</p>
+                    <div class="product-details">
+                        <div class="product-detail-row">
+                            <span class="detail-label">ID:</span>
+                            <span class="detail-value">PRD-004</span>
+                        </div>
+                        <div class="product-detail-row">
+                            <span class="detail-label">Price:</span>
+                            <span class="detail-value price-value">Rs 320.00</span>
+                        </div>
+                        <div class="product-detail-row">
+                            <span class="detail-label">Unit:</span>
+                            <span class="detail-value">100g pack</span>
+                        </div>
+                        <div class="product-detail-row">
+                            <span class="detail-label">Stock:</span>
+                            <span class="stock-badge stock-good">178 units</span>
+                        </div>
+                    </div>
+                    <div class="product-actions">
+                        <button class="btn btn-info btn-small" onclick="editProduct('PRD-004')">Edit</button>
+                        <button class="btn btn-warning btn-small" onclick="viewProduct('PRD-004')">View</button>
+                        <button class="btn btn-danger btn-small" onclick="deleteProduct('PRD-004')">Delete</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Add/Edit Product Modal -->
+    <div id="productModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modalTitle">Add New Product</h2>
+                <span class="close" onclick="closeProductModal()">&times;</span>
+            </div>
+            <form id="productForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="productName">Product Name *</label>
+                        <input type="text" id="productName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="productSKU">SKU Code *</label>
+                        <input type="text" id="productSKU" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="productCategory">Category *</label>
+                        <select id="productCategory" required>
+                            <option value="">Select Category</option>
+                            <option value="jams">Jams & Preserves</option>
+                            <option value="juice">Juices & Beverages</option>
+                            <option value="powder">Powders & Mixes</option>
+                            <option value="fresh">Fresh Produce</option>
+                            <option value="dried">Dried Fruits</option>
+                            <option value="snacks">Snacks</option>
+                            <option value="condiments">Condiments</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="productStatus">Status *</label>
+                        <select id="productStatus" required>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row full-width">
+                    <div class="form-group">
+                        <label for="productDescription">Description *</label>
+                        <textarea id="productDescription" required></textarea>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="productPrice">Price (Rs) *</label>
+                        <input type="number" id="productPrice" step="0.01" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="productUnit">Unit *</label>
+                        <input type="text" id="productUnit" placeholder="e.g., 500g, 1L, Per kg" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="productStock">Initial Stock Quantity *</label>
+                        <input type="number" id="productStock" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="productMinStock">Minimum Stock Level *</label>
+                        <input type="number" id="productMinStock" min="0" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="productSupplier">Supplier</label>
+                        <input type="text" id="productSupplier" placeholder="Supplier name">
+                    </div>
+                    <div class="form-group">
+                        <label for="productExpiry">Expiry Date</label>
+                        <input type="date" id="productExpiry">
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeProductModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Product Management Functions
+        function filterProducts() {
+            const searchTerm = document.getElementById('searchProduct').value.toLowerCase();
+            const categoryFilter = document.getElementById('filterCategory').value;
+            const statusFilter = document.getElementById('filterStatus').value;
+            
+            const cards = document.querySelectorAll('.product-card');
+            
+            cards.forEach(card => {
+                const name = card.querySelector('.product-name').textContent.toLowerCase();
+                const sku = card.querySelector('.detail-value').textContent.toLowerCase();
+                const category = card.dataset.category;
+                const status = card.dataset.status;
+                
+                const matchesSearch = !searchTerm || name.includes(searchTerm) || sku.includes(searchTerm);
+                const matchesCategory = !categoryFilter || category === categoryFilter;
+                const matchesStatus = !statusFilter || status === statusFilter;
+                
+                if (matchesSearch && matchesCategory && matchesStatus) {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        function sortProducts() {
+            const sortBy = document.getElementById('sortBy').value;
+            const grid = document.getElementById('productsGrid');
+            const cards = Array.from(grid.querySelectorAll('.product-card'));
+            
+            cards.sort((a, b) => {
+                if (sortBy.includes('name')) {
+                    const nameA = a.querySelector('.product-name').textContent;
+                    const nameB = b.querySelector('.product-name').textContent;
+                    return sortBy === 'name-asc' ? nameA.localeCompare(nameB) : nameB.localeCompare(nameA);
+                } else if (sortBy.includes('price')) {
+                    const priceA = parseFloat(a.querySelector('.price-value').textContent.replace(/[^0-9.]/g, ''));
+                    const priceB = parseFloat(b.querySelector('.price-value').textContent.replace(/[^0-9.]/g, ''));
+                    return sortBy === 'price-asc' ? priceA - priceB : priceB - priceA;
+                } else if (sortBy.includes('stock')) {
+                    const stockA = parseInt(a.querySelector('.stock-badge').textContent.replace(/[^0-9]/g, ''));
+                    const stockB = parseInt(b.querySelector('.stock-badge').textContent.replace(/[^0-9]/g, ''));
+                    return sortBy === 'stock-asc' ? stockA - stockB : stockB - stockA;
+                }
+            });
+            
+            cards.forEach(card => grid.appendChild(card));
+        }
+
+        function showAddProductModal() {
+            document.getElementById('modalTitle').textContent = 'Add New Product';
+            document.getElementById('productForm').reset();
+            document.getElementById('productModal').style.display = 'block';
+        }
+
+        function closeProductModal() {
+            document.getElementById('productModal').style.display = 'none';
+        }
+
+        function editProduct(sku) {
+            document.getElementById('modalTitle').textContent = 'Edit Product - ' + sku;
+            document.getElementById('productModal').style.display = 'block';
+            // In a real application, load product data here
+            alert('Edit mode for product: ' + sku + '\n\nProduct data would be loaded into the form.');
+        }
+
+        function viewProduct(sku) {
+            alert('Viewing detailed information for product: ' + sku + '\n\nA detailed view modal would open here with full product information, sales history, and analytics.');
+        }
+
+        function deleteProduct(sku) {
+            if (confirm('Are you sure you want to delete this product?\n\nProduct: ' + sku + '\n\nThis action cannot be undone.')) {
+                alert('Product ' + sku + ' deleted successfully!\n\nThe product has been removed from the catalog.');
+                // In a real application, this would delete from database
+            }
+        }
+
+        function exportProducts() {
+            alert('Exporting product catalog...\n\nAll products with pricing and inventory data would be exported as CSV/Excel file.');
+            console.log('Exporting products...');
+        }
+
+        // Handle form submission
+        document.getElementById('productForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const productData = {
+                name: document.getElementById('productName').value,
+                ID: document.getElementById('productSKU').value,
+                category: document.getElementById('productCategory').value,
+                status: document.getElementById('productStatus').value,
+                description: document.getElementById('productDescription').value,
+                price: document.getElementById('productPrice').value,
+                unit: document.getElementById('productUnit').value,
+                stock: document.getElementById('productStock').value,
+                minStock: document.getElementById('productMinStock').value,
+                supplier: document.getElementById('productSupplier').value,
+                expiry: document.getElementById('productExpiry').value
+            };
+            
+            alert('Product saved successfully!\n\nName: ' + productData.name + '\nID: ' + productData.sku + '\nPrice: Rs ' + productData.price + '\n\nThe product has been added to the catalog.');
+            closeProductModal();
+            // In a real application, this would save to database and refresh the grid
+        });
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('productModal');
+            if (event.target == modal) {
+                closeProductModal();
+            }
+        }
+    </script>
+</body>
+</html>
+
+

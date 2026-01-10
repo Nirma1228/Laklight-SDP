@@ -1,0 +1,575 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Report - Laklight Food Products</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8f9fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, rgb(132, 213, 147) 0%, #4caf50 100%);
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+
+        .logo-img {
+            width: 40px;
+            height: auto;
+            margin-right: 10px;
+        }
+
+        .btn {
+            padding: 0.6rem 1.5rem;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #4caf50;
+        }
+
+        .btn-secondary:hover {
+            background: #f0f0f0;
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+
+        .page-header {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .page-header h1 {
+            color: #2e7d32;
+            margin-bottom: 0.5rem;
+        }
+
+        .page-header p {
+            color: #666;
+        }
+
+        /* Filters */
+        .filters-container {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .filter-group label {
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 0.6rem;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.95rem;
+        }
+
+        .btn-filter {
+            padding: 0.6rem 1.5rem;
+            background: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .btn-filter:hover {
+            background: #388e3c;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #2e7d32;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        /* Report Table */
+        .report-section {
+            background: white;
+            padding: 2rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .report-section h2 {
+            color: #2e7d32;
+            margin-bottom: 1.5rem;
+        }
+
+        .table-container {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        table th,
+        table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .loyalty-badge {
+            padding: 0.4rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .loyalty-platinum {
+            background: #e8eaf6;
+            color: #3f51b5;
+        }
+
+        .loyalty-gold {
+            background: #fff8e1;
+            color: #ff6f00;
+        }
+
+        .loyalty-silver {
+            background: #f5f5f5;
+            color: #616161;
+        }
+
+        .loyalty-bronze {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .status-badge {
+            padding: 0.4rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .status-active {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-inactive {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-action {
+            padding: 0.4rem 0.8rem;
+            background: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .btn-action:hover {
+            background: #388e3c;
+        }
+
+        .btn-export {
+            background: #2196f3;
+        }
+
+        .btn-export:hover {
+            background: #1976d2;
+        }
+
+        /* Footer */
+        .footer {
+            background: #1b5e20;
+            color: white;
+            padding: 2rem 0 1rem;
+            margin-top: 4rem;
+            text-align: center;
+        }
+
+        .footer-bottom {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(255,255,255,0.2);
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .filters-container {
+                grid-template-columns: 1fr;
+            }
+
+            table {
+                font-size: 0.9rem;
+            }
+
+            table th,
+            table td {
+                padding: 0.6rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <nav class="nav-container">
+            <div class="logo">
+                <img src="Logo.png" alt="Laklight Food Products" class="logo-img">
+                Laklight Food Products
+            </div>
+            <a href="GenerateReports.html" class="btn btn-secondary">Back to Reports</a>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1>Customer Report</h1>
+            <p>Comprehensive analysis of customer behavior, order patterns, and loyalty metrics</p>
+        </div>
+
+        <!-- Filters -->
+        <div class="filters-container">
+            <div class="filter-group">
+                <label for="statusFilter">Status</label>
+                <select id="statusFilter">
+                    <option value="all">All Status</option>
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="loyaltyFilter">Loyalty Tier</label>
+                <select id="loyaltyFilter">
+                    <option value="all">All Tiers</option>
+                    <option value="platinum">Platinum</option>
+                    <option value="gold">Gold</option>
+                    <option value="silver">Silver</option>
+                    <option value="bronze">Bronze</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label for="regionFilter">Region</label>
+                <select id="regionFilter">
+                    <option value="all">All Regions</option>
+                    <option value="colombo">Colombo</option>
+                    <option value="kandy">Kandy</option>
+                    <option value="galle">Galle</option>
+                    <option value="jaffna">Jaffna</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <button class="btn-filter" onclick="applyFilters()">Apply Filters</button>
+            </div>
+        </div>
+
+        <!-- Stats Summary -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number">1,248</div>
+                <div class="stat-label">Total Customers</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">1,156</div>
+                <div class="stat-label">Active Customers</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">LKR 45K</div>
+                <div class="stat-label">Avg Order Value</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">78%</div>
+                <div class="stat-label">Retention Rate</div>
+            </div>
+        </div>
+
+        <!-- Customer Table -->
+        <div class="report-section">
+            <h2>Customer Performance Details</h2>
+            <div class="action-buttons" style="margin-bottom: 1rem;">
+                <button class="btn-action btn-export" onclick="exportToExcel()">Export to Excel</button>
+                <button class="btn-action btn-export" onclick="exportToPDF()">Export to PDF</button>
+            </div>
+            
+            <div class="table-container">
+                <table id="customerTable">
+                    <thead>
+                        <tr>
+                            <th>Customer ID</th>
+                            <th>Customer Name</th>
+                            <th>Region</th>
+                            <th>Total Orders</th>
+                            <th>Total Spent</th>
+                            <th>Avg Order Value</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr data-status="active" data-loyalty="platinum">
+                            <td>CUST-001</td>
+                            <td>Asoka Perera</td>
+                            <td>Colombo</td>
+                            <td>45</td>
+                            <td>LKR 285,000</td>
+                            <td>LKR 63,333</td>
+                            <td><span class="status-badge status-active">Active</span></td>
+                            <td><button class="btn-action" onclick="viewDetails('CUST-001')">View</button></td>
+                        </tr>
+                        <tr data-status="active" data-loyalty="gold">
+                            <td>CUST-002</td>
+                            <td>Nimal Silva</td>
+                            <td>Kandy</td>
+                            <td>32</td>
+                            <td>LKR 178,000</td>
+                            <td>LKR 55,625</td>
+                            <td><span class="status-badge status-active">Active</span></td>
+                            <td><button class="btn-action" onclick="viewDetails('CUST-002')">View</button></td>
+                        </tr>
+                        <tr data-status="active" data-loyalty="platinum">
+                            <td>CUST-003</td>
+                            <td>Kasun Fernando</td>
+                            <td>Colombo</td>
+                            <td>58</td>
+                            <td>LKR 325,000</td>
+                            <td>LKR 56,034</td>
+                            <td><span class="status-badge status-active">Active</span></td>
+                            <td><button class="btn-action" onclick="viewDetails('CUST-003')">View</button></td>
+                        </tr>
+                        <tr data-status="active" data-loyalty="silver">
+                            <td>CUST-004</td>
+                            <td>Dilini Jayawardena</td>
+                            <td>Galle</td>
+                            <td>18</td>
+                            <td>LKR 82,500</td>
+                            <td>LKR 45,833</td>
+                            <td><span class="status-badge status-active">Active</span></td>
+                            <td><button class="btn-action" onclick="viewDetails('CUST-004')">View</button></td>
+                        </tr>
+                        <tr data-status="inactive" data-loyalty="bronze">
+                            <td>CUST-005</td>
+                            <td>Rajitha Wickramasinghe</td>
+                            <td>Jaffna</td>
+                            <td>8</td>
+                            <td>LKR 35,000</td>
+                            <td>LKR 43,750</td>
+                            <td><span class="status-badge status-inactive">Inactive</span></td>
+                            <td><button class="btn-action" onclick="viewDetails('CUST-005')">View</button></td>
+                        </tr>
+                        <tr data-status="active" data-loyalty="gold">
+                            <td>CUST-006</td>
+                            <td>Samantha Kumara</td>
+                            <td>Colombo</td>
+                            <td>28</td>
+                            <td>LKR 145,000</td>
+                            <td>LKR 51,786</td>
+                            <td><span class="status-badge status-active">Active</span></td>
+                            <td><button class="btn-action" onclick="viewDetails('CUST-006')">View</button></td>
+                        </tr>
+                        <tr data-status="active" data-loyalty="silver">
+                            <td>CUST-007</td>
+                            <td>Priyanka De Silva</td>
+                            <td>Kandy</td>
+                            <td>22</td>
+                            <td>LKR 98,000</td>
+                            <td>LKR 44,545</td>
+                            <td><span class="status-badge status-active">Active</span></td>
+                            <td><button class="btn-action" onclick="viewDetails('CUST-007')">View</button></td>
+                        </tr>
+                        <tr data-status="active" data-loyalty="bronze">
+                            <td>CUST-008</td>
+                            <td>Chaminda Ranasinghe</td>
+                            <td>Galle</td>
+                            <td>12</td>
+                            <td>LKR 52,000</td>
+                            <td>LKR 43,333</td>
+                            <td><span class="status-badge status-active">Active</span></td>
+                            <td><button class="btn-action" onclick="viewDetails('CUST-008')">View</button></td>
+                        </tr>
+                        <tr data-status="active" data-loyalty="platinum">
+                            <td>CUST-009</td>
+                            <td>Malini Gunasekara</td>
+                            <td>Colombo</td>
+                            <td>52</td>
+                            <td>LKR 298,000</td>
+                            <td>LKR 57,308</td>
+                            <td><span class="status-badge status-active">Active</span></td>
+                            <td><button class="btn-action" onclick="viewDetails('CUST-009')">View</button></td>
+                        </tr>
+                        <tr data-status="active" data-loyalty="gold">
+                            <td>CUST-010</td>
+                            <td>Ruwan Wijesinghe</td>
+                            <td>Kandy</td>
+                            <td>35</td>
+                            <td>LKR 168,000</td>
+                            <td>LKR 48,000</td>
+                            <td><span class="status-badge status-active">Active</span></td>
+                            <td><button class="btn-action" onclick="viewDetails('CUST-010')">View</button></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-bottom">
+            <p>&copy; 2025 Laklight Food Products. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script>
+        function applyFilters() {
+            const status = document.getElementById('statusFilter').value;
+            const loyalty = document.getElementById('loyaltyFilter').value;
+            const region = document.getElementById('regionFilter').value;
+            
+            const rows = document.querySelectorAll('#customerTable tbody tr');
+            
+            rows.forEach(row => {
+                let showRow = true;
+                
+                // Status filter
+                if (status !== 'all' && row.getAttribute('data-status') !== status) {
+                    showRow = false;
+                }
+                
+                // Loyalty filter
+                if (loyalty !== 'all' && row.getAttribute('data-loyalty') !== loyalty) {
+                    showRow = false;
+                }
+                
+                // Region filter
+                if (region !== 'all') {
+                    const rowRegion = row.cells[2].textContent.toLowerCase();
+                    if (!rowRegion.includes(region)) {
+                        showRow = false;
+                    }
+                }
+                
+                row.style.display = showRow ? '' : 'none';
+            });
+        }
+
+        function viewDetails(customerId) {
+            alert('Viewing details for ' + customerId + '\n\nThis would open a detailed customer profile page.');
+        }
+
+        function exportToExcel() {
+            alert('Exporting Customer Report to Excel...\n\nFile: Customer_Report_' + new Date().toISOString().split('T')[0] + '.xlsx');
+        }
+
+        function exportToPDF() {
+            alert('Exporting Customer Report to PDF...\n\nFile: Customer_Report_' + new Date().toISOString().split('T')[0] + '.pdf');
+        }
+    </script>
+</body>
+</html>
+

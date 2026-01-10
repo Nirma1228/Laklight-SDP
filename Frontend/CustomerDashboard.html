@@ -1,0 +1,1844 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Dashboard - Laklights Food Products</title>
+    <!-- Add Font Awesome CDN -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+
+        /* Header - Same as home page */
+        .header {
+            background: linear-gradient(135deg, rgb(132, 213, 147) 0%, #4caf50 100%);
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem;
+        }
+
+        .logo-img {
+            width: 40px;  
+            height: auto; 
+            margin-right: 10px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-menu a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .nav-menu a:hover {
+            color: #c8e6c9;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .cart-icon {
+            position: relative;
+            font-size: 1.3rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 8px;
+            transition: background-color 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+        }
+
+        .cart-icon i {
+            color: white;
+        }
+
+        #cart-count {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ff9800;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        /* Shopping Cart Sidebar */
+        .cart-sidebar {
+            position: fixed;
+            top: 0;
+            right: -400px;
+            width: 400px;
+            height: 100vh;
+            background: white;
+            box-shadow: -5px 0 15px rgba(0,0,0,0.1);
+            z-index: 2000;
+            transition: right 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .cart-sidebar.open {
+            right: 0;
+        }
+
+        .cart-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1500;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .cart-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .cart-header {
+            padding: 2rem;
+            border-bottom: 1px solid #e0e0e0;
+            background: linear-gradient(135deg, rgb(132, 213, 147) 0%, #4caf50 100%);
+            color: white;
+        }
+
+        .cart-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .cart-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            border-radius: 50%;
+            transition: background-color 0.3s ease;
+        }
+
+        .cart-close:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .cart-content {
+            padding: 2rem;
+        }
+
+        /* Search and Filter Styles */
+        .search-container {
+            background: #fff;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .search-box {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 0.8rem 1.2rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #4caf50;
+        }
+
+        .btn-search {
+            padding: 0.8rem 1.5rem;
+            background: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-search:hover {
+            background: #388e3c;
+        }
+
+        .filter-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .filter-select {
+            padding: 0.5rem 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 150px;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #4caf50;
+        }
+
+        .cart-empty {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #666;
+        }
+
+        .cart-item {
+            display: flex;
+            gap: 1rem;
+            padding: 1rem 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .cart-item-image {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #81c784, #c8e6c9);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+
+        .cart-item-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .cart-item-details {
+            flex: 1;
+        }
+
+        .cart-item-name {
+            font-weight: bold;
+            margin-bottom: 0.25rem;
+        }
+
+        .cart-item-price {
+            color: #4caf50;
+            font-weight: bold;
+        }
+
+        .cart-item-quantity {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .quantity-btn {
+            width: 30px;
+            height: 30px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+        }
+
+        .quantity-btn:hover {
+            background: #f5f5f5;
+        }
+
+        .cart-summary {
+            padding: 1rem 0;
+            border-top: 2px solid #e0e0e0;
+            margin-top: 1rem;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+
+        .summary-total {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #2e7d32;
+        }
+
+        .wholesale-notice {
+            background: #e8f5e9;
+            border: 1px solid #4caf50;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+
+        .checkout-section {
+            padding: 1rem 0;
+        }
+
+        .btn {
+            padding: 0.7rem 1.5rem;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #ff9800;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #f57c00;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: white;
+            border: 2px solid white;
+        }
+
+        .btn-secondary:hover {
+            background: white;
+            color: #2e7d32;
+        }
+
+        /* Dashboard Content */
+        .dashboard {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+
+        .welcome-section {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .welcome-title {
+            font-size: 2rem;
+            color: #2e7d32;
+            margin-bottom: 0.5rem;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .dashboard-card {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #4caf50, #81c784);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            color: #2e7d32;
+        }
+
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1rem;
+        }
+
+        .product-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: transform 0.3s ease;
+        }
+
+        .product-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .product-img {
+            width: 100%;
+            height: 150px;
+            background: linear-gradient(135deg, #81c784, #c8e6c9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: white;
+        }
+
+        .product-info {
+            padding: 1rem;
+        }
+
+        .product-name {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .product-price {
+            color: #4caf50;
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .product-description {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+        }
+
+        .product-availability {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .availability-in-stock {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .availability-low-stock {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .availability-out-of-stock {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .product-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .quantity-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .quantity-input {
+            width: 50px;
+            text-align: center;
+            padding: 0.3rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            -moz-appearance: textfield;
+        }
+
+        .quantity-input::-webkit-outer-spin-button,
+        .quantity-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .btn-small {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+            flex: 1;
+        }
+
+        .order-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .order-details {
+            flex: 1;
+        }
+
+        .order-id {
+            font-weight: bold;
+            color: #2e7d32;
+        }
+
+        .order-status {
+            display: inline-block;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-processing {
+            background: #cce5ff;
+            color: #004085;
+        }
+
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        /* Footer - Same as home page */
+        .footer {
+            background: #1b5e20;
+            color: white;
+            padding: 3rem 0 1rem;
+            margin-top: 4rem;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            padding: 0 2rem;
+        }
+
+        .footer-section h4 {
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+        }
+
+        .footer-section p, .footer-section a {
+            color: #c8e6c9;
+            text-decoration: none;
+            line-height: 1.8;
+        }
+
+        .footer-section a:hover {
+            color: white;
+        }
+
+        .footer-bottom {
+            border-top: 1px solid #2e7d32;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            text-align: center;
+            color: #c8e6c9;
+        }
+
+        /* Edit Profile Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background: white;
+            margin: 3rem auto;
+            padding: 0;
+            border-radius: 15px;
+            max-width: 700px;
+            box-shadow: 0 5px 30px rgba(0,0,0,0.3);
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, rgb(132, 213, 147) 0%, #4caf50 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            border-radius: 15px 15px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .close {
+            font-size: 2rem;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            background: none;
+            border: none;
+            line-height: 1;
+        }
+
+        .close:hover {
+            transform: scale(1.2);
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .profile-section {
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            color: #2e7d32;
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #4caf50;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .modal-footer {
+            padding: 1.5rem 2rem;
+            background: #f8f9fa;
+            border-radius: 0 0 15px 15px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+        }
+
+        .btn-cancel {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-cancel:hover {
+            background: #5a6268;
+        }
+
+        .btn-save {
+            background: #4caf50;
+            color: white;
+        }
+
+        .btn-save:hover {
+            background: #388e3c;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-menu {
+                display: none;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .products-grid {
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            }
+
+            .modal-content {
+                margin: 1rem;
+                max-width: calc(100% - 2rem);
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .user-info span {
+                display: none;
+            }
+
+            .logo {
+                font-size: 1.2rem;
+            }
+
+            .logo-img {
+                width: 30px;
+            }
+
+            .nav-container {
+                padding: 0 1rem;
+            }
+
+            .btn {
+                padding: 0.5rem 1rem;
+                font-size: 0.85rem;
+            }
+
+            .welcome-section {
+                padding: 1.5rem;
+            }
+
+            .welcome-title {
+                font-size: 1.5rem;
+            }
+
+            .dashboard-card {
+                padding: 1rem;
+            }
+
+            .card-title {
+                font-size: 1.2rem;
+            }
+
+            .product-card {
+                padding: 1rem;
+            }
+
+            .cart-sidebar {
+                width: 100%;
+                right: -100%;
+            }
+
+            .cart-sidebar.open {
+                right: 0;
+            }
+
+            .modal-body {
+                padding: 1rem;
+            }
+
+            .modal-header {
+                padding: 1rem;
+            }
+
+            .modal-footer {
+                padding: 1rem;
+                flex-direction: column;
+            }
+
+            .modal-footer .btn {
+                width: 100%;
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .products-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-card {
+                padding: 1rem;
+            }
+
+            .cart-icon {
+                width: 35px;
+                height: 35px;
+            }
+
+            .product-name {
+                font-size: 1rem;
+            }
+
+            .search-container {
+                flex-direction: column;
+            }
+
+            .filter-options {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <nav class="nav-container">
+            <a href="Home.html" style="text-decoration: none; color: white;">
+                <div class="logo">
+                    <img src='Logo.png' alt="Laklights Food Products" class="logo-img">
+                    Laklights Food Products
+                </div>
+            </a>
+            <ul class="nav-menu">
+                <li><a href="LoggedHome.html">Dashboard</a></li>
+                <li><a href="#products">Products</a></li>
+                <li><a href="#orders">My Orders</a></li>
+                <li><a href="#profile">Profile</a></li>
+            </ul>
+            <div class="user-info">
+                <div class="cart-icon" onclick="toggleCart()">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span id="cart-count">0</span>
+                </div>
+                <span>Welcome, Asoka Perera</span>
+                <button class="btn btn-primary" onclick="openEditProfile()">Edit Profile</button>
+                <a href="Home.html" class="btn btn-secondary">Logout</a>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Dashboard Content -->
+    <main class="dashboard">
+        <!-- Welcome Section -->
+        <section class="welcome-section">
+            <h1 class="welcome-title">Customer Dashboard</h1>
+            <p>Welcome to your Laklights Food Products account. Browse our premium cordials, jams, and sauces with automatic wholesale discounts for bulk orders.</p>
+        </section>
+
+        <!-- Dashboard Grid -->
+        <div class="dashboard-grid">
+            <!-- Recent Orders -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <div class="card-icon"></div>
+                    <h2 class="card-title">Recent Orders</h2>
+                </div>
+                <div id="recent-orders">
+                    <div class="order-item">
+                        <div class="order-details">
+                            <div class="order-id">Order #O001</div>
+                            <div>15x Fresh Mango Products</div>
+                            <div>Total: LKR 3,375.00 (10% discount applied)</div>
+                        </div>
+                        <span class="order-status status-processing">Processing</span>
+                    </div>
+                    <div class="order-item">
+                        <div class="order-details">
+                            <div class="order-id">Order #O002</div>
+                            <div>8x Mixed Jam Collection</div>
+                            <div>Total: LKR 2,400.00</div>
+                        </div>
+                        <a href="Feedback.html" class="order-status status-completed">Delivered</a>
+                    </div>
+                </div>
+                <a href="#orders" class="btn btn-primary">View All Orders</a>
+            </div>
+
+            <!-- Account Summary -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <div class="card-icon"></div>
+                    <h2 class="card-title">Account Summary</h2>
+                </div>
+                <div>
+                    <p><strong>Customer ID:</strong> C001</p>
+                    <p><strong>Total Orders:</strong> 12</p>
+                    <p><strong>Total Spent:</strong> LKR 45,500.00</p>
+                    <p><strong>Wholesale Discounts Earned:</strong> LKR 4,550.00</p>
+                    <p><strong>Member Since:</strong> January 2025</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Featured Products -->
+        <div class="dashboard-card">
+            <div class="card-header">
+                <div class="card-icon"></div>
+                <h2 class="card-title">Featured Products</h2>
+            </div>
+            
+            <!-- Featured Products Search -->
+            <div class="search-container">
+                <div class="search-box">
+                    <input type="text" class="search-input" id="featured-search" placeholder="Search featured products...">
+                    <button class="btn-search" onclick="searchFeaturedProducts()">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                </div>
+                <div class="filter-options">
+                    <select class="filter-select" id="featured-category">
+                        <option value="">All Categories</option>
+                        <option value="fruits">Fresh Fruits</option>
+                        <option value="juice">Fruit Juice</option>
+                        <option value="jam">Fruit Jam</option>
+                        <option value="preserves">Preserves</option>
+                    </select>
+                    <select class="filter-select" id="featured-sort">
+                        <option value="">Sort By</option>
+                        <option value="price-low">Price: Low to High</option>
+                        <option value="price-high">Price: High to Low</option>
+                        <option value="popular">Most Popular</option>
+                        <option value="newest">Newest First</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="no-results" id="featured-no-results">No featured products found matching your criteria.</div>
+            
+            <div class="products-grid">
+                <div class="product-card" data-key="lime">
+                    <div class="product-img" style="height: 200px; padding: 1rem; display: flex; align-items: center; justify-content: center;">
+                        <img src="Lime Mix.png" alt="Lime Mix" style="height: 100%; width: auto; object-fit: contain; border-radius: 8px;">
+                    </div>
+                    <div class="product-info">
+                        <div class="product-name">Lime Mix</div>
+                        <div class="product-price">LKR 150.00</div>
+                        <div class="product-description">Refreshing lime cordial made from fresh lime extracts. Perfect for mixing with water or soda. 350ml bottle.</div>
+                        <div class="product-availability availability-in-stock">In Stock</div>
+                        <div class="product-actions">
+                            <div class="quantity-controls">
+                                <button class="quantity-btn" onclick="updateCardQuantity(this, -1)">-</button>
+                                <input type="number" class="quantity-input" value="1" min="1" max="99">
+                                <button class="quantity-btn" onclick="updateCardQuantity(this, 1)">+</button>
+                            </div>
+                            <button class="btn btn-primary btn-small">Add to Cart</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="product-card" data-key="woodapple">
+                    <div class="product-img" style="height: 200px; padding: 1rem; display: flex; align-items: center; justify-content: center;">
+                        <img src="Wood Apple Juice.png" alt="Wood Apple Juice" style="height: 100%; width: auto; object-fit: contain; border-radius: 8px;">
+                    </div>
+                    <div class="product-info">
+                        <div class="product-name">Wood Apple Juice</div>
+                        <div class="product-price">LKR 100.00</div>
+                        <div class="product-description">Traditional Sri Lankan wood apple juice rich in nutrients. Naturally sweet and tangy. 200ml liter bottle.</div>
+                        <div class="product-availability availability-in-stock">In Stock</div>
+                        <div class="product-actions">
+                            <div class="quantity-controls">
+                                <button class="quantity-btn" onclick="updateCardQuantity(this, -1)">-</button>
+                                <input type="number" class="quantity-input" value="1" min="1" max="99">
+                                <button class="quantity-btn" onclick="updateCardQuantity(this, 1)">+</button>
+                            </div>
+                            <button class="btn btn-primary btn-small">Add to Cart</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="product-card" data-key="mangojelly">
+                    <div class="product-img" style="height: 200px; padding: 1rem; display: flex; align-items: center; justify-content: center;">
+                        <img src="Mango Jelly.png" alt="Mango Jelly" style="height: 100%; width: auto; object-fit: contain; border-radius: 8px;">
+                    </div>
+                    <div class="product-info">
+                        <div class="product-name">Mango Jelly</div>
+                        <div class="product-price">LKR 200.00</div>
+                        <div class="product-description">Premium mango jelly made from fresh mangoes. Great for desserts and breakfast spreads. 100g pack.</div>
+                        <div class="product-availability availability-out-of-stock">Out of Stock</div>
+                        <div class="product-actions">
+                            <div class="quantity-controls">
+                                <button class="quantity-btn" onclick="updateCardQuantity(this, -1)">-</button>
+                                <input type="number" class="quantity-input" value="1" min="1" max="99">
+                                <button class="quantity-btn" onclick="updateCardQuantity(this, 1)">+</button>
+                            </div>
+                            <button class="btn btn-primary btn-small">Add to Cart</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="product-card" data-key="custard">
+                    <div class="product-img" style="height: 200px; padding: 1rem; display: flex; align-items: center; justify-content: center;">
+                        <img src="Custard powder.png" alt="Custard powder" style="height: 100%; width: auto; object-fit: contain; border-radius: 8px;">
+                    </div>
+                    <div class="product-info">
+                        <div class="product-name">Custard powder</div>
+                        <div class="product-price">LKR 300.00</div>
+                        <div class="product-description">High-quality custard powder for delicious desserts. Rich vanilla flavor. Perfect for puddings and trifles. 100g pack.</div>
+                        <div class="product-availability availability-in-stock">In Stock</div>
+                        <div class="product-actions">
+                            <div class="quantity-controls">
+                                <button class="quantity-btn" onclick="updateCardQuantity(this, -1)">-</button>
+                                <input type="number" class="quantity-input" value="1" min="1" max="99">
+                                <button class="quantity-btn" onclick="updateCardQuantity(this, 1)">+</button>
+                            </div>
+                            <button class="btn btn-primary btn-small">Add to Cart</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div style="text-align: center; margin-top: 1.5rem;">
+                <a href="#products" class="btn btn-primary">View All Products</a>
+                <p style="margin-top: 0.5rem; color: #666; font-size: 0.9rem;">
+                    💡 Order 12+ pieces of any product to get automatic 10% wholesale discount!
+                </p>
+            </div>
+        </div>
+    </main>
+
+    <!-- Shopping Cart Sidebar -->
+    <div class="cart-overlay" onclick="toggleCart()"></div>
+    <div class="cart-sidebar" id="cart-sidebar">
+        <div class="cart-header">
+            <div class="cart-title">
+                Shopping Cart
+                <button class="cart-close" onclick="toggleCart()">×</button>
+            </div>
+        </div>
+        <div class="cart-content">
+            <div id="cart-items">
+                <div class="cart-empty">
+                    <p>Your cart is empty</p>
+                    <p>Add some delicious products to get started!</p>
+                </div>
+            </div>
+            
+            <div class="cart-summary" id="cart-summary" style="display: none;">
+                <div class="summary-row">
+                    <span>Subtotal:</span>
+                    <span id="cart-subtotal">LKR 0.00</span>
+                </div>
+                <div class="summary-row" id="discount-row" style="display: none;">
+                    <span>Wholesale Discount (10%):</span>
+                    <span id="cart-discount" style="color: #4caf50;">-LKR 0.00</span>
+                </div>
+                <div class="summary-row summary-total">
+                    <span>Total:</span>
+                    <span id="cart-total">LKR 0.00</span>
+                </div>
+                
+                <div class="wholesale-notice" id="wholesale-notice" style="display: none;">
+                    🎉 Congratulations! You've qualified for our 10% wholesale discount on bulk orders (12+ pieces)
+                </div>
+                
+                <div class="wholesale-notice" id="wholesale-progress" style="background: #fff3cd; border-color: #ffc107;">
+                    💡 Add <span id="items-needed">12</span> more items to qualify for 10% wholesale discount
+                </div>
+                
+                <div class="checkout-section">
+                    <button class="btn btn-primary checkout-btn" style="width: 100%; margin-bottom: 1rem;" onclick="openCheckoutModal()">
+                        Proceed to Checkout
+                    </button>
+                    <button class="btn btn-secondary" style="width: 100%;" onclick="continueShopping()">Continue Shopping</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Checkout Modal -->
+    <div id="checkoutModal" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h2 class="modal-title">Checkout - Delivery Details</h2>
+                <span class="close" onclick="closeCheckoutModal()">&times;</span>
+            </div>
+            <form id="checkoutForm" onsubmit="submitCheckout(event)">
+                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label for="firstName">First Name *</label>
+                        <input type="text" id="firstName" required placeholder="Enter first name">
+                    </div>
+                    <div class="form-group">
+                        <label for="lastName">Last Name *</label>
+                        <input type="text" id="lastName" required placeholder="Enter last name">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="deliveryAddress">Delivery Address *</label>
+                    <textarea id="deliveryAddress" required placeholder="Enter full delivery address" rows="3" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px; font-family: inherit;"></textarea>
+                </div>
+                
+                <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label for="contactNumber">Contact Number *</label>
+                        <input type="tel" id="contactNumber" required placeholder="07XXXXXXXX" pattern="[0-9]{10}">
+                    </div>
+                    <div class="form-group">
+                        <label for="postalCode">Postal Code *</label>
+                        <input type="text" id="postalCode" required placeholder="Enter postal code" pattern="[0-9]{5}">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="orderNotes">Order Notes (Optional)</label>
+                    <textarea id="orderNotes" placeholder="Any special instructions for delivery?" rows="2" style="width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 8px; font-family: inherit;"></textarea>
+                </div>
+                
+                <div class="modal-actions" style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                    <button type="button" class="btn btn-secondary" onclick="closeCheckoutModal()" style="flex: 1;">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Continue to Payment</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>Laklight Food Products</h4>
+                <p>Gokaralla Road, Kadulawa, Ibbagamuwa</p>
+                <p>Phone: 0721267405</p>
+                <p>Contact: Radika Lakmali</p>
+            </div>
+            <div class="footer-section">
+                <h4>For Customers</h4>
+                <p><a href="#products">Order Products</a></p>
+                <p><a href="#orders">Track Orders</a></p>
+                <p><a href="#profile">My Account</a></p>
+                <p><a href="#feedback">Product Feedback</a></p>
+            </div>
+            <div class="footer-section">
+                <h4>For Suppliers</h4>
+                <p><a href="/supplier/register">Supplier Registration</a></p>
+                <p><a href="/supplier/materials">Submit Fruit Details</a></p>
+                <p><a href="/supplier/pricing">Price Quotations</a></p>
+                <p><a href="/supplier/status">Application Status</a></p>
+            </div>
+            <div class="footer-section">
+                <h4>Manufacturing System</h4>
+                <p><a href="#features">E-commerce Platform</a></p>
+                <p><a href="#features">Inventory Management</a></p>
+                <p><a href="#features">Supplier Portal</a></p>
+                <p><a href="#features">Production Analytics</a></p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 Laklight Food Products. All rights reserved. | Developed by Nirma Bandara</p>
+        </div>
+    </footer>
+
+    <!-- Edit Profile Modal -->
+    <div id="editProfileModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Edit Profile</h2>
+                <button class="close" onclick="closeEditProfile()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="profileForm">
+                    <!-- Personal Information Section -->
+                    <div class="profile-section">
+                        <h3 class="section-title">Personal Information</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="firstName">First Name *</label>
+                                <input type="text" id="firstName" value="Asoka" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="lastName">Last Name *</label>
+                                <input type="text" id="lastName" value="Perera" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="email">Email Address *</label>
+                                <input type="email" id="email" value="asoka.perera@email.com" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="phone">Phone Number *</label>
+                                <input type="tel" id="phone" value="+94 71 234 5678" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Delivery Address Section -->
+                    <div class="profile-section">
+                        <h3 class="section-title">Delivery Address</h3>
+                        <div class="form-group">
+                            <label for="address">Street Address *</label>
+                            <input type="text" id="address" value="123 Main Street" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="city">City *</label>
+                                <input type="text" id="city" value="Colombo" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="postalCode">Postal Code *</label>
+                                <input type="text" id="postalCode" value="00100" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="district">District *</label>
+                            <select id="district" required>
+                                <option value="">Select District</option>
+                                <option value="colombo" selected>Colombo</option>
+                                <option value="gampaha">Gampaha</option>
+                                <option value="kalutara">Kalutara</option>
+                                <option value="kandy">Kandy</option>
+                                <option value="matale">Matale</option>
+                                <option value="nuwara-eliya">Nuwara Eliya</option>
+                                <option value="galle">Galle</option>
+                                <option value="matara">Matara</option>
+                                <option value="hambantota">Hambantota</option>
+                                <option value="jaffna">Jaffna</option>
+                                <option value="kilinochchi">Kilinochchi</option>
+                                <option value="mannar">Mannar</option>
+                                <option value="vavuniya">Vavuniya</option>
+                                <option value="mullaitivu">Mullaitivu</option>
+                                <option value="batticaloa">Batticaloa</option>
+                                <option value="ampara">Ampara</option>
+                                <option value="trincomalee">Trincomalee</option>
+                                <option value="kurunegala">Kurunegala</option>
+                                <option value="puttalam">Puttalam</option>
+                                <option value="anuradhapura">Anuradhapura</option>
+                                <option value="polonnaruwa">Polonnaruwa</option>
+                                <option value="badulla">Badulla</option>
+                                <option value="monaragala">Monaragala</option>
+                                <option value="ratnapura">Ratnapura</option>
+                                <option value="kegalle">Kegalle</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Account Preferences Section -->
+                    <div class="profile-section">
+                        <h3 class="section-title">Account Preferences</h3>
+                        <div class="form-group">
+                            <label for="notifications">Email Notifications</label>
+                            <select id="notifications">
+                                <option value="all" selected>All Notifications</option>
+                                <option value="orders">Order Updates Only</option>
+                                <option value="promotions">Promotions Only</option>
+                                <option value="none">None</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="language">Preferred Language</label>
+                            <select id="language">
+                                <option value="en" selected>English</option>
+                                <option value="si">Sinhala</option>
+                                <option value="ta">Tamil</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-cancel" onclick="closeEditProfile()">Cancel</button>
+                <button class="btn btn-save" onclick="saveProfile()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Edit Profile Modal Functions
+        function openEditProfile() {
+            document.getElementById('editProfileModal').style.display = 'block';
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        }
+
+        function closeEditProfile() {
+            document.getElementById('editProfileModal').style.display = 'none';
+            document.body.style.overflow = 'auto'; // Restore scrolling
+        }
+
+        function saveProfile() {
+            // Get form values
+            const firstName = document.getElementById('firstName').value;
+            const lastName = document.getElementById('lastName').value;
+            const email = document.getElementById('email').value;
+            const phone = document.getElementById('phone').value;
+            const businessName = document.getElementById('businessName').value;
+            const businessType = document.getElementById('businessType').value;
+            const address = document.getElementById('address').value;
+            const city = document.getElementById('city').value;
+            const postalCode = document.getElementById('postalCode').value;
+            const district = document.getElementById('district').value;
+
+            // Validate required fields
+            if (!firstName || !lastName || !email || !phone || !address || !city || !postalCode || !district) {
+                alert('Please fill in all required fields marked with *');
+                return;
+            }
+
+            // In a real application, this would send data to the server
+            const profileData = {
+                firstName,
+                lastName,
+                email,
+                phone,
+                businessName,
+                businessType,
+                address,
+                city,
+                postalCode,
+                district,
+                notifications: document.getElementById('notifications').value,
+                language: document.getElementById('language').value
+            };
+
+            console.log('Profile data to save:', profileData);
+
+            // Update the welcome message with the new name
+            const userName = `${firstName} ${lastName}`;
+            document.querySelector('.user-info span').textContent = `Welcome, ${userName}`;
+
+            // Show success message
+            alert('Profile updated successfully!\n\nYour changes have been saved.');
+            
+            // Close the modal
+            closeEditProfile();
+        }
+
+        // Close modal when clicking outside of it
+        window.onclick = function(event) {
+            const modal = document.getElementById('editProfileModal');
+            if (event.target === modal) {
+                closeEditProfile();
+            }
+        }
+
+        // Search and filter functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const searchInput = document.getElementById('product-search');
+            const categoryFilter = document.getElementById('category-filter');
+            const priceFilter = document.getElementById('price-filter');
+            const sortFilter = document.getElementById('sort-filter');
+
+            // Add event listeners for real-time filtering
+            searchInput.addEventListener('input', debounce(searchProducts, 300));
+            categoryFilter.addEventListener('change', searchProducts);
+            priceFilter.addEventListener('change', searchProducts);
+            sortFilter.addEventListener('change', searchProducts);
+        });
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        function searchProducts() {
+            const searchTerm = document.getElementById('product-search').value.toLowerCase();
+            const category = document.getElementById('category-filter').value;
+            const priceRange = document.getElementById('price-filter').value;
+            const sortBy = document.getElementById('sort-filter').value;
+            const products = document.querySelectorAll('.product-card');
+
+            let visibleProducts = Array.from(products);
+
+            // Filter by search term
+            if (searchTerm) {
+                visibleProducts = visibleProducts.filter(product => {
+                    const name = product.querySelector('.product-name').textContent.toLowerCase();
+                    return name.includes(searchTerm);
+                });
+            }
+
+            // Filter by category
+            if (category) {
+                visibleProducts = visibleProducts.filter(product => {
+                    return product.dataset.category === category;
+                });
+            }
+
+            // Filter by price range
+            if (priceRange) {
+                visibleProducts = visibleProducts.filter(product => {
+                    const price = parseFloat(product.dataset.price);
+                    const [min, max] = priceRange.split('-');
+                    if (max === '+') {
+                        return price >= parseFloat(min);
+                    }
+                    return price >= parseFloat(min) && price <= parseFloat(max);
+                });
+            }
+
+            // Sort products
+            if (sortBy) {
+                visibleProducts.sort((a, b) => {
+                    if (sortBy === 'price-low') {
+                        return parseFloat(a.dataset.price) - parseFloat(b.dataset.price);
+                    } else if (sortBy === 'price-high') {
+                        return parseFloat(b.dataset.price) - parseFloat(a.dataset.price);
+                    } else if (sortBy === 'name-asc') {
+                        return a.querySelector('.product-name').textContent.localeCompare(b.querySelector('.product-name').textContent);
+                    } else if (sortBy === 'name-desc') {
+                        return b.querySelector('.product-name').textContent.localeCompare(a.querySelector('.product-name').textContent);
+                    }
+                });
+            }
+
+            // Show/hide products
+            products.forEach(product => product.style.display = 'none');
+            visibleProducts.forEach(product => product.style.display = '');
+
+            // Show no results message if needed
+            const noResults = document.querySelector('.no-results');
+            if (visibleProducts.length === 0) {
+                noResults.style.display = 'block';
+            } else {
+                noResults.style.display = 'none';
+            }
+        }
+
+        // Shopping cart functionality (persisted)
+        const CART_KEY = 'laklight_customer_cart_v1';
+        let cart = JSON.parse(localStorage.getItem(CART_KEY) || '[]');
+
+        // Product data
+        const products = {
+            'lime': { name: 'Lime Mix', price: 150.00, image: 'Lime Mix.png', emoji: '🍋' },
+            'woodapple': { name: 'Wood Apple Juice', price: 100.00, image: 'Wood Apple Juice.png', emoji: '🧃' },
+            'mangojelly': { name: 'Mango Jelly', price: 200.00, image: 'Mango Jelly.png', emoji: '🥭' },
+            'custard': { name: 'Custard powder', price: 300.00, image: 'Custard powder.png', emoji: '🥣' }
+        };
+
+        // Toggle cart sidebar
+        function toggleCart() {
+            const sidebar = document.getElementById('cart-sidebar');
+            const overlay = document.querySelector('.cart-overlay');
+            
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('open');
+        }
+
+        // Add product to cart (reads quantity from the product card)
+        function addToCart(productKey, qty = 1) {
+            const product = products[productKey];
+            if (!product) return;
+
+            const existingItem = cart.find(item => item.key === productKey);
+            if (existingItem) {
+                existingItem.quantity += qty;
+            } else {
+                cart.push({ 
+                    key: productKey, 
+                    name: product.name, 
+                    price: product.price, 
+                    image: product.image,
+                    emoji: product.emoji, 
+                    quantity: qty 
+                });
+            }
+
+            persistCart();
+            renderCartUI();
+            showAddedToCartFeedback(product.name);
+        }
+
+        // Remove product from cart
+        function removeFromCart(productKey) {
+            cart = cart.filter(item => item.key !== productKey);
+            persistCart();
+            renderCartUI();
+        }
+
+        // Update product quantity
+        function updateQuantity(productKey, change, event) {
+            if (event) {
+                event.stopPropagation();
+            }
+            const item = cart.find(item => item.key === productKey);
+            if (item) {
+                item.quantity += change;
+                if (item.quantity <= 0) {
+                    removeFromCart(productKey);
+                } else {
+                    persistCart();
+                    renderCartUI();
+                }
+            }
+        }
+
+        // Update quantity on product card
+        function updateCardQuantity(button, change) {
+            const input = button.parentElement.querySelector('.quantity-input');
+            let value = parseInt(input.value) + change;
+            value = Math.max(1, Math.min(99, value)); // Limit between 1 and 99
+            input.value = value;
+        }
+
+        // Calculate totals
+        function calculateTotals() {
+            const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+            const qualifiesForDiscount = totalItems >= 12;
+            const discount = qualifiesForDiscount ? subtotal * 0.1 : 0;
+            const total = subtotal - discount;
+            
+            return { subtotal, totalItems, discount, total, qualifiesForDiscount };
+        }
+
+        // Update cart UI
+        function updateCartUI() {
+            const cartCount = document.getElementById('cart-count');
+            const cartItems = document.getElementById('cart-items');
+            const cartSummary = document.getElementById('cart-summary');
+            
+            const { subtotal, totalItems, discount, total, qualifiesForDiscount } = calculateTotals();
+            
+            // Update cart count
+            cartCount.textContent = totalItems;
+            cartCount.style.display = totalItems > 0 ? 'flex' : 'none';
+            
+            if (cart.length === 0) {
+                cartItems.innerHTML = `
+                    <div class="cart-empty">
+                        <p>Your cart is empty</p>
+                        <p>Add some delicious products to get started!</p>
+                    </div>
+                `;
+                cartSummary.style.display = 'none';
+            } else {
+                // Render cart items
+                cartItems.innerHTML = cart.map(item => `
+                    <div class="cart-item">
+                        <div class="cart-item-image">
+                            ${item.image ? `<img src="${item.image}" alt="${item.name}">` : (item.emoji || '')}
+                        </div>
+                        <div class="cart-item-details">
+                            <div class="cart-item-name">${item.name}</div>
+                            <div class="cart-item-price">LKR ${item.price.toFixed(2)}</div>
+                            <div class="cart-item-quantity">
+                                <button class="quantity-btn" onclick="updateQuantity('${item.key}', -1, event)">-</button>
+                                <span style="padding: 0 1rem;">${item.quantity}</span>
+                                <button class="quantity-btn" onclick="updateQuantity('${item.key}', 1, event)">+</button>
+                                <button class="btn btn-danger btn-small" style="margin-left: 1rem;" onclick="removeFromCart('${item.key}')">Remove</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+                
+                // Update summary
+                document.getElementById('cart-subtotal').textContent = `LKR ${subtotal.toFixed(2)}`;
+                document.getElementById('cart-discount').textContent = `-LKR ${discount.toFixed(2)}`;
+                document.getElementById('cart-total').textContent = `LKR ${total.toFixed(2)}`;
+                
+                // Show/hide discount row
+                const discountRow = document.getElementById('discount-row');
+                discountRow.style.display = qualifiesForDiscount ? 'flex' : 'none';
+                
+                // Show/hide wholesale notices
+                const wholesaleNotice = document.getElementById('wholesale-notice');
+                const wholesaleProgress = document.getElementById('wholesale-progress');
+                
+                if (qualifiesForDiscount) {
+                    wholesaleNotice.style.display = 'block';
+                    wholesaleProgress.style.display = 'none';
+                } else {
+                    wholesaleNotice.style.display = 'none';
+                    wholesaleProgress.style.display = 'block';
+                    document.getElementById('items-needed').textContent = 12 - totalItems;
+                }
+                
+                cartSummary.style.display = 'block';
+            }
+        }
+
+        // Show added to cart feedback
+        function showAddedToCartFeedback(productName) {
+            const button = event.target;
+            const originalText = button.textContent;
+            
+            button.textContent = 'Added!';
+            button.style.background = '#4caf50';
+            
+            setTimeout(() => {
+                button.textContent = originalText;
+                button.style.background = '';
+            }, 2000);
+        }
+
+        // Checkout functionality
+        function proceedToCheckout() {
+            const { total, totalItems, qualifiesForDiscount } = calculateTotals();
+            
+            let orderSummary = `Order Summary:\n\n`;
+            cart.forEach(item => {
+                orderSummary += `${item.name} x${item.quantity} = LKR ${(item.price * item.quantity).toFixed(2)}\n`;
+            });
+            
+            orderSummary += `\nTotal Items: ${totalItems}`;
+            if (qualifiesForDiscount) {
+                orderSummary += `\n✅ Wholesale Discount Applied: 10% OFF`;
+            }
+            orderSummary += `\nTotal Amount: LKR ${total.toFixed(2)}`;
+            orderSummary += `\n\nProceed to payment?`;
+            
+            if (confirm(orderSummary)) {
+                alert('Redirecting to secure payment gateway...\n\nOrder will be processed after payment confirmation.');
+                // Here you would redirect to payment page
+            }
+        }
+
+        // Continue shopping
+        function continueShopping() {
+            toggleCart();
+        }
+
+        // Persist cart
+        function persistCart() { localStorage.setItem(CART_KEY, JSON.stringify(cart)); }
+
+        // Render cart sidebar and totals
+        function renderCartUI() {
+            const cartCount = document.getElementById('cart-count');
+            const cartItems = document.getElementById('cart-items');
+            const cartSummary = document.getElementById('cart-summary');
+
+            const subtotal = cart.reduce((s, i) => s + i.price * i.quantity, 0);
+            const totalItems = cart.reduce((s, i) => s + i.quantity, 0);
+            const qualifies = totalItems >= 12;
+            const discount = qualifies ? subtotal * 0.10 : 0;
+            const total = subtotal - discount;
+
+            cartCount.textContent = totalItems;
+            cartCount.style.display = totalItems > 0 ? 'flex' : 'none';
+
+            if (cart.length === 0) {
+                cartItems.innerHTML = `<div class="cart-empty"><p>Your cart is empty</p><p>Add some delicious products to get started!</p></div>`;
+                cartSummary.style.display = 'none';
+            } else {
+                cartItems.innerHTML = cart.map(item => `
+                    <div class="cart-item">
+                        <div class="cart-item-image">
+                            ${item.image ? `<img src="${item.image}" alt="${item.name}">` : (item.emoji || '')}
+                        </div>
+                        <div class="cart-item-details">
+                            <div class="cart-item-name">${item.name}</div>
+                            <div class="cart-item-price">LKR ${item.price.toFixed(2)}</div>
+                            <div class="cart-item-quantity">
+                                <button class="quantity-btn" onclick="updateQuantity('${item.key}', -1, event)">-</button>
+                                <span style="padding: 0 1rem;">${item.quantity}</span>
+                                <button class="quantity-btn" onclick="updateQuantity('${item.key}', 1, event)">+</button>
+                                <button class="btn btn-danger btn-small" style="margin-left: 1rem;" onclick="removeFromCart('${item.key}')">Remove</button>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+
+                document.getElementById('cart-subtotal').textContent = `LKR ${subtotal.toFixed(2)}`;
+                document.getElementById('cart-discount').textContent = `-LKR ${discount.toFixed(2)}`;
+                document.getElementById('cart-total').textContent = `LKR ${total.toFixed(2)}`;
+
+                document.getElementById('discount-row').style.display = qualifies ? 'flex' : 'none';
+                document.getElementById('wholesale-notice').style.display = qualifies ? 'block' : 'none';
+                document.getElementById('wholesale-progress').style.display = qualifies ? 'none' : 'block';
+                document.getElementById('items-needed').textContent = Math.max(0, 12 - totalItems);
+
+                cartSummary.style.display = 'block';
+            }
+        }
+
+        // Wire Add to Cart buttons after DOM loads
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.product-card').forEach(card => {
+                const key = card.dataset.key;
+                const btn = card.querySelector('.btn-primary');
+                const qtyInput = card.querySelector('.quantity-input');
+                btn.addEventListener('click', (e) => {
+                    const qty = parseInt(qtyInput.value) || 1;
+                    addToCart(key, qty);
+                    qtyInput.value = 1;
+                });
+            });
+
+            // Initialize cart UI from storage
+            renderCartUI();
+        });
+
+        // Checkout Modal Functions
+        function openCheckoutModal() {
+            const totalItems = cart.reduce((s, i) => s + i.quantity, 0);
+            if (totalItems === 0) {
+                alert('Your cart is empty! Please add items before checking out.');
+                return;
+            }
+            document.getElementById('checkoutModal').style.display = 'block';
+        }
+
+        function closeCheckoutModal() {
+            document.getElementById('checkoutModal').style.display = 'none';
+            document.getElementById('checkoutForm').reset();
+        }
+
+        function submitCheckout(event) {
+            event.preventDefault();
+            
+            const firstName = document.getElementById('firstName').value;
+            const lastName = document.getElementById('lastName').value;
+            const deliveryAddress = document.getElementById('deliveryAddress').value;
+            const contactNumber = document.getElementById('contactNumber').value;
+            const postalCode = document.getElementById('postalCode').value;
+            const orderNotes = document.getElementById('orderNotes').value;
+            
+            // Store checkout data in sessionStorage
+            const checkoutData = {
+                firstName,
+                lastName,
+                deliveryAddress,
+                contactNumber,
+                postalCode,
+                orderNotes,
+                cartItems: cart,
+                timestamp: new Date().toISOString()
+            };
+            
+            sessionStorage.setItem('checkoutData', JSON.stringify(checkoutData));
+            
+            // Show confirmation and redirect to payment
+            alert('✅ Delivery details saved!\n\nName: ' + firstName + ' ' + lastName + '\nContact: ' + contactNumber + '\nDelivery Address: ' + deliveryAddress + '\n\nRedirecting to payment page...');
+            
+            // Redirect to payment page
+            window.location.href = 'OnlinePayment.html';
+        }
+
+        // Close cart when clicking outside
+        document.addEventListener('click', function(event) {
+            const cartSidebar = document.getElementById('cart-sidebar');
+            const cartIcon = document.querySelector('.cart-icon');
+            const checkoutModal = document.getElementById('checkoutModal');
+            
+            // Close cart sidebar
+            if (!cartSidebar.contains(event.target) && !cartIcon.contains(event.target)) {
+                if (cartSidebar.classList.contains('open')) {
+                    toggleCart();
+                }
+            }
+            
+            // Close checkout modal when clicking outside
+            if (event.target === checkoutModal) {
+                closeCheckoutModal();
+            }
+        });
+    </script>
+</body>
+</html>

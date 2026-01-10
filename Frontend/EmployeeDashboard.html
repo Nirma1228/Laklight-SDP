@@ -1,0 +1,2020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Employee Dashboard - Laklights Food Products</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f8f9fa;
+        }
+
+        /* Header - Same as home page */
+        .header {
+            background: linear-gradient(135deg, rgb(132, 213, 147) 0%, #4caf50 100%);
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem;
+        }
+
+        .logo-img {
+            width: 40px;  
+            height: auto; 
+            margin-right: 10px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-menu a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .nav-menu a:hover {
+            color: #c8e6c9;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.7rem 1.5rem;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: 500;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #ff9800;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #f57c00;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: white;
+            border: 2px solid white;
+        }
+
+        .btn-secondary:hover {
+            background: white;
+            color: #2e7d32;
+        }
+
+        /* Inventory Search Styles */
+        .inventory-search {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .search-box {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 0.8rem 1.2rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #4caf50;
+        }
+
+        .inventory-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .filter-select {
+            padding: 0.5rem 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            min-width: 150px;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: #4caf50;
+        }
+
+        .btn-search {
+            padding: 0.8rem 1.5rem;
+            background: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+        }
+
+        .btn-search:hover {
+            background: #388e3c;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+            font-style: italic;
+            display: none;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+
+        .btn-success {
+            background: #4caf50;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #388e3c;
+        }
+
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #d32f2f;
+        }
+
+        .btn-small {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+
+        /* Dashboard Content */
+        .dashboard {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+
+        .welcome-section {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        .welcome-title {
+            font-size: 2rem;
+            color: #2e7d32;
+            margin-bottom: 0.5rem;
+        }
+
+        .dashboard-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .tab-button {
+            padding: 1rem 2rem;
+            border: none;
+            background: transparent;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .tab-button.active {
+            color: #2e7d32;
+            border-bottom-color: #4caf50;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .dashboard-card {
+            background: white;
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+        }
+
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .card-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #4caf50, #81c784);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+        }
+
+        .inventory-item {
+            display: grid;
+            grid-template-columns: 1fr auto auto auto;
+            gap: 1rem;
+            padding: 1rem;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            align-items: center;
+        }
+
+        /* Split inventory into Farmer vs Finished columns */
+        .inventory-split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .inventory-column {
+            background: #fff;
+            padding: 1rem;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        }
+
+        .inventory-column h3 {
+            margin: 0 0 0.75rem 0;
+            color: #2e7d32;
+            font-size: 1.05rem;
+        }
+
+        @media (max-width: 768px) {
+            .inventory-split { grid-template-columns: 1fr; }
+        }
+
+        .inventory-details h4 {
+            color: #2e7d32;
+            margin-bottom: 0.25rem;
+        }
+
+        .inventory-location {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .stock-level {
+            font-weight: bold;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.9rem;
+        }
+
+        /* Light-red style for finished-product low-unit badges (e.g., 60 units) */
+        .stock-level.unit-low {
+            background: #ffcdd2; /* light red / pink */
+            color: #b71c1c; /* darker red text for contrast */
+        }
+
+        .stock-low {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        /* Warning style for near-best-before or preferred-threshold (orange) */
+        .stock-warning {
+            background: #fff3e0; /* light orange */
+            color: #ef6c00; /* darker orange text */
+        }
+
+        .stock-good {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .stock-critical {
+            background: #ffebee;
+            color: #d32f2f;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        .expiry-warning {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 5px;
+        }
+
+        .expiry-critical {
+            background: #f8d7da;
+            border-left: 4px solid #dc3545;
+        }
+
+        .application-item {
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            background: #f9f9f9;
+        }
+
+        .application-header {
+            display: flex;
+            justify-content: between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .farmer-name {
+            font-weight: bold;
+            color: #2e7d32;
+            margin-bottom: 0.5rem;
+        }
+
+        .application-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+        }
+
+        .submitted-images {
+            margin: 1rem 0;
+            padding: 1rem;
+            background: #fff;
+            border-radius: 8px;
+            border: 1px solid #e8f5e9;
+        }
+
+        .submitted-images p {
+            margin: 0 0 0.75rem 0;
+            color: #2e7d32;
+            font-weight: 600;
+        }
+
+        .image-gallery {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .product-thumbnail {
+            width: 150px;
+            height: 150px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 2px solid #ddd;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .product-thumbnail:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            border-color: #4caf50;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #4caf50;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.1);
+        }
+
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #2e7d32;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        /* Footer - Same as home page */
+        .footer {
+            background: #1b5e20;
+            color: white;
+            padding: 3rem 0 1rem;
+            margin-top: 4rem;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            padding: 0 2rem;
+        }
+
+        .footer-section h4 {
+            font-size: 1.3rem;
+            margin-bottom: 1rem;
+        }
+
+        .footer-section p, .footer-section a {
+            color: #c8e6c9;
+            text-decoration: none;
+            line-height: 1.8;
+        }
+
+        .footer-section a:hover {
+            color: white;
+        }
+
+        .footer-bottom {
+            border-top: 1px solid #2e7d32;
+            margin-top: 2rem;
+            padding-top: 1rem;
+            text-align: center;
+            color: #c8e6c9;
+        }
+
+        /* Edit Profile Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background: white;
+            margin: 3rem auto;
+            padding: 0;
+            border-radius: 15px;
+            max-width: 700px;
+            box-shadow: 0 5px 30px rgba(0,0,0,0.3);
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-header {
+            background: linear-gradient(135deg, rgb(132, 213, 147) 0%, #4caf50 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            border-radius: 15px 15px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        .close {
+            font-size: 2rem;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            background: none;
+            border: none;
+            line-height: 1;
+        }
+
+        .close:hover {
+            transform: scale(1.2);
+        }
+
+        .modal-body {
+            padding: 2rem;
+        }
+
+        .profile-section {
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            color: #2e7d32;
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.8rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            font-family: inherit;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #4caf50;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .modal-footer {
+            padding: 1.5rem 2rem;
+            background: #f8f9fa;
+            border-radius: 0 0 15px 15px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+        }
+
+        .btn-cancel {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-cancel:hover {
+            background: #5a6268;
+        }
+
+        .btn-save {
+            background: #4caf50;
+            color: white;
+        }
+
+        .btn-save:hover {
+            background: #388e3c;
+        }
+
+        /* Delivery Schedule Table Styles */
+        .table-container {
+            overflow-x: auto;
+            margin-top: 1rem;
+        }
+
+        .delivery-schedule-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        .delivery-schedule-table th,
+        .delivery-schedule-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .delivery-schedule-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .delivery-schedule-table tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status-badge {
+            padding: 0.4rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-confirmed {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status-completed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-cancelled {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .btn-action {
+            padding: 0.4rem 1rem;
+            background: #4caf50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            margin-right: 0.3rem;
+        }
+
+        .btn-action:hover {
+            background: #388e3c;
+        }
+
+        .btn-action.btn-secondary {
+            background: #ff9800;
+        }
+
+        .btn-action.btn-secondary:hover {
+            background: #f57c00;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-menu {
+                display: none;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .inventory-item {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .modal-content {
+                margin: 1rem;
+                max-width: calc(100% - 2rem);
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .user-info span {
+                display: none;
+            }
+
+            .logo {
+                font-size: 1.2rem;
+            }
+
+            .logo-img {
+                width: 30px;
+            }
+
+            .nav-container {
+                padding: 0 1rem;
+            }
+
+            .btn {
+                padding: 0.5rem 1rem;
+                font-size: 0.85rem;
+            }
+
+            .welcome-section {
+                padding: 1.5rem;
+            }
+
+            .welcome-title {
+                font-size: 1.5rem;
+            }
+
+            .dashboard-card {
+                padding: 1rem;
+            }
+
+            .card-title {
+                font-size: 1.2rem;
+            }
+
+            .tab-buttons {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .tab-button {
+                width: 100%;
+                text-align: center;
+            }
+
+            .application-item {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .modal-body {
+                padding: 1rem;
+            }
+
+            .modal-header {
+                padding: 1rem;
+            }
+
+            .modal-footer {
+                padding: 1rem;
+                flex-direction: column;
+            }
+
+            .modal-footer .btn {
+                width: 100%;
+            }
+
+            .footer-grid {
+                grid-template-columns: 1fr;
+                gap: 2rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .stat-card {
+                padding: 1rem;
+            }
+
+            .stat-number {
+                font-size: 1.5rem;
+            }
+
+            .inventory-status {
+                font-size: 0.8rem;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .action-buttons button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <nav class="nav-container">
+            <div class="logo">
+                <img src='Logo.png' alt="Laklights Food Products" class="logo-img">
+                Laklights Food Products
+            </div>
+            <ul class="nav-menu">
+                <li><a href="LoggedHome.html">Dashboard</a></li>
+                <li><a href="#inventory">Inventory</a></li>
+                <li><a href="#suppliers">Suppliers</a></li>
+                <li><a href="#orders">Orders</a></li>
+            </ul>
+            <div class="user-info">
+                <span>Employee :Nimal Fernando</span>
+                <button class="btn btn-primary" onclick="openEditProfile()">Edit Profile</button>
+                <a href="Home.html" class="btn btn-secondary">Logout</a>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Dashboard Content -->
+    <main class="dashboard">
+        <!-- Welcome Section -->
+        <section class="welcome-section">
+            <h1 class="welcome-title">Employee Dashboard</h1>
+            <p>Manage inventory, review supplier applications, and oversee manufacturing operations for Laklights Food Products.</p>
+            
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number">156</div>
+                    <div class="stat-label">Total Inventory Items</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">8</div>
+                    <div class="stat-label">Low Stock Alerts</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">3</div>
+                    <div class="stat-label">Pending Applications</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number">12</div>
+                    <div class="stat-label">Orders Processing</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Dashboard Tabs -->
+        <div class="dashboard-tabs">
+            <button class="tab-button active" onclick="showTab('inventory')">Inventory Management</button>
+            <button class="tab-button" onclick="showTab('suppliers')">Supplier Applications</button>
+            <button class="tab-button" onclick="showTab('orders')">Order Management</button>
+            <button class="tab-button" onclick="showTab('deliveries')">Delivery Schedule</button>
+        </div>
+
+        <!-- Inventory Management Tab -->
+        <div id="inventory" class="tab-content active">
+            <div class="dashboard-grid">
+                <!-- Current Inventory -->
+                <div class="dashboard-card" style="grid-column: 1 / -1;">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <div class="card-icon"></div>
+                            <h2>Current Inventory</h2>
+                        </div>
+                        <!-- Removed global Add New Item; per-column buttons added inside columns -->
+                    </div>
+
+                    <!-- Inventory Search -->
+                    <div class="inventory-search">
+                        <div class="search-box">
+                            <input type="text" id="inventory-search" class="search-input" placeholder="Search inventory by product name or ID...">
+                            <button class="btn-search" onclick="searchInventory()">
+                                Search
+                            </button>
+                        </div>
+                        <div class="inventory-filters">
+                            <select class="filter-select" id="inventory-category">
+                                <option value="">All Categories</option>
+                                <option value="raw">Raw Materials</option>
+                                <option value="processed">Processed Products</option>
+                                <option value="packaging">Packaging Materials</option>
+                            </select>
+                            <select class="filter-select" id="inventory-status">
+                                <option value="">Stock Status</option>
+                                <option value="in-stock">In Stock</option>
+                                <option value="low-stock">Low Stock</option>
+                                <option value="out-of-stock">Out of Stock</option>
+                            </select>
+                            <select class="filter-select" id="inventory-sort">
+                                <option value="">Sort By</option>
+                                <option value="name-asc">Name: A to Z</option>
+                                <option value="name-desc">Name: Z to A</option>
+                                <option value="stock-low">Stock: Low to High</option>
+                                <option value="stock-high">Stock: High to Low</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Top-level general alert removed; per-column alerts shown inside each column -->
+                    
+                    <div class="no-results">No inventory items found matching your criteria.</div>
+                    
+                    <div id="inventory-list">
+                        <div class="inventory-split">
+                            <div class="inventory-column" id="farmer-products-list">
+                                <h3>Farmer Products</h3>
+                                <button class="btn btn-primary btn-small" style="margin-bottom:0.5rem;" onclick="showAddFarmerProductModal()">Add New Item</button>
+
+                                <!-- Critical alerts specific to farmer products (moved to top) -->
+                                <div class="expiry-warning" style="margin-top:0.5rem;">
+                                    <strong> Critical Alert:</strong>
+                                    <ul style="margin:0.5rem 0 0 1.25rem; color:#7a2c2c;">
+                                        <li>Pine apples are needed quickly.</li>
+                                        <li>Fresh Mango approaching expiry in 3 days.</li>
+                                    </ul>
+                                </div>
+
+                                <div class="inventory-item">
+                                    <div class="inventory-details">
+                                        <h4>Fresh Mango - Grade A</h4>
+                                        <div class="inventory-location">Location: C03-R04 (Cold Storage A)</div>
+                                        <div>Expiry: 2025-09-30 (5 days)</div>
+                                    </div>
+                                    <div class="stock-level stock-critical">85 kg</div>
+                                    <div>Reorder: 20 kg</div>
+                                    <div>
+                                        <button class="btn btn-danger btn-small">Update</button>
+                                    </div>
+                                </div>
+
+                                <div class="inventory-item">
+                                    <div class="inventory-details">
+                                        <h4>Pineapple Chunks</h4>
+                                        <div class="inventory-location">Location: C02-R01 (Cold Storage B)</div>
+                                        <div>Expiry: 2025-10-15 (20 days)</div>
+                                    </div>
+                                    <div class="stock-level stock-warning">25 kg</div>
+                                    <div>Reorder: 40 kg</div>
+                                    <div>
+                                        <button class="btn btn-primary btn-small">Update</button>
+                                    </div>
+                                </div>
+
+                                <div class="inventory-item">
+                                    <div class="inventory-details">
+                                        <h4>Fresh Papaya - Grade A</h4>
+                                        <div class="inventory-location">Location: C01-R03 (Cold Storage A)</div>
+                                        <div>Expiry: 2025-10-05 (10 days)</div>
+                                    </div>
+                                    <div class="stock-level stock-good">45 kg</div>
+                                    <div>Reorder: 15 kg</div>
+                                    <div>
+                                        <button class="btn btn-success btn-small">Update</button>
+                                    </div>
+                                </div>
+
+                                <div class="inventory-item">
+                                    <div class="inventory-details">
+                                        <h4>Passion Fruit - Grade B</h4>
+                                        <div class="inventory-location">Location: C03-R02 (Cold Storage B)</div>
+                                        <div>Expiry: 2025-10-08 (13 days)</div>
+                                    </div>
+                                    <div class="stock-level stock-good">32 kg</div>
+                                    <div>Reorder: 20 kg</div>
+                                    <div>
+                                        <button class="btn btn-success btn-small">Update</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="inventory-column" id="finished-products-list">
+                                <h3>Finished Products</h3>
+                                <button class="btn btn-primary btn-small" style="margin-bottom:0.5rem;" onclick="showAddFinishedProductModal()">Add New Item</button>
+
+                                <!-- Critical alerts specific to finished products (added to top) -->
+                                <div class="expiry-warning" style="margin-top:0.5rem;">
+                                    <strong> Critical Alert:</strong>
+                                    <ul style="margin:0.5rem 0 0 1.25rem; color:#7a2c2c;">
+                                        <li>Mango Jelly Stock is Low(50 units).</li>
+                                        <li>Wood Apple Juice stock approaching best-before in 120 days.(80 units).</li>
+                                    </ul>
+                                </div>
+
+                                <div class="inventory-item">
+                                    <div class="inventory-details">
+                                        <h4>Lime Mix</h4>
+                                        <div class="inventory-location">Location: Finished Goods - Shelf A</div>
+                                            <div>Batch: B202509 | Manufactured: 2025-09-01 | Best Before: 2026-04-01</div>
+                                            <div>Current Quantity: 120 units</div>
+                                    </div>
+                                    <div class="stock-level stock-good">120 units</div>
+                                    <div>
+                                        <button class="btn btn-success btn-small">Details</button>
+                                    </div>
+                                </div>
+
+                                <div class="inventory-item">
+                                    <div class="inventory-details">
+                                        <h4>Mango Jelly</h4>
+                                        <div class="inventory-location">Location: Finished Goods - Shelf B</div>
+                                            <div>Batch: B202508 | Manufactured: 2025-05-10 | Best Before: 2026-02-10</div>
+                                            <div>Current Quantity: 50 units</div>
+                                    </div>
+                                    <div class="stock-level stock-warning">50 units</div>
+                                    <div>
+                                        <button class="btn btn-primary btn-small" style="background:#ff9800; border-color:#ff9800;">Details</button>
+                                    </div>
+                                </div>
+
+                                <div class="inventory-item">
+                                    <div class="inventory-details">
+                                        <h4>Wood Apple Juice</h4>
+                                        <div class="inventory-location">Location: Finished Goods - Shelf C</div>
+                                            <div>Batch: B202507  | Manufactured: 2025-04-20 | Best Before: 2026-01-20</div>
+                                        
+                                    </div>
+                                        <div class="stock-level unit-low">80 units</div>
+                                    <div>
+                                        <button class="btn btn-danger btn-small">Details</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Supplier Applications Tab -->
+        <div id="suppliers" class="tab-content">
+            <div class="dashboard-grid">
+                <div class="dashboard-card" style="grid-column: 1 / -1;">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <div class="card-icon"></div>
+                            <h2>Pending Supplier Applications</h2>
+                        </div>
+                    </div>
+                    
+                    <div class="application-item">
+                        <div class="farmer-name">Mountain Fresh Farm - Badulla</div>
+                        <p><strong>Product:</strong> Fresh Mango - Grade A</p>
+                        <p><strong>Quantity:</strong> 200kg | <strong>Price:</strong> LKR 180.00/kg</p>
+                        <p><strong>Harvest Date:</strong> 2025-09-20 | <strong>Quality Grade:</strong> Grade A</p>
+                        <p><strong>License:</strong> AG2025078 | <strong>Submitted:</strong> 2025-09-21</p>
+                        <p><strong>Transport:</strong> Self Transport | <strong>Date:</strong> 2025-09-25</p>
+                        <div class="submitted-images">
+                            <p><strong>Submitted Images:</strong></p>
+                            <div class="image-gallery">
+                                <img src="https://via.placeholder.com/150x150?text=Mango+1" alt="Product Image 1" class="product-thumbnail">
+                                <img src="https://via.placeholder.com/150x150?text=Mango+2" alt="Product Image 2" class="product-thumbnail">
+                                <img src="https://via.placeholder.com/150x150?text=Quality+Cert" alt="Quality Certificate" class="product-thumbnail">
+                            </div>
+                        </div>
+                        <div class="application-actions">
+                            <button class="btn btn-success btn-small" onclick="approveApplication('Mountain Fresh Farm')">Approve & Schedule</button>
+                            <button class="btn btn-danger btn-small" onclick="rejectApplication('Mountain Fresh Farm')">Reject</button>
+                            <button class="btn btn-secondary btn-small">View Details</button>
+                        </div>
+                    </div>
+                    
+                    <div class="application-item">
+                        <div class="farmer-name">Sunrise Plantation - Matale</div>
+                        <p><strong>Product:</strong> Strawberry - Grade B</p>
+                        <p><strong>Quantity:</strong> 80kg | <strong>Price:</strong> LKR 350.00/kg</p>
+                        <p><strong>Harvest Date:</strong> 2025-09-22 | <strong>Quality Grade:</strong> Grade B</p>
+                        <p><strong>License:</strong> AG2025045 | <strong>Submitted:</strong> 2025-09-20</p>
+                        <p><strong>Transport:</strong> Company Truck Pickup | <strong>Date:</strong> 2025-09-25</p>
+                        <div class="submitted-images">
+                            <p><strong>Submitted Images:</strong></p>
+                            <div class="image-gallery">
+                                <img src="https://via.placeholder.com/150x150?text=Strawberry+1" alt="Product Image 1" class="product-thumbnail">
+                                <img src="https://via.placeholder.com/150x150?text=Strawberry+2" alt="Product Image 2" class="product-thumbnail">
+                                <img src="https://via.placeholder.com/150x150?text=Farm+View" alt="Farm View" class="product-thumbnail">
+                            </div>
+                        </div>
+                        <div class="application-actions">
+                            <button class="btn btn-success btn-small" onclick="approveApplication('Sunrise Plantation')">Approve & Schedule</button>
+                            <button class="btn btn-danger btn-small" onclick="rejectApplication('Sunrise Plantation')">Reject</button>
+                            <button class="btn btn-secondary btn-small">View Details</button>
+                        </div>
+                    </div>
+                    
+                    <div class="application-item">
+                        <div class="farmer-name">Golden Valley Farms - Nuwara Eliya</div>
+                        <p><strong>Product:</strong> Passion Fruit - Grade A</p>
+                        <p><strong>Quantity:</strong> 60kg | <strong>Price:</strong> LKR 450.00/kg</p>
+                        <p><strong>Harvest Date:</strong> 2025-09-23 | <strong>Quality Grade:</strong> Grade A</p>
+                        <p><strong>License:</strong> AG2025123 | <strong>Submitted:</strong> 2025-09-22</p>
+                        <p><strong>Transport:</strong> Self Transport | <strong>Date:</strong> 2025-09-26</p>
+                        <div class="submitted-images">
+                            <p><strong>Submitted Images:</strong></p>
+                            <div class="image-gallery">
+                                <img src="https://via.placeholder.com/150x150?text=Passion+Fruit" alt="Product Image 1" class="product-thumbnail">
+                                <img src="https://via.placeholder.com/150x150?text=Quality+Check" alt="Quality Check" class="product-thumbnail">
+                                <img src="https://via.placeholder.com/150x150?text=Packaging" alt="Packaging" class="product-thumbnail">
+                            </div>
+                        </div>
+                        <div class="application-actions">
+                            <button class="btn btn-success btn-small" onclick="approveApplication('Golden Valley Farms')">Approve & Schedule</button>
+                            <button class="btn btn-danger btn-small" onclick="rejectApplication('Golden Valley Farms')">Reject</button>
+                            <button class="btn btn-secondary btn-small">View Details</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Order Management Tab -->
+        <div id="orders" class="tab-content">
+            <div class="dashboard-grid">
+                <div class="dashboard-card" style="grid-column: 1 / -1;">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <div class="card-icon"></div>
+                            <h2>Processing Orders</h2>
+                        </div>
+                    </div>
+                    
+                    <div class="inventory-item">
+                        <div class="inventory-details">
+                            <h4>Order #O001 - Asoka Perera</h4>
+                            <div>15x Fresh Mango Cordial (Wholesale Discount Applied)</div>
+                            <div>Total: LKR 3,375.00 | Payment: Completed</div>
+                        </div>
+                        <div class="stock-level stock-good">Ready</div>
+                        <div>Sept 20, 2025</div>
+                        <div>
+                            <button class="btn btn-primary btn-small">Process</button>
+                        </div>
+                    </div>
+                    
+                    <div class="inventory-item">
+                        <div class="inventory-details">
+                            <h4>Order #O003 - Sarah Wilson</h4>
+                            <div>8x Mixed Jam Collection</div>
+                            <div>Total: LKR 2,400.00 | Payment: Pending</div>
+                        </div>
+                        <div class="stock-level stock-low">Hold</div>
+                        <div>Sept 21, 2025</div>
+                        <div>
+                            <button class="btn btn-secondary btn-small">On Hold</button>
+                        </div>
+                    </div>
+                    
+                    <div class="inventory-item">
+                        <div class="inventory-details">
+                            <h4>Order #O004 - ABC Restaurant</h4>
+                            <div>25x Chili Sauce (Bulk Order - 10% Discount)</div>
+                            <div>Total: LKR 4,500.00 | Payment: Completed</div>
+                        </div>
+                        <div class="stock-level stock-good">Ready</div>
+                        <div>Sept 22, 2025</div>
+                        <div>
+                            <button class="btn btn-success btn-small">Ship</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Delivery Schedule Tab -->
+        <div id="deliveries" class="tab-content">
+            <div class="dashboard-grid">
+                <div class="dashboard-card" style="grid-column: 1 / -1;">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <div class="card-icon"></div>
+                            <h2>Farmer Delivery Schedule Requests</h2>
+                        </div>
+                    </div>
+
+                    <div class="inventory-filters" style="margin-bottom: 1rem;">
+                        <select class="filter-select" id="deliveryStatusFilter" onchange="filterDeliveries()">
+                            <option value="all">All Status</option>
+                            <option value="pending">Pending Review</option>
+                            <option value="confirmed">Confirmed</option>
+                            <option value="completed">Completed</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+
+                    <div class="table-container">
+                        <table class="delivery-schedule-table">
+                            <thead>
+                                <tr>
+                                    <th>Delivery ID</th>
+                                    <th>Farmer</th>
+                                    <th>Product</th>
+                                    <th>Quantity</th>
+                                    <th>Proposed Date</th>
+                                    <th>Schedule Date</th>
+                                    <th>Transport</th>
+                                    <th>Status</th>
+                                    <th>Schedule Delivery</th>
+                                </tr>
+                            </thead>
+                            <tbody id="employeeDeliveryList">
+                                <tr data-status="pending">
+                                    <td>DEL-001</td>
+                                    <td>Green Valley Farm</td>
+                                    <td>Fresh Mango - Grade A</td>
+                                    <td>100kg</td>
+                                    <td>Oct 22, 2025</td>
+                                    <td>-</td>
+                                    <td>Company Truck Pickup</td>
+                                    <td><span class="status-badge status-pending">Pending Review</span></td>
+                                    <td>
+                                        <button class="btn-action" onclick="showTab('suppliers')">Review</button>
+                                    </td>
+                                </tr>
+                                <tr data-status="pending">
+                                    <td>DEL-004</td>
+                                    <td>Sunrise Organic Farm</td>
+                                    <td>Papaya - Grade A</td>
+                                    <td>80kg</td>
+                                    <td>Oct 23, 2025</td>
+                                    <td>-</td>
+                                    <td>Self Transport</td>
+                                    <td><span class="status-badge status-pending">Pending Review</span></td>
+                                    <td>
+                                        <button class="btn-action" onclick="showTab('suppliers')">Review</button>
+                                    </td>
+                                </tr>
+                                <tr data-status="confirmed">
+                                    <td>DEL-002</td>
+                                    <td>Green Valley Farm</td>
+                                    <td>Strawberry - Grade A</td>
+                                    <td>50kg</td>
+                                    <td>Oct 25, 2025</td>
+                                    <td><strong>Oct 25, 2025</strong></td>
+                                    <td>Self Transport</td>
+                                    <td><span class="status-badge status-confirmed">Confirmed</span></td>
+                                    <td>
+                                        <button class="btn-action" onclick="acceptDate('DEL-002')" style="background: #4caf50; color: white;">Accept Date</button>
+                                        <button class="btn-action" onclick="rescheduleDelivery('DEL-002')" style="background: #ff9800; color: white; margin-left: 0.5rem;">Reschedule</button>
+                                    </td>
+                                </tr>
+                                <tr data-status="completed">
+                                    <td>DEL-003</td>
+                                    <td>Green Valley Farm</td>
+                                    <td>Pineapple - Grade B</td>
+                                    <td>75kg</td>
+                                    <td>Oct 20, 2025</td>
+                                    <td><strong>Oct 20, 2025</strong></td>
+                                    <td>Company Truck Pickup</td>
+                                    <td><span class="status-badge status-completed">Completed</span></td>
+                                    <td>
+                                        <button class="btn-action btn-secondary" onclick="viewEmployeeDeliveryDetails('DEL-003')">View</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>Laklight Food Products</h4>
+                <p>Gokaralla Road, Kadulawa, Ibbagamuwa</p>
+                <p>Phone: 0721267405</p>
+                <p>Contact: Radika Lakmali</p>
+            </div>
+            <div class="footer-section">
+                <h4>For Customers</h4>
+                <p><a href="/customer/login">Order Products</a></p>
+                <p><a href="/customer/orders">Track Orders</a></p>
+                <p><a href="/customer/account">My Account</a></p>
+                <p><a href="/customer/feedback">Product Feedback</a></p>
+            </div>
+            <div class="footer-section">
+                <h4>For Suppliers</h4>
+                <p><a href="/supplier/register">Supplier Registration</a></p>
+                <p><a href="/supplier/materials">Submit Fruit Details</a></p>
+                <p><a href="/supplier/pricing">Price Quotations</a></p>
+                <p><a href="/supplier/status">Application Status</a></p>
+            </div>
+            <div class="footer-section">
+                <h4>Manufacturing System</h4>
+                <p><a href="#features">E-commerce Platform</a></p>
+                <p><a href="#features">Inventory Management</a></p>
+                <p><a href="#features">Supplier Portal</a></p>
+                <p><a href="#features">Production Analytics</a></p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 Laklight Food Products. All rights reserved. | Developed by Nirma Bandara</p>
+        </div>
+    </footer>
+
+    <!-- Review Delivery Modal -->
+    <div id="reviewDeliveryModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Review Delivery Schedule</h2>
+                <button class="close" onclick="closeReviewDeliveryModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="reviewDeliveryContent">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-cancel" onclick="closeReviewDeliveryModal()">Cancel</button>
+                <button class="btn btn-secondary" style="background: #dc3545;" onclick="requestScheduleChange()">Request Change</button>
+                <button class="btn btn-save" onclick="confirmDeliverySchedule()">Confirm Schedule</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delivery Details Modal for Employee -->
+    <div id="employeeDeliveryDetailsModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Delivery Details</h2>
+                <button class="close" onclick="closeEmployeeDeliveryDetailsModal()">&times;</button>
+            </div>
+            <div class="modal-body" id="employeeDeliveryDetailsContent">
+                <!-- Content will be populated by JavaScript -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-cancel" onclick="closeEmployeeDeliveryDetailsModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Profile Modal -->
+    <div id="editProfileModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Edit Profile</h2>
+                <button class="close" onclick="closeEditProfile()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="profileForm">
+                    <!-- Personal Information Section -->
+                    <div class="profile-section">
+                        <h3 class="section-title">Personal Information</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="firstName">First Name *</label>
+                                <input type="text" id="firstName" value="Nimal" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="lastName">Last Name *</label>
+                                <input type="text" id="lastName" value="Fernando" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="email">Email Address *</label>
+                                <input type="email" id="email" value="nimal.fernando@laklights.com" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="phone">Phone Number *</label>
+                                <input type="tel" id="phone" value="+94 77 345 6789" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Employee Information Section -->
+                    <div class="profile-section">
+                        <h3 class="section-title">Employee Information</h3>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="employeeId">Employee ID</label>
+                                <input type="text" id="employeeId" value="EMP-001" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label for="department">Department</label>
+                                <input type="text" id="department" value="Operations" disabled>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="position">Position</label>
+                                <input type="text" id="position" value="Inventory Manager" disabled>
+                            </div>
+                            <div class="form-group">
+                                <label for="joinDate">Join Date</label>
+                                <input type="text" id="joinDate" value="January 15, 2024" disabled>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contact Address Section -->
+                    <div class="profile-section">
+                        <h3 class="section-title">Contact Address</h3>
+                        <div class="form-group">
+                            <label for="address">Street Address *</label>
+                            <input type="text" id="address" value="45 Galle Road" required>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="city">City *</label>
+                                <input type="text" id="city" value="Colombo" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="postalCode">Postal Code *</label>
+                                <input type="text" id="postalCode" value="00300" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Account Settings Section -->
+                    <div class="profile-section">
+                        <h3 class="section-title">Account Settings</h3>
+                        <div class="form-group">
+                            <label for="notifications">Email Notifications</label>
+                            <select id="notifications">
+                                <option value="all" selected>All Notifications</option>
+                                <option value="critical">Critical Only</option>
+                                <option value="none">None</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="language">Preferred Language</label>
+                            <select id="language">
+                                <option value="en" selected>English</option>
+                                <option value="si">Sinhala</option>
+                                <option value="ta">Tamil</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-cancel" onclick="closeEditProfile()">Cancel</button>
+                <button class="btn btn-save" onclick="saveProfile()">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Edit Profile Modal Functions
+        function openEditProfile() {
+            document.getElementById('editProfileModal').style.display = 'block';
+            document.body.style.overflow = 'hidden'; // Prevent background scrolling
+        }
+
+        function closeEditProfile() {
+            document.getElementById('editProfileModal').style.display = 'none';
+            document.body.style.overflow = 'auto'; // Restore scrolling
+        }
+
+        function saveProfile() {
+            // Get form values
+            const firstName = document.getElementById('firstName').value;
+            const lastName = document.getElementById('lastName').value;
+            const email = document.getElementById('email').value;
+            const phone = document.getElementById('phone').value;
+            const address = document.getElementById('address').value;
+            const city = document.getElementById('city').value;
+            const postalCode = document.getElementById('postalCode').value;
+
+            // Validate required fields
+            if (!firstName || !lastName || !email || !phone || !address || !city || !postalCode) {
+                alert('Please fill in all required fields marked with *');
+                return;
+            }
+
+            // In a real application, this would send data to the server
+            const profileData = {
+                firstName,
+                lastName,
+                email,
+                phone,
+                address,
+                city,
+                postalCode,
+                notifications: document.getElementById('notifications').value,
+                language: document.getElementById('language').value
+            };
+
+            console.log('Profile data to save:', profileData);
+
+            // Update the employee name in the header
+            const employeeName = `${firstName} ${lastName}`;
+            document.querySelector('.user-info span').textContent = `Employee :${employeeName}`;
+
+            // Show success message
+            alert('Profile updated successfully!\n\nYour changes have been saved.');
+            
+            // Close the modal
+            closeEditProfile();
+        }
+
+        // Close modal when clicking outside of it
+        window.onclick = function(event) {
+            const modal = document.getElementById('editProfileModal');
+            if (event.target === modal) {
+                closeEditProfile();
+            }
+        }
+
+        // Tab functionality
+        function showTab(tabName) {
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to clicked button
+            event.target.classList.add('active');
+        }
+
+        // Approve supplier application
+        function approveApplication(farmName) {
+            if (confirm(`Approve application from ${farmName}?\n\nThis will:\n- Accept their product submission\n- Schedule delivery pickup\n- Send confirmation to farmer`)) {
+                alert(`✅ Application from ${farmName} has been approved!\n\nDelivery scheduled for next available slot.\nFarmer will receive confirmation notification.`);
+                
+                // Remove the application item (simulate approval)
+                event.target.closest('.application-item').style.opacity = '0.5';
+                event.target.closest('.application-item').innerHTML = '<p><strong>✅ Approved and scheduled for pickup</strong></p>';
+            }
+        }
+
+        // Reject supplier application
+        function rejectApplication(farmName) {
+            const reason = prompt(`Reject application from ${farmName}?\n\nPlease provide reason for rejection:`);
+            if (reason && reason.trim()) {
+                alert(`❌ Application from ${farmName} has been rejected.\n\nReason: ${reason}\n\nFarmer will receive notification with feedback.`);
+                
+                // Remove the application item (simulate rejection)
+                event.target.closest('.application-item').style.opacity = '0.5';
+                event.target.closest('.application-item').innerHTML = `<p><strong>❌ Rejected</strong> - ${reason}</p>`;
+            }
+        }
+
+        // Add inventory modal (simplified)
+        function showAddFarmerProductModal() {
+            showAddInventoryModal('farmer-products-list');
+        }
+
+        function showAddFinishedProductModal() {
+            showAddInventoryModal('finished-products-list');
+        }
+
+        function showAddInventoryModal(targetColumnId) {
+            const productName = prompt("Enter product name:");
+            // For finished products use the requested shorter prompt
+            let quantity;
+            let manufacturingDate = null;
+            if (targetColumnId === 'finished-products-list') {
+                quantity = prompt("Enter quantity : ");
+                manufacturingDate = prompt("Enter manufacturing date (YYYY-MM-DD):");
+            } else {
+                quantity = prompt("Enter quantity (kg or units):");
+            }
+            const location = prompt("Enter storage location (e.g., C03-R04 or Shelf A):");
+            const expiryDate = prompt("Enter expiry date or best-before (YYYY-MM-DD):");
+            
+            if (productName && quantity && location && expiryDate) {
+                // Build a simple inventory item node
+                const container = document.getElementById(targetColumnId) || document.getElementById('inventory-list');
+                if (container) {
+                    const item = document.createElement('div');
+                    item.className = 'inventory-item';
+                    item.innerHTML = `
+                        <div class="inventory-details">
+                            <h4>${productName}</h4>
+                            <div class="inventory-location">Location: ${location}</div>
+                            <div>Expiry: ${expiryDate} (N/A)</div>
+                            ${manufacturingDate ? `<div>Manufactured: ${manufacturingDate}</div>` : ''}
+                        </div>
+                        <div class="stock-level stock-good">${quantity}</div>
+                        <div>Reorder: 0</div>
+                        <div><button class="btn btn-success btn-small">Details</button></div>
+                    `;
+                    // If user clicked the column container itself, append; otherwise append inside its column content
+                    container.appendChild(item);
+                }
+
+                alert(`✅ New inventory item added!\n\nProduct: ${productName}\nQuantity: ${quantity}\nLocation: ${location}\nExpiry: ${expiryDate}${manufacturingDate ? '\nManufactured: ' + manufacturingDate : ''}`);
+            }
+        }
+
+        // Update inventory levels automatically (simulation)
+        setInterval(() => {
+            const stockLevels = document.querySelectorAll('.stock-level');
+            stockLevels.forEach(level => {
+                if (level.classList.contains('stock-critical')) {
+                    // Simulate urgent restocking
+                    const currentStock = parseInt(level.textContent);
+                    if (Math.random() > 0.8) { // 20% chance of restocking
+                        level.textContent = (currentStock + 50) + ' kg';
+                        level.classList.remove('stock-critical');
+                        level.classList.add('stock-good');
+                    }
+                }
+            });
+        }, 10000); // Check every 10 seconds
+
+        // Real-time notifications (simulation)
+        function showNotification(message, type = 'info') {
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 100px;
+                right: 20px;
+                padding: 1rem;
+                border-radius: 8px;
+                color: white;
+                font-weight: bold;
+                z-index: 1000;
+                animation: slideIn 0.3s ease;
+            `;
+            
+            if (type === 'warning') {
+                notification.style.background = '#ff9800';
+            } else if (type === 'success') {
+                notification.style.background = '#4caf50';
+            } else {
+                notification.style.background = '#2196f3';
+            }
+            
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 5000);
+        }
+
+        // Simulate real-time updates
+        setTimeout(() => {
+            showNotification('New supplier application received!', 'info');
+        }, 15000);
+
+        setTimeout(() => {
+            showNotification('Low stock alert: Strawberry Jam Base', 'warning');
+        }, 30000);
+
+        // Delivery Schedule Management Functions
+        let currentReviewDelivery = null;
+
+        function filterDeliveries() {
+            const filter = document.getElementById('deliveryStatusFilter').value;
+            const rows = document.querySelectorAll('#employeeDeliveryList tr');
+            
+            rows.forEach(row => {
+                const status = row.getAttribute('data-status');
+                if (filter === 'all' || status === filter) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+
+        function reviewDelivery(deliveryId) {
+            currentReviewDelivery = deliveryId;
+            
+            // Sample delivery data
+            const deliveries = {
+                'DEL-001': {
+                    id: 'DEL-001',
+                    farmer: 'Green Valley Farm',
+                    farmerContact: '+94 77 123 4567',
+                    product: 'Fresh Mango - Grade A',
+                    quantity: '100kg',
+                    proposedDate: 'Oct 22, 2025',
+                    transport: 'Company Truck Pickup',
+                    submittedDate: 'Oct 18, 2025',
+                    notes: 'Ready for pickup from farm gate',
+                    quality: 'Grade A - Premium Quality',
+                    location: 'Kandy, Central Province'
+                },
+                'DEL-004': {
+                    id: 'DEL-004',
+                    farmer: 'Sunrise Organic Farm',
+                    farmerContact: '+94 71 987 6543',
+                    product: 'Papaya - Grade A',
+                    quantity: '80kg',
+                    proposedDate: 'Oct 23, 2025',
+                    transport: 'Self Transport',
+                    submittedDate: 'Oct 18, 2025',
+                    notes: 'Will deliver to warehouse before 10 AM',
+                    quality: 'Grade A - Organic Certified',
+                    location: 'Matale, Central Province'
+                }
+            };
+
+            const delivery = deliveries[deliveryId];
+            if (delivery) {
+                let reviewHTML = `
+                    <div style="line-height: 2;">
+                        <h3 style="color: #2e7d32; margin-bottom: 1rem;">Delivery Information</h3>
+                        <p><strong>Delivery ID:</strong> ${delivery.id}</p>
+                        <p><strong>Farmer:</strong> ${delivery.farmer}</p>
+                        <p><strong>Contact:</strong> ${delivery.farmerContact}</p>
+                        <p><strong>Location:</strong> ${delivery.location}</p>
+                        <hr style="margin: 1rem 0; border: none; border-top: 1px solid #e0e0e0;">
+                        <h3 style="color: #2e7d32; margin-bottom: 1rem;">Product Details</h3>
+                        <p><strong>Product:</strong> ${delivery.product}</p>
+                        <p><strong>Quality:</strong> ${delivery.quality}</p>
+                        <p><strong>Quantity:</strong> ${delivery.quantity}</p>
+                        <hr style="margin: 1rem 0; border: none; border-top: 1px solid #e0e0e0;">
+                        <h3 style="color: #2e7d32; margin-bottom: 1rem;">Logistics</h3>
+                        <p><strong>Proposed Date:</strong> ${delivery.proposedDate}</p>
+                        <p><strong>Transport Method:</strong> ${delivery.transport}</p>
+                        <p><strong>Submitted Date:</strong> ${delivery.submittedDate}</p>
+                        <p><strong>Notes:</strong> ${delivery.notes}</p>
+                        <hr style="margin: 1rem 0; border: none; border-top: 1px solid #e0e0e0;">
+                        <div style="background: #fff3cd; padding: 1rem; border-radius: 8px; margin-top: 1rem;">
+                            <strong>Action Required:</strong> Review the delivery details and confirm the schedule or request changes if needed.
+                        </div>
+                    </div>
+                `;
+                document.getElementById('reviewDeliveryContent').innerHTML = reviewHTML;
+                document.getElementById('reviewDeliveryModal').style.display = 'block';
+            }
+        }
+
+        function closeReviewDeliveryModal() {
+            document.getElementById('reviewDeliveryModal').style.display = 'none';
+            currentReviewDelivery = null;
+        }
+
+        function requestScheduleChange() {
+            if (currentReviewDelivery) {
+                const newDate = prompt('Enter the new proposed date (YYYY-MM-DD):');
+                if (newDate) {
+                    alert('Schedule change request sent to farmer.\n\nDelivery ID: ' + currentReviewDelivery + '\nNew Proposed Date: ' + newDate + '\n\nThe farmer will receive a notification about the requested change.');
+                    closeReviewDeliveryModal();
+                }
+            }
+        }
+
+        function confirmDeliverySchedule() {
+            if (currentReviewDelivery) {
+                alert('Delivery schedule confirmed!\n\nDelivery ID: ' + currentReviewDelivery + '\n\nThe farmer has been notified. The delivery is now confirmed and scheduled for pickup/delivery.');
+                
+                // Update the row status
+                const rows = document.querySelectorAll('#employeeDeliveryList tr');
+                rows.forEach(row => {
+                    if (row.cells[0] && row.cells[0].textContent === currentReviewDelivery) {
+                        row.setAttribute('data-status', 'confirmed');
+                        const statusCell = row.querySelector('.status-badge');
+                        if (statusCell) {
+                            statusCell.className = 'status-badge status-confirmed';
+                            statusCell.textContent = 'Confirmed';
+                        }
+                        // Update Schedule Date column (index 5)
+                        const proposedDate = row.cells[4].textContent;
+                        row.cells[5].innerHTML = '<strong>' + proposedDate + '</strong>';
+                        
+                        // Update Schedule Delivery column (index 8) with Accept Date and Reschedule buttons
+                        const actionCell = row.cells[8];
+                        if (actionCell) {
+                            actionCell.innerHTML = '<button class="btn-action" onclick="acceptDate(\'' + currentReviewDelivery + '\')" style="background: #4caf50; color: white;">Accept Date</button>' +
+                                                  '<button class="btn-action" onclick="rescheduleDelivery(\'' + currentReviewDelivery + '\')" style="background: #ff9800; color: white; margin-left: 0.5rem;">Reschedule</button>';
+                        }
+                    }
+                });
+                
+                closeReviewDeliveryModal();
+            }
+        }
+
+        function viewEmployeeDeliveryDetails(deliveryId) {
+            // Sample delivery data
+            const deliveries = {
+                'DEL-002': {
+                    id: 'DEL-002',
+                    farmer: 'Green Valley Farm',
+                    farmerContact: '+94 77 123 4567',
+                    product: 'Strawberry - Grade A',
+                    quantity: '50kg',
+                    proposedDate: 'Oct 25, 2025',
+                    confirmedDate: 'Oct 25, 2025',
+                    transport: 'Self Transport',
+                    status: 'Confirmed',
+                    submittedDate: 'Oct 15, 2025',
+                    confirmedBy: 'Employee: John Silva',
+                    notes: 'Will deliver to warehouse before 10 AM'
+                },
+                'DEL-003': {
+                    id: 'DEL-003',
+                    farmer: 'Green Valley Farm',
+                    farmerContact: '+94 77 123 4567',
+                    product: 'Pineapple - Grade B',
+                    quantity: '75kg',
+                    proposedDate: 'Oct 20, 2025',
+                    deliveredDate: 'Oct 20, 2025',
+                    transport: 'Company Truck Pickup',
+                    status: 'Completed',
+                    submittedDate: 'Oct 17, 2025',
+                    confirmedBy: 'Employee: Sarah Fernando',
+                    notes: 'Delivered successfully',
+                    receivedBy: 'Warehouse Manager: Kumar Perera'
+                }
+            };
+
+            const delivery = deliveries[deliveryId];
+            if (delivery) {
+                let detailsHTML = `
+                    <div style="line-height: 2;">
+                        <p><strong>Delivery ID:</strong> ${delivery.id}</p>
+                        <p><strong>Farmer:</strong> ${delivery.farmer}</p>
+                        <p><strong>Contact:</strong> ${delivery.farmerContact}</p>
+                        <p><strong>Product:</strong> ${delivery.product}</p>
+                        <p><strong>Quantity:</strong> ${delivery.quantity}</p>
+                        <p><strong>Proposed Date:</strong> ${delivery.proposedDate}</p>
+                        ${delivery.confirmedDate ? `<p><strong>Confirmed Date:</strong> ${delivery.confirmedDate}</p>` : ''}
+                        ${delivery.deliveredDate ? `<p><strong>Delivered Date:</strong> ${delivery.deliveredDate}</p>` : ''}
+                        <p><strong>Transport Method:</strong> ${delivery.transport}</p>
+                        <p><strong>Status:</strong> <span class="status-badge status-${delivery.status.toLowerCase()}">${delivery.status}</span></p>
+                        <p><strong>Submitted Date:</strong> ${delivery.submittedDate}</p>
+                        ${delivery.confirmedBy ? `<p><strong>Confirmed By:</strong> ${delivery.confirmedBy}</p>` : ''}
+                        ${delivery.receivedBy ? `<p><strong>Received By:</strong> ${delivery.receivedBy}</p>` : ''}
+                        <p><strong>Notes:</strong> ${delivery.notes}</p>
+                    </div>
+                `;
+                document.getElementById('employeeDeliveryDetailsContent').innerHTML = detailsHTML;
+                document.getElementById('employeeDeliveryDetailsModal').style.display = 'block';
+            }
+        }
+
+        function closeEmployeeDeliveryDetailsModal() {
+            document.getElementById('employeeDeliveryDetailsModal').style.display = 'none';
+        }
+
+        // Accept Date Function
+        function acceptDate(deliveryId) {
+            if (confirm('Accept the scheduled date for delivery ' + deliveryId + '?')) {
+                alert('✅ Schedule date accepted!\n\nDelivery ID: ' + deliveryId + '\n\nThe farmer has been notified that the delivery date is confirmed and accepted.');
+                
+                // Update the row to show date accepted
+                const rows = document.querySelectorAll('#employeeDeliveryList tr');
+                rows.forEach(row => {
+                    if (row.cells[0] && row.cells[0].textContent === deliveryId) {
+                        row.setAttribute('data-status', 'completed');
+                        const statusCell = row.querySelector('.status-badge');
+                        if (statusCell) {
+                            statusCell.className = 'status-badge status-completed';
+                            statusCell.textContent = 'Completed';
+                        }
+                        const actionButtons = row.cells[8];
+                        if (actionButtons) {
+                            actionButtons.innerHTML = '<button class="btn-action btn-secondary" onclick="viewEmployeeDeliveryDetails(\'' + deliveryId + '\')">View</button>';
+                        }
+                    }
+                });
+            }
+        }
+
+        // Reschedule Function
+        function rescheduleDelivery(deliveryId) {
+            const newDate = prompt('Enter new delivery date (e.g., Oct 26, 2025):');
+            if (newDate && newDate.trim() !== '') {
+                alert('📅 Delivery rescheduled!\n\nDelivery ID: ' + deliveryId + '\nNew Date: ' + newDate + '\n\nThe farmer has been notified of the new delivery date.');
+                
+                // Update the schedule date in the row
+                const rows = document.querySelectorAll('#employeeDeliveryList tr');
+                rows.forEach(row => {
+                    if (row.cells[0] && row.cells[0].textContent === deliveryId) {
+                        row.cells[5].innerHTML = '<strong>' + newDate + '</strong>';
+                    }
+                });
+            }
+        }
+
+        // Close modals when clicking outside
+        window.addEventListener('click', function(event) {
+            const reviewModal = document.getElementById('reviewDeliveryModal');
+            const detailsModal = document.getElementById('employeeDeliveryDetailsModal');
+            const editModal = document.getElementById('editProfileModal');
+            
+            if (event.target == reviewModal) {
+                closeReviewDeliveryModal();
+            }
+            if (event.target == detailsModal) {
+                closeEmployeeDeliveryDetailsModal();
+            }
+            if (event.target == editModal) {
+                closeEditProfile();
+            }
+        });
+    </script>
+
+    <style>
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</body>
+</html>

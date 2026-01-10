@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Laklight Food Products</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8f9fa;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, #67cc61 0%, #377f43 100%);
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            font-size: 1.4rem;
+            font-weight: bold;
+        }
+
+        .logo img {
+            width: 35px;
+            height: 35px;
+            margin-right: 10px;
+            border-radius: 6px;
+        }
+
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-menu a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .nav-menu a:hover {
+            color: #bbdefb;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .admin-badge {
+            background: #ff6b35;
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .logout-btn {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            color: white;
+            border: 2px solid white;
+            border-radius: 20px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: white;
+            color: #54b785;
+        }
+
+        /* Main Content */
+        .main-content {
+            padding: 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .dashboard-header {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dashboard-header h1 {
+            color: #5cde71;
+            margin-bottom: 0.5rem;
+        }
+
+        .dashboard-header p {
+            color: #666;
+        }
+
+        .quick-actions {
+            display: flex;
+            gap: 1rem;
+        }
+
+        .btn {
+            padding: 0.7rem 1.5rem;
+            border: none;
+            border-radius: 25px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: #ff6b35;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #e55a2b;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #66e0a1;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #56de88;
+            transform: translateY(-2px);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .stat-icon.revenue { background: linear-gradient(135deg, #4caf50, #81c784); }
+        .stat-icon.orders { background: linear-gradient(135deg, #ff9800, #ffb74d); }
+        .stat-icon.customers { background: linear-gradient(135deg, #32b27c, #419363); }
+        .stat-icon.suppliers { background: linear-gradient(135deg, #9c27b0, #ba68c8); }
+
+        .stat-number {
+            font-size: 2.2rem;
+            font-weight: bold;
+            color: #58cd81;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .stat-change {
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+        }
+
+        .stat-change.positive { color: #4caf50; }
+        .stat-change.negative { color: #f44336; }
+
+        /* Content Grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .section {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid #f0f0f0;
+            padding-bottom: 1rem;
+        }
+
+        .section-header h3 {
+            color: #5ab566;
+            margin-bottom: 0;
+        }
+
+        /* Tables */
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th,
+        .data-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .data-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #5ed073;
+        }
+
+        .data-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status-badge {
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+
+        .status-active { background: #e8f5e8; color: #2e7d32; }
+        .status-pending { background: #fff3e0; color: #f57c00; }
+        .status-inactive { background: #ffebee; color: #d32f2f; }
+
+        /* Management Grid */
+        .management-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+
+        .management-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+            text-align: center;
+            transition: transform 0.3s ease;
+            cursor: pointer;
+        }
+
+        .management-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .management-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            font-size: 2rem;
+            color: white;
+        }
+
+        .management-icon.users { background: linear-gradient(135deg, #2196f3, #64b5f6); }
+        .management-icon.inventory { background: linear-gradient(135deg, #4caf50, #81c784); }
+        .management-icon.orders { background: linear-gradient(135deg, #ff9800, #ffb74d); }
+        .management-icon.suppliers { background: linear-gradient(135deg, #9c27b0, #ba68c8); }
+        .management-icon.reports { background: linear-gradient(135deg, #f44336, #ef5350); }
+        .management-icon.settings { background: linear-gradient(135deg, #607d8b, #90a4ae); }
+
+        .management-title {
+            color: #4cc87e;
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .management-description {
+            color: #666;
+            line-height: 1.5;
+            margin-bottom: 1.5rem;
+        }
+
+        .management-stats {
+            display: flex;
+            justify-content: space-around;
+            padding-top: 1rem;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .management-stat {
+            text-align: center;
+        }
+
+        .management-stat-number {
+            font-weight: bold;
+            color: #59b453;
+            display: block;
+        }
+
+        .management-stat-label {
+            font-size: 0.8rem;
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .dashboard-header {
+                flex-direction: column;
+                text-align: center;
+                gap: 1rem;
+            }
+            
+            .nav-menu {
+                display: none;
+            }
+
+            .quick-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <nav class="nav-container">
+            <div class="logo">
+                <img src="Logo.png" alt="Laklight Food Products">
+                Laklight Food Products
+            </div>
+            <ul class="nav-menu">
+                <li><a href="UserManagement.html">User Management</a></li>
+                <li><a href="AdminInventory.html">Inventory</a></li>
+                <li><a href="AdminOrderManagement.html">Orders</a></li>
+                <li><a href="SupplierRelations.html">Suppliers</a></li>
+                <li><a href="/admin/reports">Reports</a></li>
+            </ul>
+            <div class="user-info">
+                <span class="admin-badge">ADMIN</span>
+                <span>Administrator</span>
+                <a href="LoggedHome.html" class="logout-btn">Dashboard</a>
+          
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Dashboard Header -->
+        <div class="dashboard-header">
+            <div>
+                <h1>Admin Dashboard</h1>
+                <p>Complete system overview and management controls for Laklight Food Products digital platform.</p>
+            </div>
+            <div class="quick-actions">
+                <a href="GenerateReports.html" class="btn btn-primary">Generate Report</a>
+                <a href="SystemSettings.html" class="btn btn-secondary">System Settings</a>
+            </div>
+        </div>
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-icon revenue"></div>
+                <div class="stat-number">Rs. 2.4M</div>
+                <div class="stat-label">Monthly Revenue</div>
+                <div class="stat-change positive">+12% from last month</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon orders"></div>
+                <div class="stat-number">1,847</div>
+                <div class="stat-label">Total Orders</div>
+                <div class="stat-change positive">+8% from last month</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon customers"></div>
+                <div class="stat-number">1,523</div>
+                <div class="stat-label">Active Customers</div>
+                <div class="stat-change positive">+15% from last month</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-icon suppliers"></div>
+                <div class="stat-number">234</div>
+                <div class="stat-label">Registered Suppliers</div>
+                <div class="stat-change positive">+5% from last month</div>
+            </div>
+        </div>
+
+        <!-- Content Grid -->
+        <div class="content-grid">
+            <!-- Recent Orders -->
+            <div class="section">
+                <div class="section-header">
+                    <h3>Recent Orders</h3>
+                    <a href="AdminOrderManagement.html" class="btn btn-secondary">View All Orders</a>
+                </div>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Customer</th>
+                            <th>Amount</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>LF2025-1847</td>
+                            <td>John Silva</td>
+                            <td>Rs. 3,450</td>
+                            <td><span class="status-badge status-active">Delivered</span></td>
+                            <td>Mar 20, 2025</td>
+                        </tr>
+                        <tr>
+                            <td>LF2025-1846</td>
+                            <td>Maria Fernando</td>
+                            <td>Rs. 1,280</td>
+                            <td><span class="status-badge status-pending">Processing</span></td>
+                            <td>Mar 20, 2025</td>
+                        </tr>
+                        <tr>
+                            <td>LF2025-1845</td>
+                            <td>ABC store</td>
+                            <td>Rs. 12,640</td>
+                            <td><span class="status-badge status-active">Delivered</span></td>
+                            <td>Mar 19, 2025</td>
+                        </tr>
+                        <tr>
+                            <td>LF2025-1844</td>
+                            <td>Colombo Restaurant</td>
+                            <td>Rs. 8,750</td>
+                            <td><span class="status-badge status-pending">Pending</span></td>
+                            <td>Mar 19, 2025</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- System Alerts -->
+            <div class="section">
+                <div class="section-header">
+                    <h3>System Alerts</h3>
+                    <a href="/admin/alerts" class="btn btn-secondary">View All</a>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div style="padding: 1rem; background: #fff3e0; border-left: 4px solid #ff9800; border-radius: 5px;">
+                        <strong style="color: #f57c00;">Low Stock Alert</strong>
+                        <p style="color: #666; margin-top: 0.5rem;">Mango Cordial stock is running low (5 bottles remaining)</p>
+                    </div>
+                    <div style="padding: 1rem; background: #e8f5e8; border-left: 4px solid #4caf50; border-radius: 5px;">
+                        <strong style="color: #2e7d32;">New Supplier Application</strong>
+                        <p style="color: #666; margin-top: 0.5rem;">Fresh Farms Ltd. has submitted a new supplier application</p>
+                    </div>
+                    <div style="padding: 1rem; background: #f3e5f5; border-left: 4px solid #9c27b0; border-radius: 5px;">
+                        <strong style="color: #7b1fa2;">Expiry Notice</strong>
+                        <p style="color: #666; margin-top: 0.5rem;">3 products expiring within next 7 days</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Management Grid -->
+        <div class="section">
+            <div class="section-header">
+                <h3>System Management</h3>
+                <p style="color: #666;">Access all administrative functions and system controls</p>
+            </div>
+            <div class="management-grid">
+                <div class="management-card" onclick="window.location.href='UserManagement.html'">
+                    <div class="management-icon users">👥</div>
+                    <div class="management-title">User Management</div>
+                    <div class="management-description">Manage customers, suppliers, and employees accounts</div>
+                    <div class="management-stats">
+                        <div class="management-stat">
+                            <span class="management-stat-number">1,523</span>
+                            <span class="management-stat-label">Customers</span>
+                        </div>
+                        <div class="management-stat">
+                            <span class="management-stat-number">234</span>
+                            <span class="management-stat-label">Suppliers</span>
+                        </div>
+                        <div class="management-stat">
+                            <span class="management-stat-number">45</span>
+                            <span class="management-stat-label">Employees</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="management-card" onclick="window.location.href='AdminInventory.html'">
+                    <div class="management-icon inventory">📦</div>
+                    <div class="management-title">Inventory Control</div>
+                    <div class="management-description">Monitor stock levels, warehouse locations, and product expiry</div>
+                    <div class="management-stats">
+                        <div class="management-stat">
+                            <span class="management-stat-number">156</span>
+                            <span class="management-stat-label">Products</span>
+                        </div>
+                        <div class="management-stat">
+                            <span class="management-stat-number">12</span>
+                            <span class="management-stat-label">Low Stock</span>
+                        </div>
+                        <div class="management-stat">
+                            <span class="management-stat-number">3</span>
+                            <span class="management-stat-label">Expiring</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="management-card" onclick="window.location.href='ProductCatalog.html'">
+                    <div class="management-icon inventory">🏪</div>
+                    <div class="management-title">Product Catalog</div>
+                    <div class="management-description">Add, edit, and manage products with pricing controls</div>
+                    <div class="management-stats">
+                        <div class="management-stat">
+                            <span class="management-stat-number">156</span>
+                            <span class="management-stat-label">Total Products</span>
+                        </div>
+                        <div class="management-stat">
+                            <span class="management-stat-number">142</span>
+                            <span class="management-stat-label">Active</span>
+                        </div>
+                        <div class="management-stat">
+                            <span class="management-stat-number">8</span>
+                            <span class="management-stat-label">Categories</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="management-card" onclick="window.location.href='AdminOrderManagement.html'">
+                    <div class="management-icon orders">🛍️</div>
+                    <div class="management-title">Order Management</div>
+                    <div class="management-description">Process orders, manage delivery, and track payments</div>
+                    <div class="management-stats">
+                        <div class="management-stat">
+                            <span class="management-stat-number">1,847</span>
+                            <span class="management-stat-label">Total Orders</span>
+                        </div>
+                        <div class="management-stat">
+                            <span class="management-stat-number">23</span>
+                            <span class="management-stat-label">Pending</span>
+                        </div>
+                        <div class="management-stat">
+                            <span class="management-stat-number">15</span>
+                            <span class="management-stat-label">Processing</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="management-card" onclick="window.location.href='SupplierRelations.html'">
+                    <div class="management-icon suppliers">🤝</div>
+                    <div class="management-title">Supplier Relations</div>
+                    <div class="management-description">Review applications, manage contracts, and quality control</div>
+                    <div class="management-stats">
+                        <div class="management-stat">
+                            <span class="management-stat-number">234</span>
+                            <span class="management-stat-label">Active</span>
+                        </div>
+                        <div class="management-stat">
+                            <span class="management-stat-number">18</span>
+                            <span class="management-stat-label">Pending</span>
+                        </div>
+                        <div class="management-stat">
+                            <span class="management-stat-number">98%</span>
+                            <span class="management-stat-label">Quality Rate</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="management-card" onclick="window.location.href='GenerateReports.html'">
+                    <div class="management-icon reports">📊</div>
+                    <div class="management-title">Analytics & Reports</div>
+                    <div class="management-description">Generate business insights, sales reports, and performance metrics</div>
+                    <div class="management-stats">
+                        <div class="management-stat">
+                            <span class="management-stat-number">Rs. 2.4M</span>
+                            <span class="management-stat-label">Revenue</span>
+                        </div>
+                        <div class="management-stat">
+                            <span class="management-stat-number">+12%</span>
+                            <span class="management-stat-label">Growth</span>
+                        </div>
+                        <div class="management-stat">
+                            <span class="management-stat-number">99.5%</span>
+                            <span class="management-stat-label">Uptime</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="management-card" onclick="window.location.href='SystemSettings.html'">
+                    <div class="management-icon settings">⚙️</div>
+                    <div class="management-title">System Settings</div>
+                    <div class="management-description">Configure platform settings, security, and integrations</div>
+                    <div class="management-stats">
+                        <div class="management-stat">
+                            <span class="management-stat-number">Active</span>
+                            <span class="management-stat-label">System Status</span>
+                        </div>
+                        <div class="management-stat">
+                            <span class="management-stat-number">24/7</span>
+                            <span class="management-stat-label">Monitoring</span>
+                        </div>
+                        <div class="management-stat">
+                            <span class="management-stat-number">Secure</span>
+                            <span class="management-stat-label">Data Protection</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Add click animation effect for management cards
+        document.querySelectorAll('.management-card').forEach(card => {
+            card.addEventListener('click', function() {
+                this.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    this.style.transform = '';
+                }, 150);
+            });
+        });
+
+        // Simulate real-time updates (you can replace with actual WebSocket connections)
+        function updateStats() {
+            // This would be replaced with real API calls
+            console.log('Updating dashboard stats...');
+        }
+
+        // Update stats every 30 seconds
+        setInterval(updateStats, 30000);
+
+        // Add notification system
+        function showNotification(message, type = 'info') {
+            // Implementation for toast notifications
+            console.log(`${type.toUpperCase()}: ${message}`);
+        }
+
+        // Example usage
+        setTimeout(() => {
+            showNotification('New supplier application received', 'info');
+        }, 3000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - Laklight Food Products</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, rgb(178, 255, 189) 0%, #81c784 100%);
+            min-height: 100vh;
+            padding: 2rem;
+        }
+
+        .register-container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            width: 100%;
+            max-width: 1000px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 1.5fr;
+            /* Use a viewport-based height so the whole card fits on laptop screens
+               and avoids causing the page itself to scroll. The inner right panel
+               can scroll if its content is taller than the available area. */
+            height: calc(100vh - 4rem);
+            align-items: stretch;
+        }
+
+        .register-left {
+            background: linear-gradient(135deg, #81c784 0%, #a5d6a7 100%);
+            color: white;
+            padding: 3rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+        }
+        .logo-img {
+    width: 40px;  /* Adjust this value to make logo smaller/larger */
+    height: auto; /* Maintains aspect ratio */
+    margin-right: 10px;
+}
+
+        .logo-section {
+            margin-bottom: 2rem;
+        }
+
+        .logo-section img {
+            width: 80px;
+            height: 80px;
+            margin-bottom: 1rem;
+            border-radius: 15px;
+        }
+
+        .logo-section h1 {
+            font-size: 1.8rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .logo-section p {
+            opacity: 0.9;
+            font-size: 1rem;
+        }
+
+        .register-info {
+            margin-top: 2rem;
+        }
+
+        .register-info h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .register-info p {
+            opacity: 0.9;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .features-list {
+            list-style: none;
+            text-align: left;
+            margin-top: 1rem;
+        }
+
+        .features-list li {
+            margin-bottom: 0.5rem;
+            opacity: 0.9;
+        }
+
+        .features-list li:before {
+            content: "✓ ";
+            margin-right: 0.5rem;
+        }
+
+        .register-right {
+            padding: 3rem;
+            /* allow internal scrolling of the form area if needed while keeping
+               the overall page height fixed */
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            max-height: calc(100vh - 8rem);
+        }
+
+        .register-header {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .register-header h2 {
+            color: #2e7d32;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .register-header p {
+            color: #666;
+            font-size: 1rem;
+        }
+
+        .user-type-selector {
+            margin-bottom: 2rem;
+        }
+
+        .user-type-selector label {
+            display: block;
+            color: #2e7d32;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .user-type-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .user-type-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #f9f9f9;
+        }
+
+        .user-type-card:hover {
+            border-color: #4caf50;
+            background: #f1f8e9;
+        }
+
+        .user-type-card.active {
+            border-color: #4caf50;
+            background: #e8f5e8;
+        }
+
+        .user-type-card input[type="radio"] {
+            display: none;
+        }
+
+        .user-type-card h3 {
+            color: #2e7d32;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .user-type-card p {
+            color: #666;
+            font-size: 0.8rem;
+            line-height: 1.4;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            color: #2e7d32;
+            font-weight: 500;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 0.8rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #4caf50;
+        }
+
+        .form-group textarea {
+            resize: vertical;
+            height: 80px;
+        }
+
+        .dynamic-fields {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .dynamic-fields h4 {
+            color: #2e7d32;
+            margin-bottom: 1rem;
+            font-size: 1rem;
+        }
+
+        .terms-agreement {
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
+        .terms-agreement input[type="checkbox"] {
+            width: auto;
+            margin-top: 0.2rem;
+        }
+
+        .terms-agreement label {
+            font-size: 0.9rem;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        .terms-agreement a {
+            color: #4caf50;
+            text-decoration: none;
+        }
+
+        .terms-agreement a:hover {
+            text-decoration: underline;
+        }
+
+        .register-btn {
+            width: 100%;
+            padding: 0.8rem;
+            background: linear-gradient(135deg, #4caf50, #81c784);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            margin-bottom: 1.5rem;
+        }
+
+        .register-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(76, 175, 80, 0.3);
+        }
+
+        .register-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .login-link {
+            text-align: center;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .login-link a {
+            color: #4caf50;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        .login-link a:hover {
+            color: #2e7d32;
+        }
+
+        .back-home {
+            position: absolute;
+            top: 2rem;
+            left: 2rem;
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 500;
+            transition: opacity 0.3s ease;
+        }
+
+        .back-home:hover {
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            .register-container {
+                grid-template-columns: 1fr;
+                max-width: 500px;
+            }
+
+            .register-left {
+                padding: 2rem;
+            }
+
+            .register-right {
+                padding: 2rem;
+            }
+
+            .user-type-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .back-home {
+                position: relative;
+                top: 0;
+                left: 0;
+                margin-bottom: 1rem;
+                color: #2e7d32;
+            }
+        }
+
+        /* Desktop / laptop adjustments: ensure the register card fits within
+           common laptop heights (e.g., 768-900px) without creating page scroll. */
+        @media (min-width: 1024px) {
+            body {
+                /* reduce page padding on larger screens to maximize usable space */
+                padding: 1.5rem;
+            }
+
+            .register-container {
+                /* slightly smaller top/bottom buffer for tighter laptop viewports */
+                height: calc(100vh - 3rem);
+            }
+
+            .register-right {
+                max-height: calc(100vh - 7rem);
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="Home.html" class="back-home">
+        ← Back to Home
+    </a>
+
+    <div class="register-container">
+        <div class="register-left">
+            <div class="logo-section">
+                <img src="Logo.png" alt="Laklight Food Products">
+                <h1>Laklight Food Products</h1>
+                <p>Quality Food Manufacturing</p>
+            </div>
+            <div class="register-info">
+                <h2>Join Our Platform</h2>
+                <p>Create your account to access our comprehensive digital manufacturing ecosystem.</p>
+                <ul class="features-list">
+                    <li>E-commerce ordering system</li>
+                    <li>Real-time inventory tracking</li>
+                    <li>Supplier management portal</li>
+                    <li>Quality assurance monitoring</li>
+                    <li>Production analytics</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="register-right">
+            <div class="register-header">
+                <h2>Create Account</h2>
+                <p>Choose your role and fill in your information</p>
+            </div>
+
+            <form id="registerForm">
+                <div class="user-type-selector">
+                    <label>Select Account Type</label>
+                    <div class="user-type-cards">
+                        <div class="user-type-card" onclick="selectUserType('customer')">
+                            <input type="radio" name="userType" value="customer" id="customer">
+                            <h3>Customer</h3>
+                            <p>Order food products with wholesale discounts</p>
+                        </div>
+                        <div class="user-type-card" onclick="selectUserType('supplier')">
+                            <input type="radio" name="userType" value="supplier" id="supplier">
+                            <h3>Farmer</h3>
+                            <p>Supply quality fruits for manufacturing</p>
+                        </div>
+                        <div class="user-type-card" onclick="selectUserType('employee')">
+                            <input type="radio" name="userType" value="employee" id="employee">
+                            <h3>Employee</h3>
+                            <p>Join our team as a staff member</p>
+                        </div>
+                        <div class="user-type-card" onclick="selectUserType('admin')">
+                            <input type="radio" name="userType" value="admin" id="admin">
+                            <h3>Administrator</h3>
+                            <p>Manage the entire system</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Basic Information -->
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="firstName">First Name *</label>
+                        <input type="text" id="firstName" name="firstName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="lastName">Last Name *</label>
+                        <input type="text" id="lastName" name="lastName" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="email">Email Address *</label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="phone">Phone Number *</label>
+                        <input type="tel" id="phone" name="phone" required>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="password">Password *</label>
+                        <input type="password" id="password" name="password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirm Password *</label>
+                        <input type="password" id="confirmPassword" name="confirmPassword" required>
+                    </div>
+                </div>
+
+                <!-- Dynamic Fields Based on User Type -->
+                <div id="dynamicFields" class="dynamic-fields" style="display: none;">
+                    <!-- Customer specific fields -->
+                    <div id="customerFields" style="display: none;">
+                        <h4>Business Information (Optional)</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="businessName">Business Name</label>
+                                <input type="text" id="businessName" name="businessName">
+                            </div>
+                            <div class="form-group">
+                                <label for="businessType">Business Type</label>
+                                <select id="businessType" name="businessType">
+                                    <option value="">Select type...</option>
+                                    <option value="retail">Retail Store</option>
+                                    <option value="restaurant">Restaurant</option>
+                                    <option value="wholesale">Wholesale Business</option>
+                                    <option value="individual">Individual Customer</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Employee specific fields -->
+                    <div id="employeeFields" style="display: none;">
+                        <h4>Employment Information</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="position">Position Applying For *</label>
+                                <select id="position" name="position" required>
+                                    <option value="">Select position...</option>
+                                    <option value="production">Production Staff</option>
+                                    <option value="quality">Quality Control</option>
+                                    <option value="packaging">Packaging Staff</option>
+                                    <option value="logistics">Logistics Staff</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="education">Education/Qualifications *</label>
+                            <textarea id="education" name="education" required placeholder="List your relevant education and qualifications"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Supplier specific fields -->
+                    <div id="supplierFields" style="display: none;">
+                        <h4>Supplier Information</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="farmName">Farm/Business Name *</label>
+                                <input type="text" id="farmName" name="farmName">
+                            </div>
+                            <div class="form-group">
+                                <label for="experience">Years of Experience *</label>
+                                <input type="number" id="experience" name="experience" min="0">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="fruitTypes">Types of Fruits You Grow *</label>
+                            <textarea id="fruitTypes" name="fruitTypes" placeholder="List the types of fruits you can supply (e.g., Mango, Orange, Papaya...)"></textarea>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="farmSize">Farm Size (acres)</label>
+                                <input type="number" id="farmSize" name="farmSize" min="0" step="0.1">
+                            </div>
+                            <div class="form-group">
+                                <label for="certifications">Certifications</label>
+                                <input type="text" id="certifications" name="certifications" placeholder="Organic, GAP, etc.">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Administrator specific fields -->
+                <div id="adminFields" style="display: none;">
+                    <div class="specific-fields">
+                        <h4>Administrator Information</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="adminRole">Administrative Role *</label>
+                                <select id="adminRole" name="adminRole">
+                                    <option value="">Select role...</option>
+                                    <option value="super-admin">Super Administrator</option>
+                                    <option value="system-admin">System Administrator</option>
+                                    <option value="operations-admin">Operations Administrator</option>
+                                    <option value="finance-admin">Finance Administrator</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="department">Department *</label>
+                                <select id="department" name="department">
+                                    <option value="">Select department...</option>
+                                    <option value="it">Information Technology</option>
+                                    <option value="operations">Operations</option>
+                                    <option value="finance">Finance</option>
+                                    <option value="hr">Human Resources</option>
+                                    <option value="general">General Management</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="employeeId">Employee ID *</label>
+                            <input type="text" id="employeeId" name="employeeId" placeholder="Your company employee ID">
+                        </div>
+                        <div class="form-group">
+                            <label for="authorizationCode">Authorization Code *</label>
+                            <input type="password" id="authorizationCode" name="authorizationCode" placeholder="Admin authorization code provided by management">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="terms-agreement">
+                    <input type="checkbox" id="terms" name="terms" required>
+                    <label for="terms">
+                        I agree to the <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>. 
+                        I understand that my application will be reviewed by Laklight Food Products team.
+                    </label>
+                </div>
+
+                <button type="submit" class="register-btn" id="submitBtn" disabled>Create Account</button>
+            </form>
+
+            <div class="login-link">
+                <p>Already have an account? <a href="LogIn.html">Sign In</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedUserType = null;
+
+        function selectUserType(type) {
+            selectedUserType = type;
+            
+            // Remove active class from all cards
+            document.querySelectorAll('.user-type-card').forEach(card => {
+                card.classList.remove('active');
+            });
+            
+            // Add active class to selected card
+            event.currentTarget.classList.add('active');
+            
+            // Check the radio button
+            document.getElementById(type).checked = true;
+            
+            // Show/hide dynamic fields
+            const dynamicFields = document.getElementById('dynamicFields');
+            const customerFields = document.getElementById('customerFields');
+            const supplierFields = document.getElementById('supplierFields');
+            const employeeFields = document.getElementById('employeeFields');
+            const adminFields = document.getElementById('adminFields');
+            
+            dynamicFields.style.display = 'block';
+            
+            // Hide all specific fields first
+            customerFields.style.display = 'none';
+            supplierFields.style.display = 'none';
+            employeeFields.style.display = 'none';
+            adminFields.style.display = 'none';
+
+            // Remove all required attributes
+            document.querySelectorAll('#dynamicFields [required]').forEach(field => {
+                field.removeAttribute('required');
+            });
+            
+            if (type === 'customer') {
+                customerFields.style.display = 'block';
+            } else if (type === 'supplier') {
+                supplierFields.style.display = 'block';
+                // Add required attribute to supplier fields
+                supplierFields.querySelectorAll('[name="farmName"], [name="experience"], [name="fruitTypes"]').forEach(field => {
+                    field.setAttribute('required', '');
+                });
+            } else if (type === 'employee') {
+                employeeFields.style.display = 'block';
+                // Add required attribute to employee fields
+                employeeFields.querySelectorAll('[name="position"], [name="education"]').forEach(field => {
+                    field.setAttribute('required', '');
+                });
+            } else if (type === 'admin') {
+                adminFields.style.display = 'block';
+                // Add required attribute to admin fields
+                adminFields.querySelectorAll('[name="adminRole"], [name="department"], [name="employeeId"], [name="authorizationCode"]').forEach(field => {
+                    field.setAttribute('required', '');
+                });
+            }
+            
+            validateForm();
+        }
+
+        function validateForm() {
+            const form = document.getElementById('registerForm');
+            const submitBtn = document.getElementById('submitBtn');
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+            const terms = document.getElementById('terms').checked;
+            
+            let isValid = true;
+            
+            // Check if user type is selected
+            if (!selectedUserType) {
+                isValid = false;
+            }
+            
+            // Check required fields
+            const requiredFields = form.querySelectorAll('[required]');
+            requiredFields.forEach(field => {
+                if (!field.value.trim()) {
+                    isValid = false;
+                }
+            });
+            
+            // Check password match
+            if (password !== confirmPassword && confirmPassword) {
+                isValid = false;
+                document.getElementById('confirmPassword').style.borderColor = '#f44336';
+            } else {
+                document.getElementById('confirmPassword').style.borderColor = '#e0e0e0';
+            }
+            
+            // Check terms agreement
+            if (!terms) {
+                isValid = false;
+            }
+            
+            submitBtn.disabled = !isValid;
+        }
+
+        // Add event listeners for form validation
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('registerForm');
+            
+            form.addEventListener('input', validateForm);
+            
+            // Initial validation in case of pre-filled data
+            validateForm();
+        });
+
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Show success message
+            alert('Registration successful! Welcome to Laklight Food Products.');
+
+            // Redirect to the appropriate dashboard based on selected user type
+            switch (selectedUserType) {
+                case 'customer':
+                    window.location.href = 'CustomerDashboard.html';
+                    break;
+                case 'supplier':
+                    // 'supplier' is the Farmer role in the UI
+                    window.location.href = 'FarmerDashboard.html';
+                    break;
+                case 'employee':
+                    window.location.href = 'EmployeeDashboard.html';
+                    break;
+                case 'admin':
+                    window.location.href = 'AdminDahboard.html';
+                    break;
+                default:
+                    // Fallback to logged home
+                    window.location.href = 'LoggedHome.html';
+            }
+        });
+    </script>
+</body>
+</html>

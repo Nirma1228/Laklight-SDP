@@ -1,0 +1,1368 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Complete Inventory Control - Laklights Food Products</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f8f9fa;
+            color: #333;
+        }
+
+        .header {
+            background: linear-gradient(135deg, rgb(132, 213, 147) 0%, #4caf50 100%);
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem;
+        }
+
+        .logo-img {
+            width: 40px;
+            height: auto;
+            margin-right: 10px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            font-size: 1.8rem;
+            font-weight: bold;
+        }
+
+        .nav-menu {
+            display: flex;
+            list-style: none;
+            gap: 2rem;
+        }
+
+        .nav-menu a {
+            color: white;
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+        .nav-menu a:hover {
+            color: #c8e6c9;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .admin-badge {
+            background: #ff6b35;
+            color: white;
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .btn {
+            padding: 0.7rem 1.5rem;
+            border: none;
+            border-radius: 25px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: white;
+            border: 2px solid white;
+        }
+
+        .btn-secondary:hover {
+            background: white;
+            color: #2e7d32;
+        }
+
+        .btn-primary {
+            background: #4caf50;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #388e3c;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #212529;
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+
+        .btn-small {
+            padding: 0.5rem 1rem;
+            font-size: 0.9rem;
+        }
+
+        .main-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .page-header {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+        }
+
+        .page-title {
+            color: #2e7d32;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .page-description {
+            color: #666;
+            font-size: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            background: white;
+            padding: 1rem;
+            border-radius: 15px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+        }
+
+        .tab-button {
+            padding: 1rem 2rem;
+            border: none;
+            background: transparent;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tab-button.active {
+            color: #2e7d32;
+            border-bottom-color: #4caf50;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 15px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+
+        .stat-card.critical {
+            border-left: 4px solid #d32f2f;
+        }
+
+        .stat-card.warning {
+            border-left: 4px solid #f57c00;
+        }
+
+        .stat-card.good {
+            border-left: 4px solid #4caf50;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-number.critical {
+            color: #d32f2f;
+        }
+
+        .stat-number.warning {
+            color: #f57c00;
+        }
+
+        .stat-number.good {
+            color: #2e7d32;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .section-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 1rem;
+        }
+
+        .section-title {
+            color: #2e7d32;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .section-icon {
+            font-size: 1.8rem;
+        }
+
+        .inventory-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .inventory-card {
+            border: 2px solid #e0e0e0;
+            border-radius: 15px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .inventory-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .inventory-card.low-stock {
+            border-color: #f57c00;
+            background: #fff8e1;
+        }
+
+        .inventory-card.critical {
+            border-color: #d32f2f;
+            background: #ffebee;
+        }
+
+        .item-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .item-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #81c784, #c8e6c9);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+
+        .item-icon.product {
+            background: linear-gradient(135deg, #64b5f6, #bbdefb);
+        }
+
+        .item-info {
+            flex: 1;
+        }
+
+        .item-name {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #2e7d32;
+            margin-bottom: 0.25rem;
+        }
+
+        .item-id {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .item-details {
+            display: grid;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .detail-label {
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .detail-value {
+            font-weight: 600;
+        }
+
+        .location-badge {
+            padding: 0.3rem 0.8rem;
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #1976d2;
+        }
+
+        .stock-badge {
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .stock-good {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .stock-low {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .stock-critical {
+            background: #ffebee;
+            color: #d32f2f;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .expiry-badge {
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .expiry-good {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+
+        .expiry-warning {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .expiry-critical {
+            background: #ffebee;
+            color: #d32f2f;
+        }
+
+        .item-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .alert-banner {
+            background: #ffebee;
+            border-left: 4px solid #d32f2f;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .alert-banner.warning {
+            background: #fff3e0;
+            border-left-color: #f57c00;
+        }
+
+        .alert-icon {
+            font-size: 2rem;
+        }
+
+        .alert-content h4 {
+            margin-bottom: 0.25rem;
+            color: #d32f2f;
+        }
+
+        .alert-banner.warning .alert-content h4 {
+            color: #f57c00;
+        }
+
+        .batch-badge {
+            padding: 0.3rem 0.8rem;
+            background: #f3e5f5;
+            border: 1px solid #9c27b0;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #7b1fa2;
+        }
+
+        @media (max-width: 768px) {
+            .nav-menu {
+                display: none;
+            }
+
+            .inventory-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tabs {
+                flex-direction: column;
+            }
+
+            .tab-button {
+                border-bottom: none;
+                border-left: 3px solid transparent;
+            }
+
+            .tab-button.active {
+                border-left-color: #4caf50;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <nav class="nav-container">
+            <div class="logo">
+                <img src='Logo.png' alt="Laklights Food Products" class="logo-img">
+                Laklights Food Products
+            </div>
+            <ul class="nav-menu">
+                <li><a href="#dashboard">Dashboard</a></li>
+                <li><a href="#analytics">Analytics</a></li>
+                <li><a href="#inventory">Inventory</a></li>
+                <li><a href="#reports">Reports</a></li>
+            </ul>
+            <div class="user-info">
+                <span class="admin-badge">ADMIN</span>
+                <span>Administrator</span>
+                <a href="#" class="btn btn-secondary">Dashboard</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="main-content">
+        <div class="page-header">
+            <h1 class="page-title">📊 Complete Inventory Control</h1>
+            <p class="page-description">Monitor raw materials (fruits) and finished products - Track stock levels, locations, and expiry dates</p>
+        </div>
+
+        <!-- Tabs for Fruit vs Products -->
+        <div class="tabs">
+            <button class="tab-button active" onclick="showTab('fruits')">
+                <span></span> Fruit Inventory (Raw Materials)
+            </button>
+            <button class="tab-button" onclick="showTab('products')">
+                <span></span> Finished Products
+            </button>
+            <button class="tab-button" onclick="showTab('alerts')">
+                <span></span> Critical Alerts
+            </button>
+        </div>
+
+        <!-- FRUIT INVENTORY TAB -->
+        <div id="fruits" class="tab-content active">
+            <!-- Fruit Stats -->
+            <div class="stats-grid">
+                <div class="stat-card good">
+                    <div class="stat-number good">23</div>
+                    <div class="stat-label">Total Fruit Types</div>
+                </div>
+                <div class="stat-card good">
+                    <div class="stat-number good">1,847 kg</div>
+                    <div class="stat-label">Total Fruit Stock</div>
+                </div>
+                <div class="stat-card critical">
+                    <div class="stat-number critical">5</div>
+                    <div class="stat-label">Low Stock Fruits</div>
+                </div>
+                <div class="stat-card warning">
+                    <div class="stat-number warning">7</div>
+                    <div class="stat-label">Expiring Soon (7 days)</div>
+                </div>
+            </div>
+
+            <!-- All Fruits -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <span class="section-icon"></span>
+                        All Fruits Inventory
+                    </h2>
+                    <div style="display: flex; gap: 1rem;">
+                        <button class="btn btn-primary" onclick="addFruitInventory()">+ Add Inventory</button>
+                        <button class="btn btn-warning" onclick="exportFruitReport()"> Export Report</button>
+                    </div>
+                </div>
+
+                <div class="inventory-grid">
+                    <!-- All fruits shown with normal styling - Ordered by ID -->
+                    <div class="inventory-card">
+                        <div class="item-header">
+                            <div class="item-icon"></div>
+                            <div class="item-info">
+                                <div class="item-name">Fresh Mango - Grade A</div>
+                                <div class="item-id">ID: FRUIT-001</div>
+                            </div>
+                        </div>
+                        <div class="item-details">
+                            <div class="detail-row">
+                                <span class="detail-label">Stock Level:</span>
+                                <span class="stock-badge stock-good">15 kg</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Location:</span>
+                                <span class="location-badge">C01-R02</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Storage Area:</span>
+                                <span class="detail-value">Cold Storage A</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Received Date:</span>
+                                <span class="detail-value">Oct 01, 2025</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Expiry Date:</span>
+                                <span class="expiry-badge expiry-good">Oct 18, 2025</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Supplier:</span>
+                                <span class="detail-value">Sunrise Plantation</span>
+                            </div>
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn btn-success btn-small">Update Stock</button>
+                            <button class="btn btn-info btn-small">View Details</button>
+                        </div>
+                    </div>
+
+                    <div class="inventory-card">
+                        <div class="item-header">
+                            <div class="item-icon"></div>
+                            <div class="item-info">
+                                <div class="item-name">Fresh Tomatoes - Grade B</div>
+                                <div class="item-id">ID: FRUIT-008</div>
+                            </div>
+                        </div>
+                        <div class="item-details">
+                            <div class="detail-row">
+                                <span class="detail-label">Stock Level:</span>
+                                <span class="stock-badge stock-good">22 kg</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Location:</span>
+                                <span class="location-badge">C03-R01</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Storage Area:</span>
+                                <span class="detail-value">Cold Storage B</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Received Date:</span>
+                                <span class="detail-value">Oct 02, 2025</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Expiry Date:</span>
+                                <span class="expiry-badge expiry-good">Oct 17, 2025</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Supplier:</span>
+                                <span class="detail-value">Mountain Fresh Farm</span>
+                            </div>
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn btn-success btn-small">Update Stock</button>
+                            <button class="btn btn-info btn-small">View Details</button>
+                        </div>
+                    </div>
+
+                    <div class="inventory-card">
+                        <div class="item-header">
+                            <div class="item-icon"></div>
+                            <div class="item-info">
+                                <div class="item-name">Fresh Mango - Grade A</div>
+                                <div class="item-id">ID: FRUIT-001</div>
+                            </div>
+                        </div>
+                        <div class="item-details">
+                            <div class="detail-row">
+                                <span class="detail-label">Current Stock:</span>
+                                <span class="stock-badge stock-good">18 kg</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Minimum Level:</span>
+                                <span class="detail-value">40 kg</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Location:</span>
+                                <span class="location-badge">C03-R04</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Storage Area:</span>
+                                <span class="detail-value">Cold Storage A</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Received Date:</span>
+                                <span class="detail-value">Oct 10, 2025</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Expiry Date:</span>
+                                <span class="expiry-badge expiry-good">Oct 21, 2025</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Supplier:</span>
+                                <span class="detail-value">Mountain Fresh Farm</span>
+                            </div>
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn btn-success btn-small">Update Stock</button>
+                            <button class="btn btn-info btn-small">View Details</button>
+                        </div>
+                    </div>
+
+                    <div class="inventory-card">
+                        <div class="item-header">
+                            <div class="item-icon"></div>
+                            <div class="item-info">
+                                <div class="item-name">Fresh Pineapple - Grade A</div>
+                                <div class="item-id">ID: FRUIT-003</div>
+                            </div>
+                        </div>
+                        <div class="item-details">
+                            <div class="detail-row">
+                                <span class="detail-label">Current Stock:</span>
+                                <span class="stock-badge stock-good">12 kg</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Minimum Level:</span>
+                                <span class="detail-value">30 kg</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Location:</span>
+                                <span class="location-badge">C02-R01</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Storage Area:</span>
+                                <span class="detail-value">Cold Storage B</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Received Date:</span>
+                                <span class="detail-value">Oct 13, 2025</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Expiry Date:</span>
+                                <span class="expiry-badge expiry-good">Oct 30, 2025</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Supplier:</span>
+                                <span class="detail-value">Green Valley Estates</span>
+                            </div>
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn btn-success btn-small">Update Stock</button>
+                            <button class="btn btn-info btn-small">View Details</button>
+                        </div>
+                    </div>
+
+                    <div class="inventory-card">
+                        <div class="item-header">
+                            <div class="item-icon"></div>
+                            <div class="item-info">
+                                <div class="item-name">Fresh Banana - Grade A</div>
+                                <div class="item-id">ID: FRUIT-004</div>
+                            </div>
+                        </div>
+                        <div class="item-details">
+                            <div class="detail-row">
+                                <span class="detail-label">Stock Level:</span>
+                                <span class="stock-badge stock-good">85 kg</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Location:</span>
+                                <span class="location-badge">C01-R03</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Storage Area:</span>
+                                <span class="detail-value">Dry Storage A</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Received Date:</span>
+                                <span class="detail-value">Oct 15, 2025</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Expiry Date:</span>
+                                <span class="expiry-badge expiry-good">Oct 25, 2025</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Supplier:</span>
+                                <span class="detail-value">Golden Valley Farms</span>
+                            </div>
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn btn-success btn-small">Update Stock</button>
+                            <button class="btn btn-warning btn-small">View History</button>
+                        </div>
+                    </div>
+
+                    <div class="inventory-card">
+                        <div class="item-header">
+                            <div class="item-icon"></div>
+                            <div class="item-info">
+                                <div class="item-name">Red Chili - Grade A</div>
+                                <div class="item-id">ID: FRUIT-010</div>
+                            </div>
+                        </div>
+                        <div class="item-details">
+                            <div class="detail-row">
+                                <span class="detail-label">Stock Level:</span>
+                                <span class="stock-badge stock-good">120 kg</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Location:</span>
+                                <span class="location-badge">C04-R03</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Storage Area:</span>
+                                <span class="detail-value">Spice Storage</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Received Date:</span>
+                                <span class="detail-value">Oct 5, 2025</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Expiry Date:</span>
+                                <span class="expiry-badge expiry-good">Dec 1, 2025</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Supplier:</span>
+                                <span class="detail-value">Spice Garden Co-op</span>
+                            </div>
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn btn-success btn-small">Update Stock</button>
+                            <button class="btn btn-warning btn-small">View History</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FINISHED PRODUCTS TAB -->
+        <div id="products" class="tab-content">
+            <!-- Product Stats -->
+            <div class="stats-grid">
+                <div class="stat-card good">
+                    <div class="stat-number good">18</div>
+                    <div class="stat-label">Product Types</div>
+                </div>
+                <div class="stat-card good">
+                    <div class="stat-number good">2,450</div>
+                    <div class="stat-label">Total Units</div>
+                </div>
+                <div class="stat-card critical">
+                    <div class="stat-number critical">2</div>
+                    <div class="stat-label">Low Stock Items</div>
+                </div>
+                <div class="stat-card warning">
+                    <div class="stat-number warning">3</div>
+                    <div class="stat-label">Near Best-Before</div>
+                </div>
+            </div>
+
+            <!-- All Finished Products -->
+            <div class="section-card">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <span class="section-icon"></span>
+                        All Finished Products Inventory
+                    </h2>
+                    <div style="display: flex; gap: 1rem;">
+                        <button class="btn btn-primary" onclick="addProductInventory()">+ Add Inventory</button>
+                        <button class="btn btn-warning" onclick="exportProductReport()"> Export Report</button>
+                    </div>
+                </div>
+
+                <div class="inventory-grid">
+                    <!-- All products shown with normal styling -->
+                    <div class="inventory-card">
+                        <div class="item-header">
+                            <div class="item-icon product"></div>
+                            <div class="item-info">
+                                <div class="item-name">Wood Apple Juice</div>
+                                <div class="item-id">Batch: B202507</div>
+                            </div>
+                        </div>
+                        <div class="item-details">
+                            <div class="detail-row">
+                                <span class="detail-label">Size:</span>
+                                <span class="detail-value" style="color: #ff9800; font-weight: bold;">1 Liter</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Price:</span>
+                                <span class="detail-value" style="color: #2e7d32; font-weight: bold;">Rs. 200.00</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Current Stock:</span>
+                                <span class="stock-badge stock-good">60 units</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Location:</span>
+                                <span class="location-badge">Finished Goods - Shelf C</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Manufactured:</span>
+                                <span class="detail-value">July 20, 2025</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Best Before:</span>
+                                <span class="expiry-badge expiry-good">Jan 20, 2026</span>
+                            </div>
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn btn-success btn-small">Details</button>
+                            <button class="btn btn-warning btn-small">View History</button>
+                        </div>
+                    </div>
+
+                    <div class="inventory-card">
+                        <div class="item-header">
+                            <div class="item-icon product"></div>
+                            <div class="item-info">
+                                <div class="item-name">Mango Jelly</div>
+                                <div class="item-id">Batch: B202508</div>
+                            </div>
+                        </div>
+                        <div class="item-details">
+                            <div class="detail-row">
+                                <span class="detail-label">Size:</span>
+                                <span class="detail-value" style="color: #ff9800; font-weight: bold;">500g</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Price:</span>
+                                <span class="detail-value" style="color: #2e7d32; font-weight: bold;">Rs. 450.00</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Current Stock:</span>
+                                <span class="stock-badge stock-good">80 units</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Location:</span>
+                                <span class="location-badge">Finished Goods - Shelf B</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Manufactured:</span>
+                                <span class="detail-value">Aug 10, 2025</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Best Before:</span>
+                                <span class="expiry-badge expiry-good">Feb 10, 2026</span>
+                            </div>
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn btn-success btn-small">Details</button>
+                            <button class="btn btn-warning btn-small">View History</button>
+                        </div>
+                    </div>
+
+                    <div class="inventory-card">
+                        <div class="item-header">
+                            <div class="item-icon product"></div>
+                            <div class="item-info">
+                                <div class="item-name">Lime Mix</div>
+                                <div class="item-id">Batch: B202509</div>
+                            </div>
+                        </div>
+                        <div class="item-details">
+                            <div class="detail-row">
+                                <span class="detail-label">Size:</span>
+                                <span class="detail-value" style="color: #ff9800; font-weight: bold;">750 ml</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Price:</span>
+                                <span class="detail-value" style="color: #2e7d32; font-weight: bold;">Rs. 150.00</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Current Stock:</span>
+                                <span class="stock-badge stock-good">120 units</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Location:</span>
+                                <span class="location-badge">Finished Goods - Shelf A</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Manufactured:</span>
+                                <span class="detail-value">Sept 1, 2025</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Best Before:</span>
+                                <span class="expiry-badge expiry-good">Mar 1, 2026</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Status:</span>
+                                <span class="detail-value" style="color: #2e7d32; font-weight: bold;">GOOD STOCK</span>
+                            </div>
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn btn-success btn-small">Details</button>
+                            <button class="btn btn-warning btn-small">View History</button>
+                        </div>
+                    </div>
+
+                    <div class="inventory-card">
+                        <div class="item-header">
+                            <div class="item-icon product"></div>
+                            <div class="item-info">
+                                <div class="item-name">Fresh Mango Cordial</div>
+                                <div class="item-id">Batch: B202506</div>
+                            </div>
+                        </div>
+                        <div class="item-details">
+                            <div class="detail-row">
+                                <span class="detail-label">Size:</span>
+                                <span class="detail-value" style="color: #ff9800; font-weight: bold;">500 ml</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Price:</span>
+                                <span class="detail-value" style="color: #2e7d32; font-weight: bold;">Rs. 280.00</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Current Stock:</span>
+                                <span class="stock-badge stock-good">95 units</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Location:</span>
+                                <span class="location-badge">Finished Goods - Shelf D</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Manufactured:</span>
+                                <span class="detail-value">June 15, 2025</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Best Before:</span>
+                                <span class="expiry-badge expiry-good">Dec 15, 2025</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Status:</span>
+                                <span class="detail-value" style="color: #2e7d32; font-weight: bold;">GOOD STOCK</span>
+                            </div>
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn btn-success btn-small">Details</button>
+                            <button class="btn btn-warning btn-small">View History</button>
+                        </div>
+                    </div>
+
+                    <div class="inventory-card">
+                        <div class="item-header">
+                            <div class="item-icon product"></div>
+                            <div class="item-info">
+                                <div class="item-name">Chili Sauce</div>
+                                <div class="item-id">Batch: B202510</div>
+                            </div>
+                        </div>
+                        <div class="item-details">
+                            <div class="detail-row">
+                                <span class="detail-label">Size:</span>
+                                <span class="detail-value" style="color: #ff9800; font-weight: bold;">350 ml</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Price:</span>
+                                <span class="detail-value" style="color: #2e7d32; font-weight: bold;">Rs. 320.00</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Current Stock:</span>
+                                <span class="stock-badge stock-good">150 units</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Location:</span>
+                                <span class="location-badge">Finished Goods - Shelf E</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Manufactured:</span>
+                                <span class="detail-value">Oct 1, 2025</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Best Before:</span>
+                                <span class="expiry-badge expiry-good">Apr 1, 2026</span>
+                            </div>
+                            <div class="detail-row">
+                                <span class="detail-label">Status:</span>
+                                <span class="detail-value" style="color: #2e7d32; font-weight: bold;">GOOD STOCK</span>
+                            </div>
+                        </div>
+                        <div class="item-actions">
+                            <button class="btn btn-success btn-small">Details</button>
+                            <button class="btn btn-warning btn-small">View History</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CRITICAL ALERTS TAB -->
+        <div id="alerts" class="tab-content">
+            <div class="section-card">
+                <div class="section-header">
+                    <h2 class="section-title">
+                        <span class="section-icon">🚨</span>
+                        All Critical Alerts - Combined View
+                    </h2>
+                </div>
+
+                <div class="alert-banner">
+                    <div class="alert-icon">⚠️</div>
+                    <div class="alert-content">
+                        <h4>System-Wide Alerts</h4>
+                        <p>8 critical items requiring immediate attention across raw materials and finished products</p>
+                    </div>
+                </div>
+
+                <!-- Expiring Fruits Section -->
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="color: #d32f2f; margin-bottom: 1rem;"> Critical Expiry - Raw Materials (Fruits)</h3>
+                    <div class="inventory-grid">
+                        <div class="inventory-card critical">
+                            <div class="item-header">
+                                <div class="item-icon"></div>
+                                <div class="item-info">
+                                    <div class="item-name">Fresh Strawberry - Grade A</div>
+                                    <div class="item-id">ID: FRUIT-002</div>
+                                </div>
+                            </div>
+                            <div class="item-details">
+                                <div class="detail-row">
+                                    <span class="detail-label">Stock Level:</span>
+                                    <span class="stock-badge stock-critical">15 kg</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Expiry Date:</span>
+                                    <span class="expiry-badge expiry-critical">2025-09-28</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Days Remaining:</span>
+                                    <span class="detail-value" style="color: #d32f2f; font-weight: bold;">2 DAYS!</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Location:</span>
+                                    <span class="location-badge">C01-R02 - Cold Storage A</span>
+                                </div>
+                            </div>
+                            <div class="item-actions">
+                                <button class="btn btn-danger btn-small">Use Urgently</button>
+                            </div>
+                        </div>
+
+                        <div class="inventory-card critical">
+                            <div class="item-header">
+                                <div class="item-icon"></div>
+                                <div class="item-info">
+                                    <div class="item-name">Fresh Tomatoes - Grade B</div>
+                                    <div class="item-id">ID: FRUIT-008</div>
+                                </div>
+                            </div>
+                            <div class="item-details">
+                                <div class="detail-row">
+                                    <span class="detail-label">Stock Level:</span>
+                                    <span class="stock-badge stock-low">22 kg</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Expiry Date:</span>
+                                    <span class="expiry-badge expiry-critical">2025-09-27</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Days Remaining:</span>
+                                    <span class="detail-value" style="color: #d32f2f; font-weight: bold;">1 DAY!</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Location:</span>
+                                    <span class="location-badge">C03-R01 - Cold Storage B</span>
+                                </div>
+                            </div>
+                            <div class="item-actions">
+                                <button class="btn btn-danger btn-small">Use Urgently</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Low Stock Fruits Section -->
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="color: #f57c00; margin-bottom: 1rem;">📉 Low Stock - Raw Materials (Fruits)</h3>
+                    <div class="inventory-grid">
+                        <div class="inventory-card low-stock">
+                            <div class="item-header">
+                                <div class="item-icon"></div>
+                                <div class="item-info">
+                                    <div class="item-name">Fresh Mango - Grade A</div>
+                                    <div class="item-id">ID: FRUIT-001</div>
+                                </div>
+                            </div>
+                            <div class="item-details">
+                                <div class="detail-row">
+                                    <span class="detail-label">Current Stock:</span>
+                                    <span class="stock-badge stock-low">18 kg</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Minimum Level:</span>
+                                    <span class="detail-value" style="color: #f57c00;">40 kg</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Location:</span>
+                                    <span class="location-badge">C03-R04 - Cold Storage A</span>
+                                </div>
+                            </div>
+                            <div class="item-actions">
+                                <button class="btn btn-primary btn-small">Reorder Now</button>
+                            </div>
+                        </div>
+
+                        <div class="inventory-card low-stock">
+                            <div class="item-header">
+                                <div class="item-icon"></div>
+                                <div class="item-info">
+                                    <div class="item-name">Fresh Pineapple - Grade A</div>
+                                    <div class="item-id">ID: FRUIT-003</div>
+                                </div>
+                            </div>
+                            <div class="item-details">
+                                <div class="detail-row">
+                                    <span class="detail-label">Current Stock:</span>
+                                    <span class="stock-badge stock-critical">12 kg</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Minimum Level:</span>
+                                    <span class="detail-value" style="color: #f57c00;">30 kg</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Location:</span>
+                                    <span class="location-badge">C02-R01 - Cold Storage B</span>
+                                </div>
+                            </div>
+                            <div class="item-actions">
+                                <button class="btn btn-primary btn-small">Reorder Now</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Finished Products Alerts Section -->
+                <div style="margin-bottom: 2rem;">
+                    <h3 style="color: #d32f2f; margin-bottom: 1rem;"> Critical Alerts - Finished Products</h3>
+                    <div class="inventory-grid">
+                        <div class="inventory-card critical">
+                            <div class="item-header">
+                                <div class="item-icon product"></div>
+                                <div class="item-info">
+                                    <div class="item-name">Wood Apple Juice</div>
+                                    <div class="item-id">Batch: B202507</div>
+                                </div>
+                            </div>
+                            <div class="item-details">
+                                <div class="detail-row">
+                                    <span class="detail-label">Size:</span>
+                                    <span class="detail-value" style="color: #ff9800; font-weight: bold;">1 Liter</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Price:</span>
+                                    <span class="detail-value" style="color: #2e7d32; font-weight: bold;">Rs. 200.00</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Current Stock:</span>
+                                    <span class="stock-badge stock-critical">60 units</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Status:</span>
+                                    <span class="detail-value" style="color: #d32f2f; font-weight: bold;">LOW STOCK</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Location:</span>
+                                    <span class="location-badge">Finished Goods - Shelf C</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Best Before:</span>
+                                    <span class="expiry-badge expiry-warning">Jan 20, 2026</span>
+                                </div>
+                            </div>
+                            <div class="item-actions">
+                                <button class="btn btn-danger btn-small">Schedule Production</button>
+                            </div>
+                        </div>
+
+                        <div class="inventory-card low-stock">
+                            <div class="item-header">
+                                <div class="item-icon product"></div>
+                                <div class="item-info">
+                                    <div class="item-name">Mango Jelly</div>
+                                    <div class="item-id">Batch: B202508</div>
+                                </div>
+                            </div>
+                            <div class="item-details">
+                                <div class="detail-row">
+                                    <span class="detail-label">Size:</span>
+                                    <span class="detail-value" style="color: #ff9800; font-weight: bold;">500g</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Price:</span>
+                                    <span class="detail-value" style="color: #2e7d32; font-weight: bold;">Rs. 450.00</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Current Stock:</span>
+                                    <span class="stock-badge stock-low">80 units</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Status:</span>
+                                    <span class="detail-value" style="color: #f57c00; font-weight: bold;">APPROACHING BEST-BEFORE</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Location:</span>
+                                    <span class="location-badge">Finished Goods - Shelf B</span>
+                                </div>
+                                <div class="detail-row">
+                                    <span class="detail-label">Best Before:</span>
+                                    <span class="expiry-badge expiry-warning">Feb 10, 2026</span>
+                                </div>
+                            </div>
+                            <div class="item-actions">
+                                <button class="btn btn-warning btn-small">Promote Sales</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        function showTab(tabName) {
+            // Hide all tab contents
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Remove active class from all tab buttons
+            const tabButtons = document.querySelectorAll('.tab-button');
+            tabButtons.forEach(button => {
+                button.classList.remove('active');
+            });
+
+            // Show the selected tab
+            document.getElementById(tabName).classList.add('active');
+
+            // Add active class to the clicked button
+            event.target.closest('.tab-button').classList.add('active');
+        }
+
+        function addFruitInventory() {
+            alert('Add Fruit Inventory functionality will be implemented');
+        }
+
+        function addProductInventory() {
+            alert('Add Finished Product Inventory functionality will be implemented');
+        }
+
+        function exportFruitReport() {
+            alert('Export Fruit Inventory Report will be generated');
+        }
+
+        function exportProductReport() {
+            alert('Export Finished Products Report will be generated');
+        }
+
+        function reorderFruit(fruitId) {
+            alert(`Reorder request for ${fruitId} will be processed`);
+        }
+    </script>
+</body>
+</html>
+

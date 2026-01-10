@@ -1,0 +1,383 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Laklight Food Products</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, rgb(132, 213, 147) 0%, #4caf50 100%);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background: linear-gradient(135deg, rgb(132, 213, 147) 0%, #4caf50 100%);
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .nav-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 2rem;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: white;
+        }
+
+        .logo img {
+            width: 40px;
+            height: 40px;
+            margin-right: 10px;
+            border-radius: 8px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .welcome-text {
+            font-size: 1rem;
+        }
+
+        .logout-btn {
+            padding: 0.5rem 1rem;
+            background: transparent;
+            color: white;
+            border: 2px solid white;
+            border-radius: 25px;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            background: white;
+            color: #2e7d32;
+        }
+
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            padding: 3rem 2rem;
+        }
+
+        .dashboard-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        .dashboard-header {
+            margin-bottom: 3rem;
+        }
+
+        .dashboard-header h1 {
+            color: white;
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .dashboard-header p {
+            color: white;
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 3rem;
+        }
+
+        .dashboard-card {
+            background: white;
+            border-radius: 20px;
+            padding: 3rem 2rem;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .dashboard-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+        }
+
+        .card-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #ff9800, #ffb74d);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 2rem;
+            font-size: 2rem;
+            color: white;
+        }
+
+        .card-title {
+            color: #2e7d32;
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .card-description {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 2rem;
+        }
+
+        .card-features {
+            list-style: none;
+            text-align: left;
+            margin-bottom: 2rem;
+        }
+
+        .card-features li {
+            color: #666;
+            margin-bottom: 0.5rem;
+            padding-left: 1.5rem;
+            position: relative;
+        }
+
+        .card-features li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #4caf50;
+            font-weight: bold;
+        }
+
+        .access-btn {
+            background: linear-gradient(135deg, #4caf50, #81c784);
+            color: white;
+            padding: 0.8rem 2rem;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+            width: 100%;
+        }
+
+        .access-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        /* Footer */
+        .footer {
+            background: #1b5e20;
+            color: white;
+            padding: 2rem 0 1rem;
+            margin-top: auto;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            padding: 0 2rem;
+        }
+
+        .footer-section h4 {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            color: #ff9800;
+        }
+
+        .footer-section p, .footer-section a {
+            color: #c8e6c9;
+            text-decoration: none;
+            line-height: 1.8;
+            font-size: 0.9rem;
+        }
+
+        .footer-section a:hover {
+            color: #ff9800;
+        }
+
+        .footer-bottom {
+            border-top: 1px solid #2e7d32;
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            text-align: center;
+            color: #c8e6c9;
+            font-size: 0.8rem;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .dashboard-header h1 {
+                font-size: 2rem;
+            }
+            
+            .nav-container {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <nav class="nav-container">
+            <div class="logo">
+                <img src="Logo.png" alt="Laklight Food Products">
+                Laklight Food Products
+            </div>
+            <div class="user-info">
+                <span class="welcome-text">Welcome to Dashboard</span>
+                <a href="Home.html" class="logout-btn">Back to Home</a>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <div class="dashboard-container">
+            <div class="dashboard-header">
+                <h1>Select Your Dashboard</h1>
+                <p>Choose the dashboard that matches your role to access your personalized features and tools.</p>
+            </div>
+
+            <div class="dashboard-grid">
+                <!-- Customer Dashboard -->
+                <div class="dashboard-card" onclick="window.location.href='CustomerDashboard.html'">
+                    <div class="card-icon"></div>
+                    <h3 class="card-title">Customer Dashboard</h3>
+                    <p class="card-description">Access your personal shopping portal for ordering food products.</p>
+                    <ul class="card-features">
+                        <li>Browse food products catalog</li>
+                        <li>Place orders with bulk discounts</li>
+                        <li>Track order status & delivery</li>
+                        <li>View order history</li>
+                        <li>Manage account settings</li>
+                    </ul>
+                    <a href="CustomerDashboard.html" class="access-btn">Access Customer Portal</a>
+                </div>
+
+                <!-- Supplier Dashboard -->
+                <div class="dashboard-card" onclick="window.location.href='FarmerDashboard.html'">
+                    <div class="card-icon"></div>
+                    <h3 class="card-title">Supplier Dashboard</h3>
+                    <p class="card-description">Submit and manage your produce listings with our farmer portal.</p>
+                    <ul class="card-features">
+                        <li>Submit produce details</li>
+                        <li>Get fair price quotes</li>
+                        <li>Schedule deliveries</li>
+                        <li>Track application status</li>
+                        <li>View payment history</li>
+                    </ul>
+                    <a href="FarmerDashboard.html" class="access-btn">Access Supplier Portal</a>
+                </div>
+
+                <!-- Employee Dashboard -->
+                <div class="dashboard-card" onclick="window.location.href='EmployeeDashboard.html'">
+                    <div class="card-icon"></div>
+                    <h3 class="card-title">Employee Dashboard</h3>
+                    <p class="card-description">Manage manufacturing operations, inventory, and supplier relations.</p>
+                    <ul class="card-features">
+                        <li>Inventory management system</li>
+                        <li>Warehouse location tracking</li>
+                        <li>Expiry date monitoring</li>
+                        <li>Supplier application review</li>
+                        <li>Production analytics</li>
+                    </ul>
+                    <a href="EmployeeDashboard.html" class="access-btn">Access Employee Portal</a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>Laklight Food Products</h4>
+                <p>Gokaralla Road, Kadulawa, Ibbagamuwa</p>
+                <p>Phone: 0721267405</p>
+                <p>Contact: Radika Lakmali</p>
+            </div>
+            <div class="footer-section">
+                <h4>For Customers</h4>
+                <p><a href="/products">Order Products</a></p>
+                <p><a href="/customer/orders">Track Orders</a></p>
+                <p><a href="/customer/profile">My Account</a></p>
+                <p><a href="/feedback">Product Feedback</a></p>
+            </div>
+            <div class="footer-section">
+                <h4>For Suppliers</h4>
+                <p><a href="/supplier/register">Supplier Registration</a></p>
+                <p><a href="/supplier/materials">Submit Fruit Details</a></p>
+                <p><a href="/supplier/pricing">Price Quotations</a></p>
+                <p><a href="/supplier/status">Application Status</a></p>
+            </div>
+            <div class="footer-section">
+                <h4>System Access</h4>
+                <p><a href="/login">Login Portal</a></p>
+                <p><a href="/register">Create Account</a></p>
+                <p><a href="/employee/login">Employee Access</a></p>
+                <p><a href="/admin/login">Admin Dashboard</a></p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2025 Laklight Food Products. All rights reserved. | Digital Transformation & E-commerce Manufacturing Platform</p>
+        </div>
+    </footer>
+
+    <script>
+        // Add click animation effect
+        document.querySelectorAll('.dashboard-card').forEach(card => {
+            card.addEventListener('click', function() {
+                this.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    this.style.transform = '';
+                }, 150);
+            });
+        });
+
+        // Add hover sound effect (optional)
+        document.querySelectorAll('.dashboard-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                // You can add sound effects here if needed
+            });
+        });
+    </script>
+</body>
+</html>
+
