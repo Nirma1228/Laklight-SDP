@@ -5,11 +5,11 @@ import './ProductCatalog.css'
 function ProductCatalog() {
   const navigate = useNavigate()
   const [products, setProducts] = useState([
-    { id: 1, name: 'Fresh Tomatoes', category: 'vegetables', price: 350, unit: 'kg', stock: 150, description: 'Fresh organic tomatoes', availability: 'in-stock' },
-    { id: 2, name: 'Green Beans', category: 'vegetables', price: 280, unit: 'kg', stock: 200, description: 'Crisp green beans', availability: 'in-stock' },
-    { id: 3, name: 'Carrots', category: 'vegetables', price: 220, unit: 'kg', stock: 45, description: 'Sweet carrots', availability: 'low-stock' },
-    { id: 4, name: 'Fresh Milk', category: 'dairy', price: 380, unit: 'L', stock: 100, description: 'Pure farm milk', availability: 'in-stock' },
-    { id: 5, name: 'Eggs', category: 'dairy', price: 450, unit: 'dozen', stock: 80, description: 'Organic eggs', availability: 'in-stock' },
+    { id: 1, name: 'Lime Mix', category: 'beverages', price: 150, unit: 'bottle', stock: 150, description: 'Refreshing lime cordial 350ml', availability: 'in-stock', image: '/images/Lime Mix.png' },
+    { id: 2, name: 'Wood Apple Juice', category: 'beverages', price: 100, unit: 'bottle', stock: 200, description: 'Traditional wood apple nectar 200ml', availability: 'in-stock', image: '/images/Wood Apple Juice.png' },
+    { id: 3, name: 'Mango Jelly', category: 'desserts', price: 200, unit: 'pack', stock: 45, description: 'Premium mango jelly 100g', availability: 'low-stock', image: '/images/Mango Jelly.png' },
+    { id: 4, name: 'Custard Powder', category: 'desserts', price: 300, unit: 'pack', stock: 100, description: 'Mango flavored custard powder 100g', availability: 'in-stock', image: '/images/Custard powder.png' },
+    { id: 5, name: 'Fresh Tomatoes', category: 'vegetables', price: 350, unit: 'kg', stock: 80, description: 'Fresh organic tomatoes', availability: 'in-stock' },
     { id: 6, name: 'Honey', category: 'other', price: 1200, unit: 'kg', stock: 20, description: 'Pure organic honey', availability: 'low-stock' }
   ])
 
@@ -80,7 +80,7 @@ function ProductCatalog() {
       <div className="header">
         <div className="nav-container">
           <div className="logo">
-            <span>🌿</span>
+            <img src="/images/Logo.png" alt="Laklight" style={{height: '40px', marginRight: '10px'}} />
             Laklight Food Products
           </div>
           <div className="user-info">
@@ -162,7 +162,13 @@ function ProductCatalog() {
         <div className="products-grid">
           {filteredProducts.map(product => (
             <div key={product.id} className="product-card">
-              <div className="product-image">{product.name.charAt(0)}</div>
+              <div className="product-image">
+                {product.image ? (
+                  <img src={product.image} alt={product.name} style={{width: '100%', height: '100%', objectFit: 'contain'}} />
+                ) : (
+                  product.name.charAt(0)
+                )}
+              </div>
               <div className="product-info">
                 <div className="product-header">
                   <h3 className="product-name">{product.name}</h3>

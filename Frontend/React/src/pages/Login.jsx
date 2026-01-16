@@ -26,7 +26,7 @@ function Login() {
     
     // Navigate based on user type
     switch(formData.userType) {
-      case 'admin':
+      case 'administrator':
         navigate('/admin/dashboard')
         break
       case 'customer':

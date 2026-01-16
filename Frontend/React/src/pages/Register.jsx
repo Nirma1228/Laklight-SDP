@@ -30,7 +30,23 @@ function Register() {
       return
     }
     console.log('Registration attempt:', formData)
-    navigate('/login')
+    // Redirect based on user type
+    switch(formData.userType) {
+      case 'customer':
+        navigate('/customer/dashboard')
+        break
+      case 'farmer':
+        navigate('/farmer/dashboard')
+        break
+      case 'employee':
+        navigate('/employee/dashboard')
+        break
+      case 'admin':
+        navigate('/admin/dashboard')
+        break
+      default:
+        navigate('/home')
+    }
   }
 
   return (

@@ -1,820 +1,1032 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-}  }    grid-template-columns: 1fr;  .price-options {  }    grid-template-columns: repeat(2, 1fr);  .stats-grid {@media (max-width: 768px) {}  }    grid-template-columns: 1fr;  .transport-selection {  }    grid-template-columns: 1fr;  .dashboard-grid {@media (max-width: 1000px) {}  color: #c8e6c9;.footer-bottom {}  text-align: center;  margin-top: 4rem;  padding: 2rem 0 1rem;  color: white;  background: #1b5e20;.footer {}  color: #155724;  background: #d4edda;.status-completed {}  color: #004085;  background: #cce5ff;.status-scheduled {}  font-weight: bold;  font-size: 0.8rem;  border-radius: 15px;  padding: 0.3rem 0.8rem;.delivery-status {}  margin-bottom: 0.25rem;  color: #2e7d32;  font-weight: bold;.delivery-date {}  flex: 1;.delivery-details {}  box-shadow: 0 2px 8px rgba(0,0,0,0.1);.delivery-item:hover {}  transition: box-shadow 0.3s ease;  background: #f9f9f9;  margin-bottom: 1rem;  border-radius: 8px;  border: 1px solid #e0e0e0;  padding: 1rem;  align-items: center;  justify-content: space-between;  display: flex;.delivery-item {/* Delivery Items */}  color: #721c24;  background: #f8d7da;.status-not-selected {}  color: #004085;  background: #cce5ff;.status-under-review {}  color: #155724;  background: #d4edda;.status-selected {}  font-weight: bold;  font-size: 0.8rem;  border-radius: 15px;  padding: 0.3rem 0.8rem;.product-status {}  color: #2e7d32;  font-weight: bold;.product-name {}  margin-bottom: 0.5rem;  align-items: center;  justify-content: space-between;  display: flex;.product-header {}  box-shadow: 0 2px 8px rgba(0,0,0,0.1);.product-item:hover {}  transition: box-shadow 0.3s ease;  background: #f9f9f9;  margin-bottom: 1rem;  padding: 1rem;  border-radius: 10px;  border: 1px solid #e0e0e0;.product-item {/* Product Items */}  margin-bottom: 0.5rem;  color: #2e7d32;.submit-all-section h3 {}  box-shadow: 0 2px 4px rgba(33, 150, 243, 0.1);  border: 2px solid #2196F3;  text-align: center;  margin-top: 2rem;  border-radius: 10px;  padding: 1.5rem;  background: #f0f8ff;.submit-all-section {}  margin: 2rem 0;  text-align: center;.add-more-section {}  color: #2e7d32;.transport-option.selected .transport-description {}  margin-top: 0.3rem;  color: #666;  font-size: 0.9rem;.transport-description {}  font-size: 1.1rem;  font-weight: 600;.transport-option span {}  color: #4caf50;  font-size: 2rem;.transport-option i {}  color: #2e7d32;  background: #e8f5e9;  border-color: #4caf50;.transport-option.selected {}  transform: translateY(-2px);  background: #f1f8e9;  border-color: #4caf50;.transport-option:hover {}  gap: 0.8rem;  align-items: center;  flex-direction: column;  display: flex;  transition: all 0.3s ease;  background: white;  text-align: center;  cursor: pointer;  border-radius: 12px;  border: 2px solid #e0e0e0;  padding: 1.5rem;.transport-option {}  margin-top: 0.5rem;  gap: 1rem;  grid-template-columns: 1fr 1fr;  display: grid;.transport-selection {/* Transport Selection */}  border-color: #4caf50;  outline: none;.custom-price input:focus {}  transition: border-color 0.3s ease;  font-size: 1rem;  border-radius: 8px;  border: 2px solid #e0e0e0;  padding: 0.8rem;  flex: 1;.custom-price input {}  margin-top: 1rem;  gap: 0.5rem;  align-items: center;  display: flex;.custom-price {}  font-weight: bold;  color: #2e7d32;  background: #e8f5e9;  border-color: #4caf50;.price-option.selected {}  background: #f1f8e9;  border-color: #4caf50;.price-option:hover {}  transition: all 0.3s ease;  background: white;  text-align: center;  cursor: pointer;  border-radius: 8px;  border: 2px solid #e0e0e0;  padding: 0.8rem;.price-option {}  margin-bottom: 1rem;  gap: 0.5rem;  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));  display: grid;.price-options {/* Price Range Styles */}  font-weight: 600;  margin-bottom: 1rem;  color: #2e7d32;  font-size: 1.1rem;.product-count {}  color: white;  background: #ef5350;.remove-product:hover {}  transition: all 0.3s ease;  font-size: 0.9rem;  cursor: pointer;  border-radius: 20px;  padding: 0.5rem 1rem;  border: none;  color: #d32f2f;  background: #ffebee;.remove-product {}  color: #2e7d32;  font-weight: 600;  font-size: 1.25rem;.product-form-title {}  border-bottom: 2px solid #e8f5e9;  padding-bottom: 1rem;  margin-bottom: 2rem;  align-items: center;  justify-content: space-between;  display: flex;.product-form-header {}  box-shadow: 0 4px 8px rgba(0,0,0,0.1);.product-form:hover {}  transition: all 0.3s ease;  box-shadow: 0 2px 4px rgba(0,0,0,0.05);  position: relative;  background: #fff;  margin-bottom: 2rem;  padding: 2rem;  border-radius: 10px;  border: 1px solid #e0e0e0;.product-form {/* Multiple Product Forms */}  border-color: #4caf50;  outline: none;.form-group textarea:focus {.form-group select:focus,.form-group input:focus,}  transition: border-color 0.3s ease;  font-size: 1rem;  border-radius: 8px;  border: 2px solid #e0e0e0;  padding: 0.8rem;  width: 100%;.form-group textarea {.form-group select,.form-group input,}  color: #333;  font-weight: 500;  margin-bottom: 0.5rem;  display: block;.form-group label {}  margin-bottom: 1.5rem;.form-group {}  color: #2e7d32;  font-size: 1.3rem;.card-title {}  font-size: 1.5rem;  color: white;  justify-content: center;  align-items: center;  display: flex;  border-radius: 10px;  background: linear-gradient(135deg, #4caf50, #81c784);  height: 50px;  width: 50px;.card-icon {}  margin-bottom: 1.5rem;  gap: 1rem;  align-items: center;  display: flex;.card-header {}  margin-bottom: 0;.right-column .dashboard-card {}  gap: 0.75rem;  flex-direction: column;  display: flex;.right-column {}  grid-column: 1 / -1;.dashboard-card.full-width {}  transform: translateY(-5px);.dashboard-card:hover {}  transition: transform 0.3s ease;  box-shadow: 0 5px 20px rgba(0,0,0,0.1);  padding: 2rem;  border-radius: 15px;  background: white;.dashboard-card {}  align-items: start;  margin-bottom: 2rem;  gap: 2rem;  grid-template-columns: 65% 35%;  display: grid;.dashboard-grid {}  font-size: 0.9rem;  color: #666;.stat-label {}  margin-bottom: 0.5rem;  color: #2e7d32;  font-weight: bold;  font-size: 2.5rem;.stat-number {}  transform: translateY(-3px);.stat-item:hover {}  transition: transform 0.3s ease;  box-shadow: 0 2px 10px rgba(0,0,0,0.1);  border-radius: 10px;  background: white;  padding: 1.5rem 1rem;  text-align: center;.stat-item {}  margin-bottom: 2rem;  gap: 1rem;  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));  display: grid;.stats-grid {}  color: #856404;  background: #fff3cd;.status-pending {}  color: #155724;  background: #d4edda;.status-approved {}  margin: 1rem 0;  font-weight: bold;  border-radius: 20px;  padding: 0.5rem 1rem;  display: inline-block;.approval-status {}  margin-bottom: 0.5rem;  color: #2e7d32;  font-size: 2rem;.welcome-title {}  box-shadow: 0 5px 20px rgba(0,0,0,0.1);  margin-bottom: 2rem;  padding: 2rem;  border-radius: 15px;  background: white;.welcome-section {}  padding: 100px 2rem 2rem;  margin: 0 auto;  max-width: 1200px;.dashboard {/* Dashboard Content */}  border-style: solid;  background: #c8e6c9;.btn-add:hover {}  gap: 0.5rem;  align-items: center;  display: inline-flex;  transition: all 0.3s ease;  border: 2px dashed #4caf50;  color: #2e7d32;  background: #e8f5e9;.btn-add {}  background: #388e3c;.btn-success:hover {}  color: white;  background: #4caf50;.btn-success {}  color: #2e7d32;  background: white;.btn-secondary:hover {}  border: 2px solid white;  color: white;  background: transparent;.btn-secondary {}  transition: all 0.3s ease;  text-align: center;  display: inline-block;  text-decoration: none;  font-weight: 500;  cursor: pointer;  border-radius: 25px;  border: none;  padding: 0.7rem 1.5rem;.btn {}  font-weight: 600;  color: #c8e6c9;.farm-welcome {}  gap: 1rem;  align-items: center;  display: flex;.user-info {}  gap: 0.5rem;  font-weight: bold;  font-size: 1.6rem;  align-items: center;  display: flex;.logo {}  padding: 0 2rem;  align-items: center;  justify-content: space-between;  display: flex;  margin: 0 auto;  max-width: 1200px;.nav-container {}  z-index: 1000;  width: 100%;  top: 0;  position: fixed;  box-shadow: 0 2px 10px rgba(0,0,0,0.1);  padding: 1rem 0;  color: white;  background: linear-gradient(135deg, rgb(132, 213, 147) 0%, #4caf50 100%);.header {}  background: #f8f9fa;  min-height: 100vh;import './EmployeeDashboard.css'
-
-function EmployeeDashboard() {
+import { useState, useEffect } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import Footer from '../components/Footer'
+import './EmployeeDashboard.css'
+
+const EmployeeDashboard = () => {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('inventory')
+  const [isEditProfileOpen, setIsEditProfileOpen] = useState(false)
+  const [isReviewDeliveryOpen, setIsReviewDeliveryOpen] = useState(false)
+  const [isDeliveryDetailsOpen, setIsDeliveryDetailsOpen] = useState(false)
+  const [currentDelivery, setCurrentDelivery] = useState(null)
+  
   const [searchTerm, setSearchTerm] = useState('')
-  const [categoryFilter, setCategoryFilter] = useState('all')
-  const [locationFilter, setLocationFilter] = useState('all')
+  const [categoryFilter, setCategoryFilter] = useState('')
+  const [statusFilter, setStatusFilter] = useState('')
+  const [sortFilter, setSortFilter] = useState('')
+  const [deliveryStatusFilter, setDeliveryStatusFilter] = useState('all')
 
-  // Sample inventory data
-  const farmerInventory = [
-    { id: 1, name: 'Fresh Tomatoes', type: 'farmer', quantity: 250, unit: 'kg', location: 'A1', status: 'good', expiryDate: '2024-02-15' },
-    { id: 2, name: 'Green Beans', type: 'farmer', quantity: 180, unit: 'kg', location: 'A2', status: 'good', expiryDate: '2024-02-10' },
-    { id: 3, name: 'Carrots', type: 'farmer', quantity: 120, unit: 'kg', location: 'B1', status: 'warning', expiryDate: '2024-02-05' }
-  ]
-
-  const finishedInventory = [
-    { id: 4, name: 'Tomato Sauce', type: 'finished', quantity: 60, unit: 'units', location: 'C1', status: 'low', expiryDate: '2024-06-15' },
-    { id: 5, name: 'Carrot Juice', type: 'finished', quantity: 150, unit: 'units', location: 'C2', status: 'good', expiryDate: '2024-05-20' },
-    { id: 6, name: 'Bean Salad', type: 'finished', quantity: 85, unit: 'units', location: 'C3', status: 'good', expiryDate: '2024-04-10' }
-  ]
-
-  // Sample farmer applications
-  const farmerApplications = [
-    { 
-      id: 1, 
-      farmerName: 'John Silva', 
-      farmName: 'Silva Organic Farm',
-      product: 'Organic Tomatoes', 
-      quantity: 500, 
-      unit: 'kg',
-      pricePerUnit: 350,
-      date: '2024-01-20',
-      quality: 'A Grade',
-      status: 'pending',
-      images: ['🍅', '🍅', '🍅']
-    },
-    { 
-      id: 2, 
-      farmerName: 'Mary Fernando', 
-      farmName: 'Fernando Greens',
-      product: 'Fresh Carrots', 
-      quantity: 300, 
-      unit: 'kg',
-      pricePerUnit: 220,
-      date: '2024-01-21',
-      quality: 'Premium',
-      status: 'pending',
-      images: ['🥕', '🥕']
-    },
-    { 
-      id: 3, 
-      farmerName: 'David Perera', 
-      farmName: 'Perera Dairy Farm',
-      product: 'Fresh Milk', 
-      quantity: 200, 
-      unit: 'L',
-      pricePerUnit: 380,
-      date: '2024-01-19',
-      quality: 'A Grade',
-      status: 'approved',
-      images: ['🥛', '🥛', '🥛']
-    }
-  ]
-
-  const handleApproveApplication = (id) => {
-    alert(`Application ${id} approved!`)
-  }
-
-  const handleRejectApplication = (id) => {
-    if (confirm('Are you sure you want to reject this application?')) {
-      alert(`Application ${id} rejected!`)
-    }
-  }
-
-  const filteredInventory = [...farmerInventory, ...finishedInventory].filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = categoryFilter === 'all' || item.type === categoryFilter
-    const matchesLocation = locationFilter === 'all' || item.location.startsWith(locationFilter)
-    return matchesSearch && matchesCategory && matchesLocation
+  const [profileData, setProfileData] = useState({
+    firstName: 'Nimal',
+    lastName: 'Fernando',
+    email: 'nimal.fernando@laklights.com',
+    phone: '+94 77 345 6789',
+    employeeId: 'EMP-001',
+    department: 'Operations',
+    position: 'Inventory Manager',
+    joinDate: 'January 15, 2024',
+    address: '45 Galle Road',
+    city: 'Colombo',
+    postalCode: '00300',
+    notifications: 'all',
+    language: 'en'
   })
 
-  const pendingApplications = farmerApplications.filter(app => app.status === 'pending')
+  const [farmerProducts, setFarmerProducts] = useState([
+    {
+      id: 1,
+      name: 'Fresh Mango - Grade A',
+      location: 'C03-R04 (Cold Storage A)',
+      expiry: '2025-09-30',
+      daysUntilExpiry: 5,
+      stock: '85 kg',
+      reorder: '20 kg',
+      status: 'critical'
+    },
+    {
+      id: 2,
+      name: 'Pineapple Chunks',
+      location: 'C02-R01 (Cold Storage B)',
+      expiry: '2025-10-15',
+      daysUntilExpiry: 20,
+      stock: '25 kg',
+      reorder: '40 kg',
+      status: 'warning'
+    },
+    {
+      id: 3,
+      name: 'Fresh Papaya - Grade A',
+      location: 'C01-R03 (Cold Storage A)',
+      expiry: '2025-10-05',
+      daysUntilExpiry: 10,
+      stock: '45 kg',
+      reorder: '15 kg',
+      status: 'good'
+    },
+    {
+      id: 4,
+      name: 'Passion Fruit - Grade B',
+      location: 'C03-R02 (Cold Storage B)',
+      expiry: '2025-10-08',
+      daysUntilExpiry: 13,
+      stock: '32 kg',
+      reorder: '20 kg',
+      status: 'good'
+    }
+  ])
+
+  const [finishedProducts, setFinishedProducts] = useState([
+    {
+      id: 1,
+      name: 'Lime Mix',
+      location: 'Finished Goods - Shelf A',
+      batch: 'B202509',
+      manufactured: '2025-09-01',
+      bestBefore: '2026-04-01',
+      quantity: 120,
+      status: 'good'
+    },
+    {
+      id: 2,
+      name: 'Mango Jelly',
+      location: 'Finished Goods - Shelf B',
+      batch: 'B202508',
+      manufactured: '2025-05-10',
+      bestBefore: '2026-02-10',
+      quantity: 50,
+      status: 'warning'
+    },
+    {
+      id: 3,
+      name: 'Wood Apple Juice',
+      location: 'Finished Goods - Shelf C',
+      batch: 'B202507',
+      manufactured: '2025-04-20',
+      bestBefore: '2026-01-20',
+      quantity: 80,
+      status: 'unit-low'
+    }
+  ])
+
+  const [supplierApplications, setSupplierApplications] = useState([
+    {
+      id: 1,
+      farmerName: 'Mountain Fresh Farm - Badulla',
+      product: 'Fresh Mango - Grade A',
+      quantity: '200kg',
+      price: 'LKR 180.00/kg',
+      harvestDate: '2025-09-20',
+      qualityGrade: 'Grade A',
+      license: 'AG2025078',
+      submitted: '2025-09-21',
+      transport: 'Self Transport',
+      date: '2025-09-25',
+      images: ['Mango+1', 'Mango+2', 'Quality+Cert']
+    },
+    {
+      id: 2,
+      farmerName: 'Sunrise Plantation - Matale',
+      product: 'Strawberry - Grade B',
+      quantity: '80kg',
+      price: 'LKR 350.00/kg',
+      harvestDate: '2025-09-22',
+      qualityGrade: 'Grade B',
+      license: 'AG2025045',
+      submitted: '2025-09-20',
+      transport: 'Company Truck Pickup',
+      date: '2025-09-25',
+      images: ['Strawberry+1', 'Strawberry+2', 'Farm+View']
+    },
+    {
+      id: 3,
+      farmerName: 'Golden Valley Farms - Nuwara Eliya',
+      product: 'Passion Fruit - Grade A',
+      quantity: '60kg',
+      price: 'LKR 450.00/kg',
+      harvestDate: '2025-09-23',
+      qualityGrade: 'Grade A',
+      license: 'AG2025123',
+      submitted: '2025-09-22',
+      transport: 'Self Transport',
+      date: '2025-09-26',
+      images: ['Passion+Fruit', 'Quality+Check', 'Packaging']
+    }
+  ])
+
+  const [orders, setOrders] = useState([
+    {
+      id: 'O001',
+      customer: 'Asoka Perera',
+      items: '15x Fresh Mango Cordial (Wholesale Discount Applied)',
+      total: 3375.00,
+      payment: 'Completed',
+      status: 'Ready',
+      date: 'Sept 20, 2025'
+    },
+    {
+      id: 'O003',
+      customer: 'Sarah Wilson',
+      items: '8x Mixed Jam Collection',
+      total: 2400.00,
+      payment: 'Pending',
+      status: 'Hold',
+      date: 'Sept 21, 2025'
+    },
+    {
+      id: 'O004',
+      customer: 'ABC Restaurant',
+      items: '25x Chili Sauce (Bulk Order - 10% Discount)',
+      total: 4500.00,
+      payment: 'Completed',
+      status: 'Ready',
+      date: 'Sept 22, 2025'
+    }
+  ])
+
+  const [deliveries, setDeliveries] = useState([
+    {
+      id: 'DEL-001',
+      farmer: 'Green Valley Farm',
+      product: 'Fresh Mango - Grade A',
+      quantity: '100kg',
+      proposedDate: 'Oct 22, 2025',
+      scheduleDate: '-',
+      transport: 'Company Truck Pickup',
+      status: 'pending'
+    },
+    {
+      id: 'DEL-004',
+      farmer: 'Sunrise Organic Farm',
+      product: 'Papaya - Grade A',
+      quantity: '80kg',
+      proposedDate: 'Oct 23, 2025',
+      scheduleDate: '-',
+      transport: 'Self Transport',
+      status: 'pending'
+    },
+    {
+      id: 'DEL-002',
+      farmer: 'Green Valley Farm',
+      product: 'Strawberry - Grade A',
+      quantity: '50kg',
+      proposedDate: 'Oct 25, 2025',
+      scheduleDate: 'Oct 25, 2025',
+      transport: 'Self Transport',
+      status: 'confirmed'
+    },
+    {
+      id: 'DEL-003',
+      farmer: 'Green Valley Farm',
+      product: 'Pineapple - Grade B',
+      quantity: '75kg',
+      proposedDate: 'Oct 20, 2025',
+      scheduleDate: 'Oct 20, 2025',
+      transport: 'Company Truck Pickup',
+      status: 'completed'
+    }
+  ])
+
+  const showTab = (tabName) => {
+    setActiveTab(tabName)
+  }
+
+  const approveApplication = (farmName) => {
+    if (window.confirm(`Approve application from ${farmName}?\n\nThis will:\n- Accept their product submission\n- Schedule delivery pickup\n- Send confirmation to farmer`)) {
+      alert(`✅ Application from ${farmName} has been approved!\n\nDelivery scheduled for next available slot.\nFarmer will receive confirmation notification.`)
+      // Remove application from list
+      setSupplierApplications(prev => prev.filter(app => app.farmerName !== farmName))
+    }
+  }
+
+  const rejectApplication = (farmName) => {
+    const reason = window.prompt(`Reject application from ${farmName}?\n\nPlease provide reason for rejection:`)
+    if (reason && reason.trim()) {
+      alert(`❌ Application from ${farmName} has been rejected.\n\nReason: ${reason}\n\nFarmer will receive notification with feedback.`)
+      // Remove application from list
+      setSupplierApplications(prev => prev.filter(app => app.farmerName !== farmName))
+    }
+  }
+
+  const reviewDelivery = (deliveryId) => {
+    const delivery = deliveries.find(d => d.id === deliveryId)
+    if (delivery) {
+      setCurrentDelivery(delivery)
+      setIsReviewDeliveryOpen(true)
+    }
+  }
+
+  const confirmDeliverySchedule = () => {
+    if (currentDelivery) {
+      alert(`Delivery schedule confirmed!\n\nDelivery ID: ${currentDelivery.id}\n\nThe farmer has been notified. The delivery is now confirmed and scheduled for pickup/delivery.`)
+      
+      setDeliveries(prev => prev.map(d => 
+        d.id === currentDelivery.id 
+          ? { ...d, status: 'confirmed', scheduleDate: d.proposedDate }
+          : d
+      ))
+      setIsReviewDeliveryOpen(false)
+      setCurrentDelivery(null)
+    }
+  }
+
+  const requestScheduleChange = () => {
+    if (currentDelivery) {
+      const newDate = window.prompt('Enter the new proposed date (YYYY-MM-DD):')
+      if (newDate) {
+        alert(`Schedule change request sent to farmer.\n\nDelivery ID: ${currentDelivery.id}\nNew Proposed Date: ${newDate}\n\nThe farmer will receive a notification about the requested change.`)
+        setIsReviewDeliveryOpen(false)
+        setCurrentDelivery(null)
+      }
+    }
+  }
+
+  const viewEmployeeDeliveryDetails = (deliveryId) => {
+    const delivery = deliveries.find(d => d.id === deliveryId)
+    if (delivery) {
+      setCurrentDelivery(delivery)
+      setIsDeliveryDetailsOpen(true)
+    }
+  }
+
+  const acceptDate = (deliveryId) => {
+    if (window.confirm(`Accept the scheduled date for delivery ${deliveryId}?`)) {
+      alert(`✅ Schedule date accepted!\n\nDelivery ID: ${deliveryId}\n\nThe farmer has been notified that the delivery date is confirmed and accepted.`)
+      
+      setDeliveries(prev => prev.map(d => 
+        d.id === deliveryId ? { ...d, status: 'completed' } : d
+      ))
+    }
+  }
+
+  const rescheduleDelivery = (deliveryId) => {
+    const newDate = window.prompt('Enter new delivery date (e.g., Oct 26, 2025):')
+    if (newDate && newDate.trim() !== '') {
+      alert(`📅 Delivery rescheduled!\n\nDelivery ID: ${deliveryId}\nNew Date: ${newDate}\n\nThe farmer has been notified of the new delivery date.`)
+      
+      setDeliveries(prev => prev.map(d => 
+        d.id === deliveryId ? { ...d, scheduleDate: newDate } : d
+      ))
+    }
+  }
+
+  const showAddFarmerProductModal = () => {
+    const productName = window.prompt("Enter product name:")
+    const quantity = window.prompt("Enter quantity (kg or units):")
+    const location = window.prompt("Enter storage location (e.g., C03-R04 or Shelf A):")
+    const expiryDate = window.prompt("Enter expiry date (YYYY-MM-DD):")
+    
+    if (productName && quantity && location && expiryDate) {
+      const newProduct = {
+        id: farmerProducts.length + 1,
+        name: productName,
+        location: location,
+        expiry: expiryDate,
+        daysUntilExpiry: 'N/A',
+        stock: quantity,
+        reorder: '0',
+        status: 'good'
+      }
+      setFarmerProducts(prev => [...prev, newProduct])
+      alert(`✅ New inventory item added!\n\nProduct: ${productName}\nQuantity: ${quantity}\nLocation: ${location}\nExpiry: ${expiryDate}`)
+    }
+  }
+
+  const showAddFinishedProductModal = () => {
+    const productName = window.prompt("Enter product name:")
+    const quantity = window.prompt("Enter quantity:")
+    const manufacturingDate = window.prompt("Enter manufacturing date (YYYY-MM-DD):")
+    const location = window.prompt("Enter storage location (e.g., Shelf A):")
+    const expiryDate = window.prompt("Enter best-before date (YYYY-MM-DD):")
+    
+    if (productName && quantity && location && expiryDate && manufacturingDate) {
+      const newProduct = {
+        id: finishedProducts.length + 1,
+        name: productName,
+        location: location,
+        batch: 'B' + new Date().getFullYear() + Math.floor(Math.random() * 100),
+        manufactured: manufacturingDate,
+        bestBefore: expiryDate,
+        quantity: parseInt(quantity),
+        status: 'good'
+      }
+      setFinishedProducts(prev => [...prev, newProduct])
+      alert(`✅ New inventory item added!\n\nProduct: ${productName}\nQuantity: ${quantity}\nLocation: ${location}\nExpiry: ${expiryDate}\nManufactured: ${manufacturingDate}`)
+    }
+  }
+
+  const searchInventory = () => {
+    console.log('Searching inventory:', searchTerm)
+  }
+
+  const filterDeliveries = () => {
+    return deliveries.filter(delivery => {
+      if (deliveryStatusFilter === 'all') return true
+      return delivery.status === deliveryStatusFilter
+    })
+  }
+
+  const saveProfile = () => {
+    if (!profileData.firstName || !profileData.lastName || !profileData.email || 
+        !profileData.phone || !profileData.address || !profileData.city || !profileData.postalCode) {
+      alert('Please fill in all required fields marked with *')
+      return
+    }
+
+    alert('Profile updated successfully!\n\nYour changes have been saved.')
+    setIsEditProfileOpen(false)
+  }
 
   return (
     <div className="employee-dashboard">
       {/* Header */}
-      <div className="header">
-        <div className="nav-container">
-          <div className="logo">
-            <span>🌿</span>
-            Laklight Food Products
-          </div>
+      <header className="header">
+        <nav className="nav-container">
+          <Link to="/home" style={{textDecoration: 'none', color: 'white'}}>
+            <div className="logo">
+              <img src="/images/Logo.png" alt="Laklights Food Products" className="logo-img" />
+              Laklights Food Products
+            </div>
+          </Link>
+          <ul className="nav-menu">
+            <li><Link to="/home">Dashboard</Link></li>
+            <li><a href="#inventory">Inventory</a></li>
+            <li><a href="#suppliers">Suppliers</a></li>
+            <li><a href="#orders">Orders</a></li>
+          </ul>
           <div className="user-info">
-            <span>Welcome, Employee!</span>
-            <button className="btn btn-secondary" onClick={() => navigate('/login')}>Logout</button>
+            <span>Employee: {profileData.firstName} {profileData.lastName}</span>
+            <button className="btn btn-primary" onClick={() => setIsEditProfileOpen(true)}>
+              Edit Profile
+            </button>
+            <Link to="/" className="btn btn-secondary">Logout</Link>
           </div>
-        </div>
-      </div>
+        </nav>
+      </header>
 
       {/* Dashboard Content */}
-      <div className="dashboard">
-        <div className="welcome-section">
+      <main className="dashboard">
+        {/* Welcome Section */}
+        <section className="welcome-section">
           <h1 className="welcome-title">Employee Dashboard</h1>
-          <p>Manage inventory and review farmer applications.</p>
-        </div>
+          <p>Manage inventory, review supplier applications, and oversee manufacturing operations for Laklights Food Products.</p>
+          
+          <div className="stats-grid">
+            <div className="stat-card">
+              <div className="stat-number">156</div>
+              <div className="stat-label">Total Inventory Items</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-number">8</div>
+              <div className="stat-label">Low Stock Alerts</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-number">{supplierApplications.length}</div>
+              <div className="stat-label">Pending Applications</div>
+            </div>
+            <div className="stat-card">
+              <div className="stat-number">{orders.length}</div>
+              <div className="stat-label">Orders Processing</div>
+            </div>
+          </div>
+        </section>
 
-        {/* Stats Grid */}
-        <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-number">{farmerInventory.length}</div>
-            <div className="stat-label">Farmer Products</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-number">{finishedInventory.length}</div>
-            <div className="stat-label">Finished Products</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-number">{pendingApplications.length}</div>
-            <div className="stat-label">Pending Applications</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-number">{farmerApplications.filter(a => a.status === 'approved').length}</div>
-            <div className="stat-label">Approved Today</div>
-          </div>
-        </div>
-
-        {/* Tabs */}
+        {/* Dashboard Tabs */}
         <div className="dashboard-tabs">
           <button 
-            className={`tab-button ${activeTab === 'inventory' ? 'active' : ''}`}
-            onClick={() => setActiveTab('inventory')}
+            className={`tab-button ${activeTab === 'inventory' ? 'active' : ''}`} 
+            onClick={() => showTab('inventory')}
           >
-            📦 Inventory Management
+            Inventory Management
           </button>
           <button 
-            className={`tab-button ${activeTab === 'applications' ? 'active' : ''}`}
-            onClick={() => setActiveTab('applications')}
+            className={`tab-button ${activeTab === 'suppliers' ? 'active' : ''}`} 
+            onClick={() => showTab('suppliers')}
           >
-            📋 Farmer Applications ({pendingApplications.length})
+            Supplier Applications
+          </button>
+          <button 
+            className={`tab-button ${activeTab === 'orders' ? 'active' : ''}`} 
+            onClick={() => showTab('orders')}
+          >
+            Order Management
+          </button>
+          <button 
+            className={`tab-button ${activeTab === 'deliveries' ? 'active' : ''}`} 
+            onClick={() => showTab('deliveries')}
+          >
+            Delivery Schedule
           </button>
         </div>
 
-        {/* Inventory Tab */}
-        {activeTab === 'inventory' && (
-          <div className="tab-content active">
-            {/* Search and Filters */}
-            <div className="inventory-search">
-              <div className="search-box">
-                <input 
-                  type="text" 
-                  className="search-input" 
-                  placeholder="Search inventory..." 
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-                <button className="btn-search">
-                  <i className="fas fa-search"></i>
-                  Search
-                </button>
-              </div>
-              <div className="inventory-filters">
-                <select className="filter-select" value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
-                  <option value="all">All Types</option>
-                  <option value="farmer">Farmer Products</option>
-                  <option value="finished">Finished Products</option>
-                </select>
-                <select className="filter-select" value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)}>
-                  <option value="all">All Locations</option>
-                  <option value="A">Section A</option>
-                  <option value="B">Section B</option>
-                  <option value="C">Section C</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Inventory Split View */}
-            <div className="inventory-split">
-              {/* Farmer Products */}
-              <div className="inventory-column">
-                <h3>🌾 Farmer Products</h3>
-                {filteredInventory.filter(item => item.type === 'farmer').map(item => (
-                  <div key={item.id} className="inventory-item">
-                    <div className="inventory-details">
-                      <h4>{item.name}</h4>
-                      <div className="inventory-location">Location: {item.location} | Expires: {item.expiryDate}</div>
-                    </div>
-                    <span className={`stock-level stock-${item.status}`}>
-                      {item.quantity} {item.unit}
-                    </span>
-                  </div>
-                ))}
+        {/* Inventory Management Tab */}
+        <div className={`tab-content ${activeTab === 'inventory' ? 'active' : ''}`}>
+          <div className="dashboard-grid">
+            <div className="dashboard-card" style={{ gridColumn: '1 / -1' }}>
+              <div className="card-header">
+                <div className="card-title">
+                  <div className="card-icon">📦</div>
+                  <h2>Current Inventory</h2>
+                </div>
               </div>
 
-              {/* Finished Products */}
-              <div className="inventory-column">
-                <h3>📦 Finished Products</h3>
-                {filteredInventory.filter(item => item.type === 'finished').map(item => (
-                  <div key={item.id} className="inventory-item">
-                    <div className="inventory-details">
-                      <h4>{item.name}</h4>
-                      <div className="inventory-location">Location: {item.location} | Expires: {item.expiryDate}</div>
-                    </div>
-                    <span className={`stock-level ${item.status === 'low' ? 'unit-low' : 'stock-' + item.status}`}>
-                      {item.quantity} {item.unit}
-                    </span>
+              {/* Inventory Search */}
+              <div className="inventory-search">
+                <div className="search-box">
+                  <input 
+                    type="text" 
+                    className="search-input" 
+                    placeholder="Search inventory by product name or ID..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                  <button className="btn-search" onClick={searchInventory}>
+                    Search
+                  </button>
+                </div>
+                <div className="inventory-filters">
+                  <select 
+                    className="filter-select"
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value)}
+                  >
+                    <option value="">All Categories</option>
+                    <option value="raw">Raw Materials</option>
+                    <option value="processed">Processed Products</option>
+                    <option value="packaging">Packaging Materials</option>
+                  </select>
+                  <select 
+                    className="filter-select"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                  >
+                    <option value="">Stock Status</option>
+                    <option value="in-stock">In Stock</option>
+                    <option value="low-stock">Low Stock</option>
+                    <option value="out-of-stock">Out of Stock</option>
+                  </select>
+                  <select 
+                    className="filter-select"
+                    value={sortFilter}
+                    onChange={(e) => setSortFilter(e.target.value)}
+                  >
+                    <option value="">Sort By</option>
+                    <option value="name-asc">Name: A to Z</option>
+                    <option value="name-desc">Name: Z to A</option>
+                    <option value="stock-low">Stock: Low to High</option>
+                    <option value="stock-high">Stock: High to Low</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="inventory-split">
+                {/* Farmer Products Column */}
+                <div className="inventory-column">
+                  <h3>Farmer Products</h3>
+                  <button 
+                    className="btn btn-primary btn-small" 
+                    style={{ marginBottom: '0.5rem' }}
+                    onClick={showAddFarmerProductModal}
+                  >
+                    Add New Item
+                  </button>
+
+                  <div className="expiry-warning" style={{ marginTop: '0.5rem' }}>
+                    <strong>⚠️ Critical Alert:</strong>
+                    <ul style={{ margin: '0.5rem 0 0 1.25rem', color: '#7a2c2c' }}>
+                      <li>Pineapples are needed quickly.</li>
+                      <li>Fresh Mango approaching expiry in 3 days.</li>
+                    </ul>
                   </div>
-                ))}
+
+                  {farmerProducts.map(product => (
+                    <div key={product.id} className="inventory-item">
+                      <div className="inventory-details">
+                        <h4>{product.name}</h4>
+                        <div className="inventory-location">Location: {product.location}</div>
+                        <div>Expiry: {product.expiry} ({product.daysUntilExpiry} days)</div>
+                      </div>
+                      <div className={`stock-level stock-${product.status}`}>{product.stock}</div>
+                      <div>Reorder: {product.reorder}</div>
+                      <div>
+                        <button className={`btn btn-${product.status === 'critical' ? 'danger' : product.status === 'warning' ? 'primary' : 'success'} btn-small`}>
+                          Update
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Finished Products Column */}
+                <div className="inventory-column">
+                  <h3>Finished Products</h3>
+                  <button 
+                    className="btn btn-primary btn-small" 
+                    style={{ marginBottom: '0.5rem' }}
+                    onClick={showAddFinishedProductModal}
+                  >
+                    Add New Item
+                  </button>
+
+                  <div className="expiry-warning" style={{ marginTop: '0.5rem' }}>
+                    <strong>⚠️ Critical Alert:</strong>
+                    <ul style={{ margin: '0.5rem 0 0 1.25rem', color: '#7a2c2c' }}>
+                      <li>Mango Jelly Stock is Low (50 units).</li>
+                      <li>Wood Apple Juice stock approaching best-before in 120 days (80 units).</li>
+                    </ul>
+                  </div>
+
+                  {finishedProducts.map(product => (
+                    <div key={product.id} className="inventory-item">
+                      <div className="inventory-details">
+                        <h4>{product.name}</h4>
+                        <div className="inventory-location">Location: {product.location}</div>
+                        <div>Batch: {product.batch} | Manufactured: {product.manufactured} | Best Before: {product.bestBefore}</div>
+                        <div>Current Quantity: {product.quantity} units</div>
+                      </div>
+                      <div className={`stock-level stock-${product.status}`}>{product.quantity} units</div>
+                      <div>
+                        <button className={`btn btn-${product.status === 'unit-low' ? 'danger' : product.status === 'warning' ? 'primary' : 'success'} btn-small`}>
+                          Details
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </div>
-        )}
+        </div>
 
-        {/* Farmer Applications Tab */}
-        {activeTab === 'applications' && (
-          <div className="tab-content active">
-            <div className="dashboard-card">
+        {/* Supplier Applications Tab */}
+        <div className={`tab-content ${activeTab === 'suppliers' ? 'active' : ''}`}>
+          <div className="dashboard-grid">
+            <div className="dashboard-card" style={{ gridColumn: '1 / -1' }}>
               <div className="card-header">
                 <div className="card-title">
-                  <div className="card-icon">👨‍🌾</div>
-                  <h2>Pending Farmer Applications</h2>
+                  <div className="card-icon">🌾</div>
+                  <h2>Pending Supplier Applications</h2>
                 </div>
               </div>
-              {farmerApplications.filter(app => app.status === 'pending').map(application => (
-                <div key={application.id} className="application-item">
-                  <div className="application-header">
-                    <div>
-                      <div className="farmer-name">{application.farmerName} - {application.farmName}</div>
-                      <div>Product: <strong>{application.product}</strong></div>
-                      <div>Quantity: {application.quantity} {application.unit} @ Rs. {application.pricePerUnit}/{application.unit}</div>
-                      <div>Quality: {application.quality} | Date: {application.date}</div>
-                    </div>
-                  </div>
+
+              {supplierApplications.map(app => (
+                <div key={app.id} className="application-item">
+                  <div className="farmer-name">{app.farmerName}</div>
+                  <p><strong>Product:</strong> {app.product}</p>
+                  <p><strong>Quantity:</strong> {app.quantity} | <strong>Price:</strong> {app.price}</p>
+                  <p><strong>Harvest Date:</strong> {app.harvestDate} | <strong>Quality Grade:</strong> {app.qualityGrade}</p>
+                  <p><strong>License:</strong> {app.license} | <strong>Submitted:</strong> {app.submitted}</p>
+                  <p><strong>Transport:</strong> {app.transport} | <strong>Date:</strong> {app.date}</p>
+                  
                   <div className="submitted-images">
-                    <p>Product Images:</p>
+                    <p><strong>Submitted Images:</strong></p>
                     <div className="image-gallery">
-                      {application.images.map((img, idx) => (
-                        <div key={idx} className="product-thumbnail" style={{fontSize: '4rem', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#e8f5e9'}}>
-                          {img}
-                        </div>
+                      {app.images.map((img, idx) => (
+                        <img 
+                          key={idx}
+                          src={`https://via.placeholder.com/150x150?text=${img}`} 
+                          alt={`Product Image ${idx + 1}`} 
+                          className="product-thumbnail"
+                        />
                       ))}
                     </div>
                   </div>
+                  
                   <div className="application-actions">
-                    <button className="btn btn-success btn-small" onClick={() => handleApproveApplication(application.id)}>
-                      ✓ Approve
+                    <button 
+                      className="btn btn-success btn-small" 
+                      onClick={() => approveApplication(app.farmerName)}
+                    >
+                      Approve & Schedule
                     </button>
-                    <button className="btn btn-danger btn-small" onClick={() => handleRejectApplication(application.id)}>
-                      ✕ Reject
+                    <button 
+                      className="btn btn-danger btn-small" 
+                      onClick={() => rejectApplication(app.farmerName)}
+                    >
+                      Reject
+                    </button>
+                    <button className="btn btn-secondary btn-small">View Details</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Order Management Tab */}
+        <div className={`tab-content ${activeTab === 'orders' ? 'active' : ''}`}>
+          <div className="dashboard-grid">
+            <div className="dashboard-card" style={{ gridColumn: '1 / -1' }}>
+              <div className="card-header">
+                <div className="card-title">
+                  <div className="card-icon">📋</div>
+                  <h2>Processing Orders</h2>
+                </div>
+              </div>
+
+              {orders.map(order => (
+                <div key={order.id} className="inventory-item">
+                  <div className="inventory-details">
+                    <h4>Order #{order.id} - {order.customer}</h4>
+                    <div>{order.items}</div>
+                    <div>Total: LKR {order.total.toFixed(2)} | Payment: {order.payment}</div>
+                  </div>
+                  <div className={`stock-level stock-${order.status === 'Ready' ? 'good' : 'low'}`}>
+                    {order.status}
+                  </div>
+                  <div>{order.date}</div>
+                  <div>
+                    <button className={`btn btn-${order.status === 'Ready' ? 'primary' : 'secondary'} btn-small`}>
+                      {order.status === 'Ready' ? 'Process' : 'On Hold'}
                     </button>
                   </div>
                 </div>
               ))}
             </div>
           </div>
-        )}
-      </div>
-
-      {/* Footer */}
-      <div className="footer">
-        <div className="footer-bottom">
-          <p>&copy; 2024 Laklight Food Products. All rights reserved.</p>
         </div>
-      </div>
+
+        {/* Delivery Schedule Tab */}
+        <div className={`tab-content ${activeTab === 'deliveries' ? 'active' : ''}`}>
+          <div className="dashboard-grid">
+            <div className="dashboard-card" style={{ gridColumn: '1 / -1' }}>
+              <div className="card-header">
+                <div className="card-title">
+                  <div className="card-icon">🚚</div>
+                  <h2>Farmer Delivery Schedule Requests</h2>
+                </div>
+              </div>
+
+              <div className="inventory-filters" style={{ marginBottom: '1rem' }}>
+                <select 
+                  className="filter-select"
+                  value={deliveryStatusFilter}
+                  onChange={(e) => setDeliveryStatusFilter(e.target.value)}
+                >
+                  <option value="all">All Status</option>
+                  <option value="pending">Pending Review</option>
+                  <option value="confirmed">Confirmed</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+
+              <div className="table-container">
+                <table className="delivery-schedule-table">
+                  <thead>
+                    <tr>
+                      <th>Delivery ID</th>
+                      <th>Farmer</th>
+                      <th>Product</th>
+                      <th>Quantity</th>
+                      <th>Proposed Date</th>
+                      <th>Schedule Date</th>
+                      <th>Transport</th>
+                      <th>Status</th>
+                      <th>Schedule Delivery</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filterDeliveries().map(delivery => (
+                      <tr key={delivery.id} data-status={delivery.status}>
+                        <td>{delivery.id}</td>
+                        <td>{delivery.farmer}</td>
+                        <td>{delivery.product}</td>
+                        <td>{delivery.quantity}</td>
+                        <td>{delivery.proposedDate}</td>
+                        <td>{delivery.scheduleDate === '-' ? '-' : <strong>{delivery.scheduleDate}</strong>}</td>
+                        <td>{delivery.transport}</td>
+                        <td>
+                          <span className={`status-badge status-${delivery.status}`}>
+                            {delivery.status === 'pending' && 'Pending Review'}
+                            {delivery.status === 'confirmed' && 'Confirmed'}
+                            {delivery.status === 'completed' && 'Completed'}
+                            {delivery.status === 'cancelled' && 'Cancelled'}
+                          </span>
+                        </td>
+                        <td>
+                          {delivery.status === 'pending' && (
+                            <button 
+                              className="btn-action" 
+                              onClick={() => reviewDelivery(delivery.id)}
+                            >
+                              Review
+                            </button>
+                          )}
+                          {delivery.status === 'confirmed' && (
+                            <>
+                              <button 
+                                className="btn-action" 
+                                style={{ background: '#4caf50', color: 'white' }}
+                                onClick={() => acceptDate(delivery.id)}
+                              >
+                                Accept Date
+                              </button>
+                              <button 
+                                className="btn-action" 
+                                style={{ background: '#ff9800', color: 'white', marginLeft: '0.5rem' }}
+                                onClick={() => rescheduleDelivery(delivery.id)}
+                              >
+                                Reschedule
+                              </button>
+                            </>
+                          )}
+                          {delivery.status === 'completed' && (
+                            <button 
+                              className="btn-action btn-secondary" 
+                              onClick={() => viewEmployeeDeliveryDetails(delivery.id)}
+                            >
+                              View
+                            </button>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* Edit Profile Modal */}
+      {isEditProfileOpen && (
+        <div className="modal" style={{ display: 'block' }}>
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2 className="modal-title">Edit Profile</h2>
+              <button className="close" onClick={() => setIsEditProfileOpen(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <form>
+                {/* Personal Information */}
+                <div className="profile-section">
+                  <h3 className="section-title">Personal Information</h3>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>First Name *</label>
+                      <input 
+                        type="text" 
+                        value={profileData.firstName}
+                        onChange={(e) => setProfileData({...profileData, firstName: e.target.value})}
+                        required 
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Last Name *</label>
+                      <input 
+                        type="text" 
+                        value={profileData.lastName}
+                        onChange={(e) => setProfileData({...profileData, lastName: e.target.value})}
+                        required 
+                      />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Email Address *</label>
+                      <input 
+                        type="email" 
+                        value={profileData.email}
+                        onChange={(e) => setProfileData({...profileData, email: e.target.value})}
+                        required 
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Phone Number *</label>
+                      <input 
+                        type="tel" 
+                        value={profileData.phone}
+                        onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
+                        required 
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Employee Information */}
+                <div className="profile-section">
+                  <h3 className="section-title">Employee Information</h3>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Employee ID</label>
+                      <input type="text" value={profileData.employeeId} disabled />
+                    </div>
+                    <div className="form-group">
+                      <label>Department</label>
+                      <input type="text" value={profileData.department} disabled />
+                    </div>
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>Position</label>
+                      <input type="text" value={profileData.position} disabled />
+                    </div>
+                    <div className="form-group">
+                      <label>Join Date</label>
+                      <input type="text" value={profileData.joinDate} disabled />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Contact Address */}
+                <div className="profile-section">
+                  <h3 className="section-title">Contact Address</h3>
+                  <div className="form-group">
+                    <label>Street Address *</label>
+                    <input 
+                      type="text" 
+                      value={profileData.address}
+                      onChange={(e) => setProfileData({...profileData, address: e.target.value})}
+                      required 
+                    />
+                  </div>
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label>City *</label>
+                      <input 
+                        type="text" 
+                        value={profileData.city}
+                        onChange={(e) => setProfileData({...profileData, city: e.target.value})}
+                        required 
+                      />
+                    </div>
+                    <div className="form-group">
+                      <label>Postal Code *</label>
+                      <input 
+                        type="text" 
+                        value={profileData.postalCode}
+                        onChange={(e) => setProfileData({...profileData, postalCode: e.target.value})}
+                        required 
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Account Settings */}
+                <div className="profile-section">
+                  <h3 className="section-title">Account Settings</h3>
+                  <div className="form-group">
+                    <label>Email Notifications</label>
+                    <select 
+                      value={profileData.notifications}
+                      onChange={(e) => setProfileData({...profileData, notifications: e.target.value})}
+                    >
+                      <option value="all">All Notifications</option>
+                      <option value="critical">Critical Only</option>
+                      <option value="none">None</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Preferred Language</label>
+                    <select 
+                      value={profileData.language}
+                      onChange={(e) => setProfileData({...profileData, language: e.target.value})}
+                    >
+                      <option value="en">English</option>
+                      <option value="si">Sinhala</option>
+                      <option value="ta">Tamil</option>
+                    </select>
+                  </div>
+                </div>
+              </form>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-cancel" onClick={() => setIsEditProfileOpen(false)}>
+                Cancel
+              </button>
+              <button className="btn btn-save" onClick={saveProfile}>
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Review Delivery Modal */}
+      {isReviewDeliveryOpen && currentDelivery && (
+        <div className="modal" style={{ display: 'block' }}>
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2 className="modal-title">Review Delivery Schedule</h2>
+              <button className="close" onClick={() => setIsReviewDeliveryOpen(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <div style={{ lineHeight: 2 }}>
+                <h3 style={{ color: '#2e7d32', marginBottom: '1rem' }}>Delivery Information</h3>
+                <p><strong>Delivery ID:</strong> {currentDelivery.id}</p>
+                <p><strong>Farmer:</strong> {currentDelivery.farmer}</p>
+                <hr style={{ margin: '1rem 0', border: 'none', borderTop: '1px solid #e0e0e0' }} />
+                <h3 style={{ color: '#2e7d32', marginBottom: '1rem' }}>Product Details</h3>
+                <p><strong>Product:</strong> {currentDelivery.product}</p>
+                <p><strong>Quantity:</strong> {currentDelivery.quantity}</p>
+                <hr style={{ margin: '1rem 0', border: 'none', borderTop: '1px solid #e0e0e0' }} />
+                <h3 style={{ color: '#2e7d32', marginBottom: '1rem' }}>Logistics</h3>
+                <p><strong>Proposed Date:</strong> {currentDelivery.proposedDate}</p>
+                <p><strong>Transport Method:</strong> {currentDelivery.transport}</p>
+                <hr style={{ margin: '1rem 0', border: 'none', borderTop: '1px solid #e0e0e0' }} />
+                <div style={{ background: '#fff3cd', padding: '1rem', borderRadius: '8px', marginTop: '1rem' }}>
+                  <strong>Action Required:</strong> Review the delivery details and confirm the schedule or request changes if needed.
+                </div>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-cancel" onClick={() => setIsReviewDeliveryOpen(false)}>
+                Cancel
+              </button>
+              <button 
+                className="btn btn-secondary" 
+                style={{ background: '#dc3545' }}
+                onClick={requestScheduleChange}
+              >
+                Request Change
+              </button>
+              <button className="btn btn-save" onClick={confirmDeliverySchedule}>
+                Confirm Schedule
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delivery Details Modal */}
+      {isDeliveryDetailsOpen && currentDelivery && (
+        <div className="modal" style={{ display: 'block' }}>
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2 className="modal-title">Delivery Details</h2>
+              <button className="close" onClick={() => setIsDeliveryDetailsOpen(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <div style={{ lineHeight: 2 }}>
+                <p><strong>Delivery ID:</strong> {currentDelivery.id}</p>
+                <p><strong>Farmer:</strong> {currentDelivery.farmer}</p>
+                <p><strong>Product:</strong> {currentDelivery.product}</p>
+                <p><strong>Quantity:</strong> {currentDelivery.quantity}</p>
+                <p><strong>Proposed Date:</strong> {currentDelivery.proposedDate}</p>
+                {currentDelivery.scheduleDate !== '-' && (
+                  <p><strong>Confirmed Date:</strong> {currentDelivery.scheduleDate}</p>
+                )}
+                <p><strong>Transport Method:</strong> {currentDelivery.transport}</p>
+                <p>
+                  <strong>Status:</strong>{' '}
+                  <span className={`status-badge status-${currentDelivery.status}`}>
+                    {currentDelivery.status.charAt(0).toUpperCase() + currentDelivery.status.slice(1)}
+                  </span>
+                </p>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-cancel" onClick={() => setIsDeliveryDetailsOpen(false)}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <Footer />
     </div>
   )
 }

@@ -43,11 +43,13 @@ function App() {
       <Route path="/admin/users" element={<UserManagement />} />
       <Route path="/admin/farmer-applications" element={<FarmerApplicationReview />} />
       <Route path="/admin/reports" element={<GenerateReports />} />
+      <Route path="/generate-reports" element={<GenerateReports />} />
       <Route path="/admin/reports/inventory" element={<InventoryReport />} />
       <Route path="/admin/reports/sales" element={<SalesReport />} />
       <Route path="/admin/reports/supplier" element={<SupplierReport />} />
       <Route path="/admin/reports/customer" element={<CustomerReport />} />
       <Route path="/admin/supplier-relations" element={<SupplierRelations />} />
+      <Route path="/admin/suppliers" element={<SupplierRelations />} />
       <Route path="/admin/settings" element={<SystemSettings />} />
       
       {/* Customer Routes */}

@@ -6,7 +6,7 @@ function Header({ isLoggedIn = false }) {
     <header className="header">
       <nav className="nav-container">
         <Link to="/" className="logo">
-          <img src="/Logo.png" alt="Laklights Food Products" className="logo-img" />
+          <img src="/images/Logo.png" alt="Laklights Food Products" className="logo-img" />
           Laklights Food Products
         </Link>
         <ul className="nav-menu">

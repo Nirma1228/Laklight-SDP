@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import './FarmerDashboard.css'
 
 function FarmerDashboard() {
@@ -59,13 +59,19 @@ function FarmerDashboard() {
       {/* Header */}
       <div className="header">
         <div className="nav-container">
-          <div className="logo">
+          <Link to="/home" className="logo" style={{textDecoration: 'none', color: 'white'}}>
             <span>🌿</span>
             Laklight Food Products
-          </div>
+          </Link>
+          <ul className="nav-menu">
+            <li><Link to="/home">Dashboard</Link></li>
+            <li><a href="#products">My Products</a></li>
+            <li><a href="#deliveries">Deliveries</a></li>
+            <li><a href="#profile">Profile</a></li>
+          </ul>
           <div className="user-info">
             <span className="farm-welcome">Welcome, Farmer!</span>
-            <button className="btn btn-secondary" onClick={() => navigate('/login')}>Logout</button>
+            <Link to="/" className="btn btn-secondary">Logout</Link>
           </div>
         </div>
       </div>
@@ -258,11 +264,15 @@ function FarmerDashboard() {
                 <div key={sub.id} className="product-item">
                   <div className="product-header">
                     <span className="product-name">{sub.product}</span>
-                    <span className={`product-status status-${sub.status}`}>
-                      {sub.status === 'selected' ? 'Selected' : 
-                       sub.status === 'under-review' ? 'Under Review' : 
-                       'Not Selected'}
-                    </span>
+                    {sub.status === 'not-selected' ? (
+                      <Link to="/farmer/feedback" className={`product-status status-${sub.status}`}>
+                        Not Selected
+                      </Link>
+                    ) : (
+                      <span className={`product-status status-${sub.status}`}>
+                        {sub.status === 'selected' ? 'Selected' : 'Under Review'}
+                      </span>
+                    )}
                   </div>
                   <div style={{fontSize: '0.9rem', color: '#666'}}>Submitted: {sub.date}</div>
                 </div>
