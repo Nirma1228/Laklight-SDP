@@ -90,11 +90,19 @@ function Home() {
       {/* Hero Section */}
       <section id="home" className="hero">
         <div className="hero-content">
-          <h1 className="animate-fadeInUp">Fresh Food Products, From Farm to Table</h1>
-          <p className="animate-fadeInUp">Experience quality and freshness with our locally products</p>
+          <h1 className="animate-fadeInUp">
+            Fresh Food Products, From Farm to Table
+          </h1>
+          <p className="animate-fadeInUp">
+            Experience quality and freshness with our locally products
+          </p>
           <div className="hero-buttons animate-fadeInUp">
-            <Link to="/login" className="btn btn-primary btn-large">Shop Fresh Products</Link>
-            <Link to="/login" className="btn btn-secondary btn-large">Join as Farmer</Link>
+            <Link to="/login" className="btn btn-primary btn-large">
+              Shop Fresh Products
+            </Link>
+            <Link to="/login" className="btn btn-secondary btn-large">
+              Join as Farmer
+            </Link>
           </div>
         </div>
       </section>
@@ -105,28 +113,48 @@ function Home() {
           <h2 className="section-title">Who Are You?</h2>
           <div className="types-grid">
             <div className="type-card">
-              <div className="type-icon">👤</div>
+              <div className="type-icon"></div>
               <h3>Customer</h3>
-              <p>Browse fresh fruits, enjoy wholesale discounts on bulk orders (12+ pieces), and get doorstep delivery of premium quality products.</p>
-              <Link to="/login" className="btn btn-primary">Shop Now</Link>
+              <p>
+                Browse fresh fruits, enjoy wholesale discounts on bulk orders (12+ pieces), 
+                and get doorstep delivery of premium quality products.
+              </p>
+              <Link to="/login" className="btn btn-primary">
+                Shop Now
+              </Link>
             </div>
             <div className="type-card">
-              <div className="type-icon">🌾</div>
+              <div className="type-icon"></div>
               <h3>Farmer</h3>
-              <p>Submit your product details, get fair prices, schedule deliveries, and track your applications through our farmer-friendly portal.</p>
-              <Link to="/login" className="btn btn-primary">Join as Farmer</Link>
+              <p>
+                Submit your product details, get fair prices, schedule deliveries, 
+                and track your applications through our farmer-friendly portal.
+              </p>
+              <Link to="/login" className="btn btn-primary">
+                Join as Farmer
+              </Link>
             </div>
             <div className="type-card">
-              <div className="type-icon">👷</div>
+              <div className="type-icon"></div>
               <h3>Employee</h3>
-              <p>Manage inventory with real-time tracking, handle warehouse locations (cupboard & rack system), and process farmer applications.</p>
-              <Link to="/login" className="btn btn-primary">Employee Portal</Link>
+              <p>
+                Manage inventory with real-time tracking, handle warehouse locations 
+                (cupboard & rack system), and process farmer applications.
+              </p>
+              <Link to="/login" className="btn btn-primary">
+                Employee Portal
+              </Link>
             </div>
             <div className="type-card">
-              <div className="type-icon">👨‍💼</div>
+              <div className="type-icon"></div>
               <h3>Administrator</h3>
-              <p>Access comprehensive analytics, generate business reports, manage users, and oversee system operations.</p>
-              <Link to="/login" className="btn btn-primary">Admin Dashboard</Link>
+              <p>
+                Access comprehensive analytics, generate business reports, 
+                manage users, and oversee system operations.
+              </p>
+              <Link to="/login" className="btn btn-primary">
+                Admin Dashboard
+              </Link>
             </div>
           </div>
         </div>
@@ -138,45 +166,63 @@ function Home() {
           <h2 className="section-title">System Features</h2>
           <div className="features-grid">
             <div className="feature-item">
-              <div className="feature-icon">🛒</div>
+              <div className="feature-icon"></div>
               <div className="feature-content">
                 <h4>E-commerce Platform</h4>
-                <p>Complete online shopping experience with secure payments, order tracking, and customer feedback system.</p>
+                <p>
+                  Complete online shopping experience with secure payments, 
+                  order tracking, and customer feedback system.
+                </p>
               </div>
             </div>
             <div className="feature-item">
-              <div className="feature-icon">💰</div>
+              <div className="feature-icon"></div>
               <div className="feature-content">
                 <h4>Wholesale Discounts</h4>
-                <p>Automatic discounts applied for bulk orders of 12+ pieces, encouraging larger purchases and better value.</p>
+                <p>
+                  Automatic discounts applied for bulk orders of 12+ pieces, 
+                  encouraging larger purchases and better value.
+                </p>
               </div>
             </div>
             <div className="feature-item">
-              <div className="feature-icon">📦</div>
+              <div className="feature-icon"></div>
               <div className="feature-content">
                 <h4>Smart Warehouse Management</h4>
-                <p>Real-time location tracking with detailed mapping (3rd cupboard, 4th rack) for efficient inventory management.</p>
+                <p>
+                  Real-time location tracking with detailed mapping (3rd cupboard, 4th rack) 
+                  for efficient inventory management.
+                </p>
               </div>
             </div>
             <div className="feature-item">
-              <div className="feature-icon">⚠️</div>
+              <div className="feature-icon"></div>
               <div className="feature-content">
                 <h4>Expiry Alert System</h4>
-                <p>Automated alerts for product expiry dates, reducing waste and ensuring fresh product delivery.</p>
+                <p>
+                  Automated alerts for product expiry dates, reducing waste and 
+                  ensuring fresh product delivery.
+                </p>
               </div>
             </div>
             <div className="feature-item">
-              <div className="feature-icon">🚚</div>
+              <div className="feature-icon"></div>
               <div className="feature-content">
                 <h4>Delivery Scheduling</h4>
-                <p>Smart scheduling system for farmer deliveries with real-time coordination and status tracking.</p>
+                <p>
+                  Smart scheduling system for farmer deliveries with real-time 
+                  coordination and status tracking.
+                </p>
               </div>
             </div>
             <div className="feature-item">
-              <div className="feature-icon">📱</div>
+              <div className="feature-icon"></div>
               <div className="feature-content">
                 <h4>Mobile Responsive</h4>
-                <p>Fully responsive design works seamlessly across desktop, tablet, and mobile devices.</p>
+                <p>
+                  Fully responsive design works seamlessly across desktop, 
+                  tablet, and mobile devices.
+                </p>
               </div>
             </div>
           </div>
@@ -211,8 +257,12 @@ function Home() {
           <h2>Ready to Get Started?</h2>
           <p>Join our growing community of customers and suppliers</p>
           <div className="cta-buttons">
-            <Link to="/login" className="btn btn-primary btn-large">Shop Fresh Products</Link>
-            <Link to="/login" className="btn btn-secondary btn-large">Join as Farmer</Link>
+            <Link to="/login" className="btn btn-primary btn-large">
+              Shop Fresh Products
+            </Link>
+            <Link to="/login" className="btn btn-secondary btn-large">
+              Join as Farmer
+            </Link>
           </div>
         </div>
       </section>

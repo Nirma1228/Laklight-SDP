@@ -3,7 +3,7 @@ import './Footer.css'
 
 function Footer() {
   return (
-    <footer className="footer">
+    <footer id="contact" className="footer">
       <div className="footer-content">
         <div className="footer-section">
           <h4>Laklight Food Products</h4>

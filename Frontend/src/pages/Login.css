@@ -204,13 +204,12 @@
   font-size: 1.1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  transition: transform 0.3s ease;
   margin-bottom: 1.5rem;
 }
 
 .login-btn:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 30px rgba(76, 175, 80, 0.3);
 }
 
 .register-link {
