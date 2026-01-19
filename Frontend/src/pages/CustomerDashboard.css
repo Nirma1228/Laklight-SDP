@@ -55,21 +55,55 @@
 .user-info {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 1.5rem;
+}
+
+.welcome-text {
+  color: white;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.header-buttons {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.header-buttons .btn {
+  padding: 0.6rem 1.5rem;
+  font-size: 0.95rem;
+  white-space: nowrap;
+  min-width: 100px;
+}
+
+.header-buttons .btn-secondary {
+  padding: calc(0.6rem - 2px) calc(1.5rem - 2px);
 }
 
 .cart-icon {
   position: relative;
   font-size: 1.3rem;
   cursor: pointer;
-  padding: 0.5rem;
+  padding: 0.5rem 1rem;
   border-radius: 8px;
   transition: background-color 0.3s ease;
   display: flex;
   align-items: center;
-  justify-content: center;
-  width: 40px;
+  gap: 0.5rem;
+  width: auto;
   height: 40px;
+  margin-right: 1rem;
+}
+
+.cart-icon:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.cart-label {
+  color: white;
+  font-weight: 500;
+  font-size: 1rem;
 }
 
 .cart-icon i {

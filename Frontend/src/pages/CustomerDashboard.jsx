@@ -186,14 +186,17 @@ const CustomerDashboard = () => {
           </ul>
           <div className="user-info">
             <div className="cart-icon" onClick={toggleCart}>
-              <i className="fas fa-shopping-cart"></i>
+              <span className="cart-icon-symbol">🛒</span>
+              <span className="cart-label">My Cart</span>
               {totalItems > 0 && <span id="cart-count">{totalItems}</span>}
             </div>
-            <span>Welcome, {profileData.firstName} {profileData.lastName}</span>
-            <button className="btn btn-primary" onClick={() => setIsEditProfileOpen(true)}>
-              Edit Profile
-            </button>
-            <Link to="/" className="btn btn-secondary">Logout</Link>
+            <span className="welcome-text">Welcome, {profileData.firstName} {profileData.lastName}</span>
+            <div className="header-buttons">
+              <button className="btn btn-primary" onClick={() => setIsEditProfileOpen(true)}>
+                Edit Profile
+              </button>
+              <Link to="/" className="btn btn-secondary">Logout</Link>
+            </div>
           </div>
         </nav>
       </header>
@@ -211,7 +214,7 @@ const CustomerDashboard = () => {
           {/* Recent Orders */}
           <div className="dashboard-card">
             <div className="card-header">
-              <div className="card-icon">📦</div>
+              
               <h2 className="card-title">Recent Orders</h2>
             </div>
             <div id="recent-orders">
@@ -238,7 +241,7 @@ const CustomerDashboard = () => {
           {/* Account Summary */}
           <div className="dashboard-card">
             <div className="card-header">
-              <div className="card-icon">👤</div>
+              
               <h2 className="card-title">Account Summary</h2>
             </div>
             <div>
@@ -252,9 +255,9 @@ const CustomerDashboard = () => {
         </div>
 
         {/* Featured Products */}
-        <div className="dashboard-card">
+        <div id="products" className="dashboard-card">
           <div className="card-header">
-            <div className="card-icon">🛍️</div>
+            
             <h2 className="card-title">Featured Products</h2>
           </div>
           

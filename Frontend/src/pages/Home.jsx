@@ -116,7 +116,7 @@ function Home() {
               <div className="type-icon"></div>
               <h3>Customer</h3>
               <p>
-                Browse fresh fruits, enjoy wholesale discounts on bulk orders (12+ pieces), 
+                Browse fresh products, enjoy wholesale discounts on bulk orders (12+ pieces), 
                 and get doorstep delivery of premium quality products.
               </p>
               <Link to="/login" className="btn btn-primary">
