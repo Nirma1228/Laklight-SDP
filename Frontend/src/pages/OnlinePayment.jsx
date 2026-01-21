@@ -5,6 +5,7 @@ import './OnlinePayment.css'
 function OnlinePayment() {
   const navigate = useNavigate()
   const [paymentMethod, setPaymentMethod] = useState('card')
+  const [cardType, setCardType] = useState('visa')
   const [loading, setLoading] = useState(false)
   const [formData, setFormData] = useState({
     cardNumber: '',
@@ -80,6 +81,49 @@ function OnlinePayment() {
           <form id="paymentForm" onSubmit={handleSubmit}>
             {paymentMethod === 'card' && (
               <div id="cardDetails">
+                <div className="form-group">
+                  <label>Select Card Type</label>
+                  <div className="card-type-selection">
+                    <div 
+                      className={`card-type-option ${cardType === 'visa' ? 'selected' : ''}`}
+                      onClick={() => setCardType('visa')}
+                    >
+                      <div className="card-logo">
+                        <svg width="48" height="32" viewBox="0 0 48 32" fill="none">
+                          <rect width="48" height="32" rx="4" fill="#1A1F71"/>
+                          <text x="24" y="20" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">VISA</text>
+                        </svg>
+                      </div>
+                      <span>Visa</span>
+                    </div>
+                    <div 
+                      className={`card-type-option ${cardType === 'mastercard' ? 'selected' : ''}`}
+                      onClick={() => setCardType('mastercard')}
+                    >
+                      <div className="card-logo">
+                        <svg width="48" height="32" viewBox="0 0 48 32" fill="none">
+                          <rect width="48" height="32" rx="4" fill="#EB001B"/>
+                          <circle cx="18" cy="16" r="8" fill="#FF5F00"/>
+                          <circle cx="30" cy="16" r="8" fill="#F79E1B" opacity="0.9"/>
+                        </svg>
+                      </div>
+                      <span>Mastercard</span>
+                    </div>
+                    <div 
+                      className={`card-type-option ${cardType === 'amex' ? 'selected' : ''}`}
+                      onClick={() => setCardType('amex')}
+                    >
+                      <div className="card-logo">
+                        <svg width="48" height="32" viewBox="0 0 48 32" fill="none">
+                          <rect width="48" height="32" rx="4" fill="#006FCF"/>
+                          <text x="24" y="20" textAnchor="middle" fill="white" fontSize="8" fontWeight="bold">AMEX</text>
+                        </svg>
+                      </div>
+                      <span>Amex</span>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="form-group">
                   <label htmlFor="cardNumber">Card Number</label>
                   <input 

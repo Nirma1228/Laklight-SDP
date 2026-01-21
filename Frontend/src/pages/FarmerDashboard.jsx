@@ -4,6 +4,9 @@ import './FarmerDashboard.css'
 
 function FarmerDashboard() {
   const navigate = useNavigate()
+  const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false)
+  const [selectedDelivery, setSelectedDelivery] = useState(null)
+  const [newDeliveryDate, setNewDeliveryDate] = useState('')
   const [products, setProducts] = useState([{ 
     id: 1, 
     name: '', 
@@ -54,7 +57,7 @@ function FarmerDashboard() {
     }
   ])
 
-  const deliveries = [
+  const [deliveries, setDeliveries] = useState([
     { 
       id: 'DEL-001', 
       product: 'Fresh Mango - Grade A', 
@@ -82,7 +85,54 @@ function FarmerDashboard() {
       transportMethod: 'Company Truck Pickup',
       status: 'completed'
     }
-  ]
+  ])
+
+  const handleRescheduleClick = (delivery) => {
+    setSelectedDelivery(delivery)
+    setIsRescheduleModalOpen(true)
+    // Set current scheduled date as default
+    const currentDate = delivery.scheduleDate ? new Date(delivery.scheduleDate).toISOString().split('T')[0] : ''
+    setNewDeliveryDate(currentDate)
+  }
+
+  const handleRescheduleSubmit = (e) => {
+    e.preventDefault()
+    if (!newDeliveryDate) {
+      alert('Please select a new delivery date')
+      return
+    }
+
+    // Create notification for employee dashboard
+    const notification = {
+      id: Date.now(),
+      type: 'delivery-reschedule',
+      deliveryId: selectedDelivery.id,
+      product: selectedDelivery.product,
+      quantity: selectedDelivery.quantity,
+      farmerName: 'Farmer Name',
+      oldDate: selectedDelivery.scheduleDate,
+      newDate: newDeliveryDate,
+      timestamp: new Date().toISOString(),
+      status: 'pending'
+    }
+
+    // Store notification in localStorage for employee dashboard
+    const existingNotifications = JSON.parse(localStorage.getItem('employee_notifications') || '[]')
+    existingNotifications.push(notification)
+    localStorage.setItem('employee_notifications', JSON.stringify(existingNotifications))
+
+    // Update delivery schedule
+    setDeliveries(deliveries.map(d => 
+      d.id === selectedDelivery.id 
+        ? { ...d, scheduleDate: newDeliveryDate, status: 'pending' }
+        : d
+    ))
+
+    alert(`✅ Reschedule request submitted!\n\nDelivery: ${selectedDelivery.product}\nNew Date: ${newDeliveryDate}\n\nEmployee will review your request.`)
+    setIsRescheduleModalOpen(false)
+    setSelectedDelivery(null)
+    setNewDeliveryDate('')
+  }
 
   const addProduct = () => {
     const newProduct = {
@@ -467,7 +517,12 @@ function FarmerDashboard() {
                       {delivery.status === 'confirmed' && (
                         <>
                           <button className="btn-action btn-view">View</button>
-                          <button className="btn-action btn-reschedule">Reschedule Delivery</button>
+                          <button 
+                            className="btn-action btn-reschedule"
+                            onClick={() => handleRescheduleClick(delivery)}
+                          >
+                            Reschedule Delivery
+                          </button>
                         </>
                       )}
                       {delivery.status === 'completed' && (
@@ -481,6 +536,59 @@ function FarmerDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Reschedule Modal */}
+      {isRescheduleModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsRescheduleModalOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Reschedule Delivery</h3>
+              <button 
+                className="modal-close" 
+                onClick={() => setIsRescheduleModalOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+            <form onSubmit={handleRescheduleSubmit}>
+              <div className="modal-body">
+                <div className="delivery-info">
+                  <p><strong>Delivery ID:</strong> {selectedDelivery?.id}</p>
+                  <p><strong>Product:</strong> {selectedDelivery?.product}</p>
+                  <p><strong>Quantity:</strong> {selectedDelivery?.quantity}</p>
+                  <p><strong>Current Scheduled Date:</strong> {selectedDelivery?.scheduleDate}</p>
+                </div>
+                <div className="form-group">
+                  <label htmlFor="newDeliveryDate">Select New Delivery Date *</label>
+                  <input 
+                    type="date" 
+                    id="newDeliveryDate"
+                    value={newDeliveryDate}
+                    onChange={(e) => setNewDeliveryDate(e.target.value)}
+                    min={new Date().toISOString().split('T')[0]}
+                    required
+                  />
+                </div>
+                <p className="reschedule-note">
+                  ⓘ Your reschedule request will be sent to the employee dashboard for approval.
+                </p>
+              </div>
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  className="btn btn-secondary"
+                  onClick={() => setIsRescheduleModalOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Submit Request
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Footer */}
       <div className="footer">

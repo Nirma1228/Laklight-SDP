@@ -10,12 +10,26 @@ const EmployeeDashboard = () => {
   const [isReviewDeliveryOpen, setIsReviewDeliveryOpen] = useState(false)
   const [isDeliveryDetailsOpen, setIsDeliveryDetailsOpen] = useState(false)
   const [currentDelivery, setCurrentDelivery] = useState(null)
+  const [notifications, setNotifications] = useState([])
   
   const [searchTerm, setSearchTerm] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [sortFilter, setSortFilter] = useState('')
   const [deliveryStatusFilter, setDeliveryStatusFilter] = useState('all')
+
+  // Load reschedule notifications from localStorage
+  useEffect(() => {
+    const loadNotifications = () => {
+      const storedNotifications = JSON.parse(localStorage.getItem('employee_notifications') || '[]')
+      setNotifications(storedNotifications.filter(n => n.status === 'pending'))
+    }
+    loadNotifications()
+    
+    // Poll for new notifications every 5 seconds
+    const interval = setInterval(loadNotifications, 5000)
+    return () => clearInterval(interval)
+  }, [])
 
   const [profileData, setProfileData] = useState({
     firstName: 'Nimal',
@@ -284,6 +298,39 @@ const EmployeeDashboard = () => {
   const viewEmployeeDeliveryDetails = (deliveryId) => {
     const delivery = deliveries.find(d => d.id === deliveryId)
     if (delivery) {
+
+  }
+
+  const handleApproveReschedule = (notification) => {
+    const allNotifications = JSON.parse(localStorage.getItem('employee_notifications') || '[]')
+    const updatedNotifications = allNotifications.map(n => 
+      n.id === notification.id ? { ...n, status: 'approved' } : n
+    )
+    localStorage.setItem('employee_notifications', JSON.stringify(updatedNotifications))
+    
+    setNotifications(prev => prev.filter(n => n.id !== notification.id))
+    
+    alert(`✅ Reschedule approved!\n\nDelivery ${notification.deliveryId} has been rescheduled to ${notification.newDate}\nFarmer will be notified.`)
+  }
+
+  const handleRejectReschedule = (notification) => {
+    const reason = window.prompt('Provide reason for rejection:')
+    if (reason && reason.trim()) {
+      const allNotifications = JSON.parse(localStorage.getItem('employee_notifications') || '[]')
+      const updatedNotifications = allNotifications.map(n => 
+        n.id === notification.id ? { ...n, status: 'rejected', rejectionReason: reason } : n
+      )
+      localStorage.setItem('employee_notifications', JSON.stringify(updatedNotifications))
+      
+      setNotifications(prev => prev.filter(n => n.id !== notification.id))
+      
+      alert(`❌ Reschedule rejected!\n\nDelivery ${notification.deliveryId} will keep original date.\nFarmer will be notified with reason.`)
+    }
+  }
+
+  const viewEmployeeDeliveryDetails = (deliveryId) => {
+    const delivery = deliveries.find(d => d.id === deliveryId)
+    if (delivery) {
       setCurrentDelivery(delivery)
       setIsDeliveryDetailsOpen(true)
     }
@@ -461,6 +508,68 @@ const EmployeeDashboard = () => {
 
         {/* Inventory Management Tab */}
         <div className={`tab-content ${activeTab === 'inventory' ? 'active' : ''}`}>
+          {/* Reschedule Notifications */}
+          {notifications.length > 0 && (
+            <div className="notifications-section">
+              <div className="notifications-header">
+                <h3>🔔 Delivery Reschedule Requests ({notifications.length})</h3>
+              </div>
+              {notifications.map((notification) => (
+                <div key={notification.id} className="notification-item">
+                  <div className="notification-content">
+                    <h4>🔄 Delivery Reschedule Request</h4>
+                    <div className="notification-details">
+                      <div className="detail-row">
+                        <span className="detail-label">Delivery ID:</span>
+                        <span className="detail-value">{notification.deliveryId}</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">Product:</span>
+                        <span className="detail-value">{notification.product}</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">Farmer:</span>
+                        <span className="detail-value">{notification.farmerName}</span>
+                      </div>
+                      <div className="detail-row">
+                        <span className="detail-label">Quantity:</span>
+                        <span className="detail-value">{notification.quantity || 'N/A'}</span>
+                      </div>
+                      <div className="date-comparison">
+                        <div className="date-box current-date">
+                          <label>Current Date</label>
+                          <span>{notification.oldDate}</span>
+                        </div>
+                        <div className="date-arrow">→</div>
+                        <div className="date-box requested-date">
+                          <label>Requested Date</label>
+                          <span>{notification.newDate}</span>
+                        </div>
+                      </div>
+                      <p className="notification-time">
+                        📅 Requested: {new Date(notification.timestamp).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="notification-actions">
+                    <button 
+                      className="btn btn-approve"
+                      onClick={() => handleApproveReschedule(notification)}
+                    >
+                      ✓ Approve
+                    </button>
+                    <button 
+                      className="btn btn-reject"
+                      onClick={() => handleRejectReschedule(notification)}
+                    >
+                      ✗ Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="dashboard-grid">
             <div className="dashboard-card" style={{ gridColumn: '1 / -1' }}>
               <div className="card-header">
