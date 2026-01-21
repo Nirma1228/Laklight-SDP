@@ -45,7 +45,7 @@ const CustomerDashboard = () => {
   const orders = [
     {
       id: 'O001',
-      items: '15x Fresh Mango Products',
+      items: '15x Fresh Mango Drink',
       total: 3375.00,
       discount: true,
       status: 'processing'
