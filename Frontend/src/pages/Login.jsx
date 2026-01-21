@@ -80,7 +80,7 @@ function Login() {
                   <option value="customer">Customer</option>
                   <option value="farmer">Farmer</option>
                   <option value="employee">Employee</option>
-                  <option value="admin">Administrator</option>
+                  <option value="administrator">Administrator</option>
                 </select>
               </div>
 

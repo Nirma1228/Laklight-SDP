@@ -11,6 +11,15 @@ const EmployeeDashboard = () => {
   const [isDeliveryDetailsOpen, setIsDeliveryDetailsOpen] = useState(false)
   const [currentDelivery, setCurrentDelivery] = useState(null)
   const [notifications, setNotifications] = useState([])
+  const [isLoading, setIsLoading] = useState(false)
+  
+  // Get token from localStorage
+  const getAuthToken = () => {
+    return localStorage.getItem('token') || sessionStorage.getItem('token')
+  }
+  
+  // API base URL
+  const API_BASE_URL = 'http://localhost:5000/api'
   
   const [searchTerm, setSearchTerm] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
@@ -156,6 +165,48 @@ const EmployeeDashboard = () => {
     }
   ])
 
+  // Fetch pending applications from backend
+  const fetchPendingApplications = async () => {
+    try {
+      const token = getAuthToken()
+      const response = await fetch(`${API_BASE_URL}/employee/applications`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        if (data.success && data.applications) {
+          // Transform backend data to match component format
+          const transformedApps = data.applications.map(app => ({
+            id: app.id,
+            farmerName: app.farmer_name || 'Unknown Farmer',
+            product: app.product_name,
+            quantity: `${app.quantity} ${app.unit}`,
+            price: `Rs. ${app.price_per_unit}/${app.unit}`,
+            harvestDate: new Date(app.harvest_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+            qualityGrade: app.quality_grade || 'N/A',
+            license: app.license_number ? `Valid (License #${app.license_number})` : 'Pending',
+            submitted: new Date(app.submission_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+            transport: app.transport_method || 'Self Transport',
+            date: app.delivery_date ? new Date(app.delivery_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : 'TBD',
+            images: app.image_urls ? app.image_urls.split(',') : ['Product+Image']
+          }))
+          setSupplierApplications(transformedApps)
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching applications:', error)
+      // Keep sample data if API fails
+    }
+  }
+  
+  // Load applications on component mount
+  useEffect(() => {
+    fetchPendingApplications()
+  }, [])
+
   const [supplierApplications, setSupplierApplications] = useState([
     {
       id: 1,
@@ -278,20 +329,78 @@ const EmployeeDashboard = () => {
     setActiveTab(tabName)
   }
 
-  const approveApplication = (farmName) => {
+  const approveApplication = async (applicationId, farmName) => {
     if (window.confirm(`Approve application from ${farmName}?\n\nThis will:\n- Accept their product submission\n- Schedule delivery pickup\n- Send confirmation to farmer`)) {
-      alert(`✅ Application from ${farmName} has been approved!\n\nDelivery scheduled for next available slot.\nFarmer will receive confirmation notification.`)
-      // Remove application from list
-      setSupplierApplications(prev => prev.filter(app => app.farmerName !== farmName))
+      setIsLoading(true)
+      try {
+        const token = getAuthToken()
+        const response = await fetch(`${API_BASE_URL}/employee/applications/${applicationId}/approve`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            notes: 'Application approved and delivery scheduled'
+          })
+        })
+        
+        const data = await response.json()
+        
+        if (response.ok && data.success) {
+          alert(`✅ Application from ${farmName} has been approved!\n\nDelivery scheduled for next available slot.\nFarmer will receive confirmation notification.`)
+          // Remove application from list
+          setSupplierApplications(prev => prev.filter(app => app.id !== applicationId))
+          
+          // Optionally refresh the applications list
+          fetchPendingApplications()
+        } else {
+          throw new Error(data.message || 'Failed to approve application')
+        }
+      } catch (error) {
+        console.error('Error approving application:', error)
+        alert(`❌ Error: ${error.message}\n\nPlease try again or contact support.`)
+      } finally {
+        setIsLoading(false)
+      }
     }
   }
 
-  const rejectApplication = (farmName) => {
+  const rejectApplication = async (applicationId, farmName) => {
     const reason = window.prompt(`Reject application from ${farmName}?\n\nPlease provide reason for rejection:`)
     if (reason && reason.trim()) {
-      alert(`❌ Application from ${farmName} has been rejected.\n\nReason: ${reason}\n\nFarmer will receive notification with feedback.`)
-      // Remove application from list
-      setSupplierApplications(prev => prev.filter(app => app.farmerName !== farmName))
+      setIsLoading(true)
+      try {
+        const token = getAuthToken()
+        const response = await fetch(`${API_BASE_URL}/employee/applications/${applicationId}/reject`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            rejectionReason: reason
+          })
+        })
+        
+        const data = await response.json()
+        
+        if (response.ok && data.success) {
+          alert(`❌ Application from ${farmName} has been rejected.\n\nReason: ${reason}\n\nFarmer will receive notification with feedback.`)
+          // Remove application from list
+          setSupplierApplications(prev => prev.filter(app => app.id !== applicationId))
+          
+          // Optionally refresh the applications list
+          fetchPendingApplications()
+        } else {
+          throw new Error(data.message || 'Failed to reject application')
+        }
+      } catch (error) {
+        console.error('Error rejecting application:', error)
+        alert(`❌ Error: ${error.message}\n\nPlease try again or contact support.`)
+      } finally {
+        setIsLoading(false)
+      }
     }
   }
 
@@ -771,15 +880,17 @@ const EmployeeDashboard = () => {
                   <div className="application-actions">
                     <button 
                       className="btn btn-success btn-small" 
-                      onClick={() => approveApplication(app.farmerName)}
+                      onClick={() => approveApplication(app.id, app.farmerName)}
+                      disabled={isLoading}
                     >
-                      Approve & Schedule
+                      {isLoading ? 'Processing...' : 'Approve & Schedule'}
                     </button>
                     <button 
                       className="btn btn-danger btn-small" 
-                      onClick={() => rejectApplication(app.farmerName)}
+                      onClick={() => rejectApplication(app.id, app.farmerName)}
+                      disabled={isLoading}
                     >
-                      Reject
+                      {isLoading ? 'Processing...' : 'Reject'}
                     </button>
                     <button className="btn btn-secondary btn-small">View Details</button>
                   </div>
