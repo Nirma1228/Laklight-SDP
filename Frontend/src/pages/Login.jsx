@@ -51,7 +51,7 @@ function Login() {
         <div className="login-container">
           <div className="login-left">
             <div className="logo-section">
-              <img src="/Logo.png" alt="Laklight Logo" />
+              <img src="/images/Logo.png" alt="Laklight Logo" />
               <h1>Laklight Food Products</h1>
               <p>Fresh From Farm to Table</p>
             </div>
