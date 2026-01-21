@@ -92,7 +92,7 @@ function AdminDashboard() {
   }
 
   return (
-    <div className="admin-dashboard-page">
+    <div className="admin-dashboard-container">
       {/* Header */}
       <header className="header">
         <nav className="nav-container">
@@ -116,54 +116,54 @@ function AdminDashboard() {
       </header>
 
       {/* Main Content */}
-      <main className="main-content">
+      <main className="admin-dashboard-content">
         <div className="page-header-section">
-          <div className="page-header-text">
+          <div>
             <h1>Admin Dashboard</h1>
             <p>Complete system overview and management controls for Laklight Food Products digital platform.</p>
           </div>
-          <div className="action-buttons">
-            <Link to="/generate-reports" className="btn btn-generate">Generate Report</Link>
-            <Link to="/admin/settings" className="btn btn-settings">System Settings</Link>
+          <div className="page-header-actions">
+            <Link to="/generate-reports" className="btn-generate">Generate Report</Link>
+            <Link to="/admin/settings" className="btn-settings">System Settings</Link>
           </div>
         </div>
 
         {/* Stats Grid */}
         <div className="stats-grid">
           <div className="stat-card stat-revenue">
-            <div className="stat-icon green"></div>
-            <div className="stat-number">Rs. {((dashboardData?.orders?.total_revenue || 1250000) / 1000000).toFixed(1)}M</div>
+            <div className="stat-icon">💰</div>
+            <div className="stat-value">Rs. {((dashboardData?.orders?.total_revenue || 1250000) / 1000000).toFixed(1)}M</div>
             <div className="stat-label">Monthly Revenue</div>
-            <div className="stat-trend positive">+12% from last month</div>
+            <div className="stat-change positive">+12% from last month</div>
           </div>
           <div className="stat-card stat-orders">
-            <div className="stat-icon orange"></div>
-            <div className="stat-number">{dashboardData?.orders?.total_orders || 1847}</div>
+            <div className="stat-icon">📦</div>
+            <div className="stat-value">{dashboardData?.orders?.total_orders || 1234}</div>
             <div className="stat-label">Total Orders</div>
-            <div className="stat-trend positive">+8% from last month</div>
+            <div className="stat-change positive">+8% from last month</div>
           </div>
           <div className="stat-card stat-customers">
-            <div className="stat-icon teal"></div>
-            <div className="stat-number">{dashboardData?.users?.customers || 1523}</div>
+            <div className="stat-icon">👥</div>
+            <div className="stat-value">{dashboardData?.users?.customers || 450}</div>
             <div className="stat-label">Active Customers</div>
-            <div className="stat-trend positive">+15% from last month</div>
+            <div className="stat-change positive">+15% from last month</div>
           </div>
           <div className="stat-card stat-suppliers">
-            <div className="stat-icon purple"></div>
-            <div className="stat-number">{dashboardData?.users?.farmers || 234}</div>
+            <div className="stat-icon">🤝</div>
+            <div className="stat-value">{dashboardData?.users?.farmers || 87}</div>
             <div className="stat-label">Registered Suppliers</div>
-            <div className="stat-trend positive">+5% from last month</div>
+            <div className="stat-change positive">+5% from last month</div>
           </div>
         </div>
 
         {/* Recent Orders and System Alerts */}
         <div className="dashboard-row">
-          <div className="dashboard-section recent-orders-section">
-            <div className="section-header-inline">
-              <h2>Recent Orders</h2>
-              <Link to="/admin/orders" className="btn btn-view-all">View All Orders</Link>
+          <div className="recent-orders-section">
+            <div className="section-header">
+              <h3>Recent Orders</h3>
+              <Link to="/admin/orders" className="btn-view-all">View All Orders</Link>
             </div>
-            <table className="data-table">
+            <table className="orders-table">
               <thead>
                 <tr>
                   <th>Order ID</th>
