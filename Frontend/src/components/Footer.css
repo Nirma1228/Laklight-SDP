@@ -90,12 +90,20 @@
   background: rgba(255, 255, 255, 0.1);
   border-radius: 50%;
   transition: all 0.3s ease;
+  color: #fff;
+}
+
+.social-icons a svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
 }
 
 .social-icons a:hover {
   background: rgba(255, 255, 255, 0.2);
   transform: translateY(-3px);
   padding-left: 0;
+  color: #fff;
 }
 
 .footer-bottom {
