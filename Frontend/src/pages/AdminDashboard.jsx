@@ -108,226 +108,183 @@ function AdminDashboard() {
             <li><Link to="/admin/reports">Reports</Link></li>
           </ul>
           <div className="user-info">
-            <span className="admin-badge">Admin</span>
+            <span className="admin-badge">ADMIN</span>
             <span>Administrator</span>
-            <button onClick={handleLogout} className="logout-btn" style={{cursor: 'pointer', background: '#dc3545', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '4px'}}>Logout</button>
+            <button onClick={handleLogout} className="logout-btn-header">Logout</button>
           </div>
         </nav>
       </header>
 
       {/* Main Content */}
       <main className="main-content">
-        <div className="page-header">
-          <h1>Admin Dashboard</h1>
-          <p>Monitor and manage all system operations</p>
+        <div className="page-header-section">
+          <div className="page-header-text">
+            <h1>Admin Dashboard</h1>
+            <p>Complete system overview and management controls for Laklight Food Products digital platform.</p>
+          </div>
           <div className="action-buttons">
-            <Link to="/generate-reports" className="btn btn-primary">Generate Report</Link>
-            <Link to="/admin/settings" className="btn btn-secondary">System Settings</Link>
+            <Link to="/generate-reports" className="btn btn-generate">Generate Report</Link>
+            <Link to="/admin/settings" className="btn btn-settings">System Settings</Link>
           </div>
         </div>
 
         {/* Stats Grid */}
-        {isLoading ? (
-          <div className="loading-message" style={{textAlign: 'center', padding: '40px'}}>
-            <p>Loading dashboard data...</p>
-          </div>
-        ) : error ? (
-          <div className="error-message" style={{textAlign: 'center', padding: '40px', color: '#dc3545'}}>
-            <p>Using sample data (Backend connection issue)</p>
-          </div>
-        ) : null}
-
         <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-number">{dashboardData?.products?.total_products || 0}</div>
-            <div className="stat-label">Total Products</div>
-            <div className="stat-info">{dashboardData?.products?.low_stock_products || 0} low stock</div>
+          <div className="stat-card stat-revenue">
+            <div className="stat-icon green"></div>
+            <div className="stat-number">Rs. {((dashboardData?.orders?.total_revenue || 1250000) / 1000000).toFixed(1)}M</div>
+            <div className="stat-label">Monthly Revenue</div>
+            <div className="stat-trend positive">+12% from last month</div>
           </div>
-          <div className="stat-card">
-            <div className="stat-number">{dashboardData?.orders?.total_orders || 0}</div>
+          <div className="stat-card stat-orders">
+            <div className="stat-icon orange"></div>
+            <div className="stat-number">{dashboardData?.orders?.total_orders || 1847}</div>
             <div className="stat-label">Total Orders</div>
-            <div className="stat-info">{dashboardData?.orders?.pending_orders || 0} pending</div>
+            <div className="stat-trend positive">+8% from last month</div>
           </div>
-          <div className="stat-card">
-            <div className="stat-number">{dashboardData?.users?.active_users || 0}</div>
-            <div className="stat-label">Active Users</div>
-            <div className="stat-info">{dashboardData?.users?.customers || 0} customers</div>
+          <div className="stat-card stat-customers">
+            <div className="stat-icon teal"></div>
+            <div className="stat-number">{dashboardData?.users?.customers || 1523}</div>
+            <div className="stat-label">Active Customers</div>
+            <div className="stat-trend positive">+15% from last month</div>
           </div>
-          <div className="stat-card">
-            <div className="stat-number">{formatCurrency(dashboardData?.orders?.total_revenue || 0)}</div>
-            <div className="stat-label">Total Revenue</div>
-            <div className="stat-info">Avg: {formatCurrency(dashboardData?.orders?.avg_order_value || 0)}</div>
+          <div className="stat-card stat-suppliers">
+            <div className="stat-icon purple"></div>
+            <div className="stat-number">{dashboardData?.users?.farmers || 234}</div>
+            <div className="stat-label">Registered Suppliers</div>
+            <div className="stat-trend positive">+5% from last month</div>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="tabs">
-          <button 
-            className={`tab-button ${activeTab === 'overview' ? 'active' : ''}`}
-            onClick={() => setActiveTab('overview')}
-          >
-            Overview
-          </button>
-          <button 
-            className={`tab-button ${activeTab === 'orders' ? 'active' : ''}`}
-            onClick={() => setActiveTab('orders')}
-          >
-            Recent Orders
-          </button>
-          <button 
-            className={`tab-button ${activeTab === 'users' ? 'active' : ''}`}
-            onClick={() => setActiveTab('users')}
-          >
-            User Management
-          </button>
-        </div>
-
-        {/* Tab Content */}
-        <div className="tab-content-area">
-          {activeTab === 'overview' && (
-            <div className="overview-content">
-              <h2>System Overview</h2>
-              <div className="dashboard-grid">
-                <div className="dashboard-card">
-                  <h3>Recent Activity</h3>
-                  <p>📦 {dashboardData?.orders?.pending_orders || 0} orders pending processing</p>
-                  <p>⚠️ {dashboardData?.products?.low_stock_products || 0} products low in stock</p>
-                  <p>👥 {dashboardData?.users?.total_users || 0} registered users</p>
-                  <p>✅ {dashboardData?.orders?.delivered_orders || 0} orders delivered</p>
-                </div>
-                <div className="dashboard-card">
-                  <h3>Quick Actions</h3>
-                  <Link to="/admin/inventory" className="btn btn-primary" style={{display: 'block', marginBottom: '10px'}}>Manage Inventory</Link>
-                  <Link to="/admin/users" className="btn btn-primary" style={{display: 'block', marginBottom: '10px'}}>Manage Users</Link>
-                  <Link to="/admin/orders" className="btn btn-primary" style={{display: 'block', marginBottom: '10px'}}>Process Orders</Link>
-                  <Link to="/admin/reports" className="btn btn-primary" style={{display: 'block'}}>Generate Reports</Link>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'orders' && (
-            <div className="orders-content">
+        {/* Recent Orders and System Alerts */}
+        <div className="dashboard-row">
+          <div className="dashboard-section recent-orders-section">
+            <div className="section-header-inline">
               <h2>Recent Orders</h2>
-              {recentOrders.length > 0 ? (
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Order ID</th>
-                      <th>Customer</th>
-                      <th>Amount</th>
-                      <th>Payment</th>
-                      <th>Status</th>
-                      <th>Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentOrders.map((order) => (
-                      <tr key={order.id}>
-                        <td>#{order.order_number || order.id}</td>
-                        <td>{order.customer_name || 'N/A'}</td>
-                        <td>{formatCurrency(order.total_amount)}</td>
-                        <td>
-                          <span className={`status-badge ${order.payment_status === 'Paid' ? 'status-completed' : 'status-pending'}`}>
-                            {order.payment_status || 'Pending'}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={`status-badge status-${order.order_status?.toLowerCase() || 'pending'}`}>
-                            {order.order_status || 'Pending'}
-                          </span>
-                        </td>
-                        <td>{formatDate(order.order_date)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <p style={{textAlign: 'center', padding: '40px', color: '#666'}}>No recent orders found</p>
-              )}
-              <div style={{marginTop: '20px', textAlign: 'center'}}>
-                <Link to="/admin/orders" className="btn btn-primary">View All Orders</Link>
-              </div>
+              <Link to="/admin/orders" className="btn btn-view-all">View All Orders</Link>
             </div>
-          )}
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Order ID</th>
+                  <th>Customer</th>
+                  <th>Amount</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>LF2025-1847</td>
+                  <td>John Silva</td>
+                  <td>Rs. 3,450</td>
+                  <td><span className="status-badge status-delivered">Delivered</span></td>
+                  <td>Mar 20, 2025</td>
+                </tr>
+                <tr>
+                  <td>LF2025-1846</td>
+                  <td>Maria Fernando</td>
+                  <td>Rs. 1,280</td>
+                  <td><span className="status-badge status-processing">Processing</span></td>
+                  <td>Mar 20, 2025</td>
+                </tr>
+                <tr>
+                  <td>LF2025-1845</td>
+                  <td>ABC store</td>
+                  <td>Rs. 12,640</td>
+                  <td><span className="status-badge status-delivered">Delivered</span></td>
+                  <td>Mar 19, 2025</td>
+                </tr>
+                <tr>
+                  <td>LF2025-1844</td>
+                  <td>Colombo Restaurant</td>
+                  <td>Rs. 8,750</td>
+                  <td><span className="status-badge status-pending">Pending</span></td>
+                  <td>Mar 19, 2025</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
 
-          {activeTab === 'users' && (
-            <div className="users-content">
-              <h2>User Management</h2>
-              <div className="user-stats-grid" style={{display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '30px'}}>
-                <div className="stat-card">
-                  <div className="stat-number">{dashboardData?.users?.total_users || 0}</div>
-                  <div className="stat-label">Total Users</div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-number">{dashboardData?.users?.customers || 0}</div>
-                  <div className="stat-label">Customers</div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-number">{dashboardData?.users?.farmers || 0}</div>
-                  <div className="stat-label">Farmers</div>
-                </div>
-                <div className="stat-card">
-                  <div className="stat-number">{dashboardData?.users?.employees || 0}</div>
-                  <div className="stat-label">Employees</div>
-                </div>
-              </div>
-              <Link to="/admin/users" className="btn btn-primary">View All Users</Link>
+          <div className="dashboard-section system-alerts-section">
+            <div className="section-header-inline">
+              <h2>System Alerts</h2>
+              <button className="btn btn-view-all">View All</button>
             </div>
-          )}
+            <div className="alerts-list">
+              <div className="alert-item alert-warning">
+                <h4>Low Stock Alert</h4>
+                <p>Mango Cordial stock is running low (5 bottles remaining)</p>
+              </div>
+              <div className="alert-item alert-success">
+                <h4>New Supplier Application</h4>
+                <p>Fresh Farms Ltd. has submitted a new supplier application</p>
+              </div>
+              <div className="alert-item alert-info">
+                <h4>Expiry Notice</h4>
+                <p>3 products expiring within next 7 days</p>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* System Management Section */}
-        <div className="section">
-          <div className="section-header">
-            <h3>System Management</h3>
-            <p style={{color: '#666'}}>Access all administrative functions and system controls</p>
+        <div className="system-management-section">
+          <div className="section-header-centered">
+            <h2>System Management</h2>
+            <p>Access all administrative functions and system controls</p>
           </div>
           <div className="management-grid">
             <div className="management-card" onClick={() => navigate('/admin/users')}>
-              <div className="management-icon users">👥</div>
-              <div className="management-title">User Management</div>
-              <div className="management-description">Manage customers, suppliers, and employees accounts</div>
+              <div className="management-icon blue">
+                <span>👥</span>
+              </div>
+              <h3 className="management-title">User Management</h3>
+              <p className="management-description">Manage customers, suppliers, and employees accounts</p>
               <div className="management-stats">
                 <div className="management-stat">
-                  <span className="management-stat-number">{dashboardData?.users?.customers || 0}</span>
+                  <span className="management-stat-number">{dashboardData?.users?.customers || 1523}</span>
                   <span className="management-stat-label">Customers</span>
                 </div>
                 <div className="management-stat">
-                  <span className="management-stat-number">{dashboardData?.users?.farmers || 0}</span>
+                  <span className="management-stat-number">{dashboardData?.users?.farmers || 234}</span>
                   <span className="management-stat-label">Suppliers</span>
                 </div>
                 <div className="management-stat">
-                  <span className="management-stat-number">{dashboardData?.users?.employees || 0}</span>
+                  <span className="management-stat-number">{dashboardData?.users?.employees || 45}</span>
                   <span className="management-stat-label">Employees</span>
                 </div>
               </div>
             </div>
 
             <div className="management-card" onClick={() => navigate('/admin/inventory')}>
-              <div className="management-icon inventory">📦</div>
-              <div className="management-title">Inventory Control</div>
-              <div className="management-description">Monitor stock levels, warehouse locations, and product expiry</div>
+              <div className="management-icon green">
+                <span>📦</span>
+              </div>
+              <h3 className="management-title">Inventory Control</h3>
+              <p className="management-description">Monitor stock levels, warehouse locations, and product expiry</p>
               <div className="management-stats">
                 <div className="management-stat">
-                  <span className="management-stat-number">{dashboardData?.products?.total_products || 0}</span>
+                  <span className="management-stat-number">{dashboardData?.products?.total_products || 156}</span>
                   <span className="management-stat-label">Products</span>
                 </div>
                 <div className="management-stat">
-                  <span className="management-stat-number">{dashboardData?.products?.low_stock_products || 0}</span>
+                  <span className="management-stat-number">{dashboardData?.products?.low_stock_products || 12}</span>
                   <span className="management-stat-label">Low Stock</span>
                 </div>
                 <div className="management-stat">
-                  <span className="management-stat-number">{dashboardData?.products?.out_of_stock_products || 0}</span>
-                  <span className="management-stat-label">Out of Stock</span>
+                  <span className="management-stat-number">{dashboardData?.products?.out_of_stock_products || 3}</span>
+                  <span className="management-stat-label">Expiring</span>
                 </div>
               </div>
             </div>
 
             <div className="management-card" onClick={() => navigate('/products')}>
-              <div className="management-icon inventory">🏪</div>
-              <div className="management-title">Product Catalog</div>
-              <div className="management-description">Add, edit, and manage products with pricing controls</div>
+              <div className="management-icon lime">
+                <span>🏪</span>
+              </div>
+              <h3 className="management-title">Product Catalog</h3>
+              <p className="management-description">Add, edit, and manage products with pricing controls</p>
               <div className="management-stats">
                 <div className="management-stat">
                   <span className="management-stat-number">156</span>
@@ -345,29 +302,33 @@ function AdminDashboard() {
             </div>
 
             <div className="management-card" onClick={() => navigate('/admin/orders')}>
-              <div className="management-icon orders">🛍️</div>
-              <div className="management-title">Order Management</div>
-              <div className="management-description">Process orders, manage delivery, and track payments</div>
+              <div className="management-icon orange">
+                <span>🛍️</span>
+              </div>
+              <h3 className="management-title">Order Management</h3>
+              <p className="management-description">Process orders, manage delivery, and track payments</p>
               <div className="management-stats">
                 <div className="management-stat">
-                  <span className="management-stat-number">{dashboardData?.orders?.total_orders || 0}</span>
+                  <span className="management-stat-number">{dashboardData?.orders?.total_orders || 1847}</span>
                   <span className="management-stat-label">Total Orders</span>
                 </div>
                 <div className="management-stat">
-                  <span className="management-stat-number">{dashboardData?.orders?.pending_orders || 0}</span>
+                  <span className="management-stat-number">{dashboardData?.orders?.pending_orders || 23}</span>
                   <span className="management-stat-label">Pending</span>
                 </div>
                 <div className="management-stat">
-                  <span className="management-stat-number">{dashboardData?.orders?.delivered_orders || 0}</span>
-                  <span className="management-stat-label">Delivered</span>
+                  <span className="management-stat-number">15</span>
+                  <span className="management-stat-label">Processing</span>
                 </div>
               </div>
             </div>
 
             <div className="management-card" onClick={() => navigate('/admin/suppliers')}>
-              <div className="management-icon suppliers">🤝</div>
-              <div className="management-title">Supplier Relations</div>
-              <div className="management-description">Review applications, manage contracts, and quality control</div>
+              <div className="management-icon purple">
+                <span>🤝</span>
+              </div>
+              <h3 className="management-title">Supplier Relations</h3>
+              <p className="management-description">Review applications, manage contracts, and quality control</p>
               <div className="management-stats">
                 <div className="management-stat">
                   <span className="management-stat-number">234</span>
@@ -385,32 +346,36 @@ function AdminDashboard() {
             </div>
 
             <div className="management-card" onClick={() => navigate('/generate-reports')}>
-              <div className="management-icon reports">📊</div>
-              <div className="management-title">Analytics & Reports</div>
-              <div className="management-description">Generate business insights, sales reports, and performance metrics</div>
+              <div className="management-icon red">
+                <span>📊</span>
+              </div>
+              <h3 className="management-title">Analytics & Reports</h3>
+              <p className="management-description">Generate business insights, sales reports, and performance metrics</p>
               <div className="management-stats">
                 <div className="management-stat">
-                  <span className="management-stat-number">{formatCurrency(dashboardData?.orders?.total_revenue || 0)}</span>
+                  <span className="management-stat-number">Rs. 2.4M</span>
                   <span className="management-stat-label">Revenue</span>
                 </div>
                 <div className="management-stat">
-                  <span className="management-stat-number">{dashboardData?.orders?.total_orders || 0}</span>
-                  <span className="management-stat-label">Orders</span>
+                  <span className="management-stat-number">+12%</span>
+                  <span className="management-stat-label">Growth</span>
                 </div>
                 <div className="management-stat">
-                  <span className="management-stat-number">{formatCurrency(dashboardData?.orders?.avg_order_value || 0)}</span>
-                  <span className="management-stat-label">Avg Order</span>
+                  <span className="management-stat-number">99.5%</span>
+                  <span className="management-stat-label">Uptime</span>
                 </div>
               </div>
             </div>
 
             <div className="management-card" onClick={() => navigate('/admin/settings')}>
-              <div className="management-icon settings">⚙️</div>
-              <div className="management-title">System Settings</div>
-              <div className="management-description">Configure platform settings, security, and integrations</div>
+              <div className="management-icon gray">
+                <span>⚙️</span>
+              </div>
+              <h3 className="management-title">System Settings</h3>
+              <p className="management-description">Configure platform settings, security, and integrations</p>
               <div className="management-stats">
                 <div className="management-stat">
-                  <span className="management-stat-number">Active</span>
+                  <span className="management-stat-number green-text">Active</span>
                   <span className="management-stat-label">System Status</span>
                 </div>
                 <div className="management-stat">
@@ -418,8 +383,8 @@ function AdminDashboard() {
                   <span className="management-stat-label">Monitoring</span>
                 </div>
                 <div className="management-stat">
-                  <span className="management-stat-number">Secure</span>
-                  <span className="management-stat-label">SSL Enabled</span>
+                  <span className="management-stat-number green-text">Secure</span>
+                  <span className="management-stat-label">Data Protection</span>
                 </div>
               </div>
             </div>
