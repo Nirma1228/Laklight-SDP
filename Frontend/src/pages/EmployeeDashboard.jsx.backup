@@ -22,40 +22,7 @@ const EmployeeDashboard = () => {
   useEffect(() => {
     const loadNotifications = () => {
       const storedNotifications = JSON.parse(localStorage.getItem('employee_notifications') || '[]')
-      const pendingNotifications = storedNotifications.filter(n => n.status === 'pending')
-      
-      // If no notifications, add sample notifications for demo
-      if (pendingNotifications.length === 0) {
-        const sampleNotifications = [
-          {
-            id: Date.now() - 1000,
-            type: 'delivery-reschedule',
-            deliveryId: 'DEL-002',
-            product: 'Strawberry - Grade A',
-            quantity: '50kg',
-            farmerName: 'K.M. Silva',
-            oldDate: 'Oct 25, 2025',
-            newDate: 'Oct 28, 2025',
-            timestamp: new Date(Date.now() - 3600000).toISOString(), // 1 hour ago
-            status: 'pending'
-          },
-          {
-            id: Date.now() - 2000,
-            type: 'delivery-reschedule',
-            deliveryId: 'DEL-005',
-            product: 'Fresh Papaya - Grade A',
-            quantity: '80kg',
-            farmerName: 'R.D. Perera',
-            oldDate: 'Oct 27, 2025',
-            newDate: 'Oct 30, 2025',
-            timestamp: new Date(Date.now() - 7200000).toISOString(), // 2 hours ago
-            status: 'pending'
-          }
-        ]
-        setNotifications(sampleNotifications)
-      } else {
-        setNotifications(pendingNotifications)
-      }
+      setNotifications(storedNotifications.filter(n => n.status === 'pending'))
     }
     loadNotifications()
     
@@ -328,6 +295,8 @@ const EmployeeDashboard = () => {
     }
   }
 
+  const viewEmployeeDeliveryDetails = (deliveryId) => {
+    const delivery = deliveries.find(d => d.id === deliveryId)
   const viewEmployeeDeliveryDetails = (deliveryId) => {
     const delivery = deliveries.find(d => d.id === deliveryId)
     if (delivery) {
