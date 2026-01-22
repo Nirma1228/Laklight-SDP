@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
     email VARCHAR(100) UNIQUE NOT NULL,
     phone VARCHAR(20),
     password_hash VARCHAR(255) NOT NULL,
-    user_type ENUM('customer', 'farmer', 'employee', 'administrator') NOT NULL,
+    user_type ENUM('customer', 'farmer', 'employee', 'admin') NOT NULL,
     address TEXT,
     status ENUM('active', 'inactive', 'pending') DEFAULT 'active',
     join_date DATETIME DEFAULT CURRENT_TIMESTAMP,

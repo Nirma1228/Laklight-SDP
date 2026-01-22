@@ -39,6 +39,16 @@
   color: #666;
 }
 
+.error-message {
+  background-color: #ffebee;
+  color: #c62828;
+  padding: 0.8rem;
+  border-radius: 8px;
+  margin-bottom: 1.5rem;
+  border-left: 4px solid #c62828;
+  font-size: 0.95rem;
+}
+
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -99,6 +109,12 @@
 
 .register-btn:hover {
   transform: translateY(-2px);
+}
+
+.register-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .login-link {

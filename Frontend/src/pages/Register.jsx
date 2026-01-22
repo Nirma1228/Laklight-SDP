@@ -14,6 +14,8 @@ function Register() {
     address: '',
     agreeToTerms: false
   })
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -21,31 +23,89 @@ function Register() {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }))
+    setError('') // Clear error when user types
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
+    setError('')
+
+    // Validation
     if (formData.password !== formData.confirmPassword) {
-      alert('Passwords do not match!')
+      setError('Passwords do not match!')
       return
     }
-    console.log('Registration attempt:', formData)
-    // Redirect based on user type
-    switch(formData.userType) {
-      case 'customer':
-        navigate('/customer/dashboard')
-        break
-      case 'farmer':
-        navigate('/farmer/dashboard')
-        break
-      case 'employee':
-        navigate('/employee/dashboard')
-        break
-      case 'admin':
-        navigate('/admin/dashboard')
-        break
-      default:
-        navigate('/home')
+
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters long')
+      return
+    }
+
+    if (!formData.agreeToTerms) {
+      setError('Please agree to the Terms and Conditions')
+      return
+    }
+
+    setLoading(true)
+
+    try {
+      // Determine endpoint based on user type
+      const endpoint = formData.userType === 'farmer' 
+        ? 'http://localhost:5000/api/auth/farmer-register'
+        : 'http://localhost:5000/api/auth/register'
+
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          fullName: formData.fullName,
+          email: formData.email,
+          phone: formData.phone,
+          password: formData.password,
+          userType: formData.userType,
+          address: formData.address
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Registration failed')
+      }
+
+      // Store token if provided
+      if (data.token) {
+        localStorage.setItem('token', data.token)
+        localStorage.setItem('user', JSON.stringify(data.user))
+      }
+
+      // Show success message
+      alert(data.message || 'Registration successful!')
+
+      // Redirect based on user type - all users can login immediately
+      switch(formData.userType) {
+        case 'customer':
+          navigate('/customer/dashboard')
+          break
+        case 'farmer':
+          navigate('/farmer/dashboard')
+          break
+        case 'employee':
+          navigate('/employee/dashboard')
+          break
+        case 'admin':
+          navigate('/admin/dashboard')
+          break
+        default:
+          navigate('/home')
+      }
+    } catch (err) {
+      setError(err.message || 'Registration failed. Please try again.')
+      console.error('Registration error:', err)
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -62,11 +122,14 @@ function Register() {
           </div>
 
           <form onSubmit={handleSubmit} className="register-form">
+            {error && <div className="error-message">{error}</div>}
+            
             <div className="form-group">
               <label htmlFor="userType">I am a:</label>
               <select id="userType" name="userType" value={formData.userType} onChange={handleChange} required>
                 <option value="customer">Customer</option>
                 <option value="farmer">Farmer</option>
+                <option value="employee">Employee</option>
               </select>
             </div>
 
@@ -109,7 +172,9 @@ function Register() {
               </label>
             </div>
 
-            <button type="submit" className="register-btn">Register</button>
+            <button type="submit" className="register-btn" disabled={loading}>
+              {loading ? 'Registering...' : 'Register'}
+            </button>
 
             <div className="login-link">
               Already have an account? <Link to="/login">Login here</Link>

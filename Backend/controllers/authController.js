@@ -61,15 +61,28 @@ exports.farmerRegister = async (req, res) => {
     // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Insert farmer user with pending status for review
+    // Insert farmer user with active status - can login immediately
     const [result] = await db.query(
       'INSERT INTO users (full_name, email, phone, password_hash, user_type, address, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [fullName, email, phone, passwordHash, 'farmer', address || null, 'pending']
+      [fullName, email, phone, passwordHash, 'farmer', address || null, 'active']
+    );
+
+    // Generate token for immediate login
+    const token = jwt.sign(
+      { userId: result.insertId, userType: 'farmer' },
+      JWT_SECRET,
+      { expiresIn: '24h' }
     );
 
     res.status(201).json({
-      message: 'Farmer registration submitted for review',
-      userId: result.insertId
+      message: 'Farmer registration successful! You can now log in.',
+      token,
+      user: {
+        id: result.insertId,
+        name: fullName,
+        email,
+        userType: 'farmer'
+      }
     });
   } catch (error) {
     console.error('Farmer registration error:', error);
