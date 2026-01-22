@@ -131,25 +131,25 @@ function AdminDashboard() {
         {/* Stats Grid */}
         <div className="stats-grid">
           <div className="stat-card stat-revenue">
-            <div className="stat-icon">💰</div>
+            <div className="stat-icon"></div>
             <div className="stat-value">Rs. {((dashboardData?.orders?.total_revenue || 1250000) / 1000000).toFixed(1)}M</div>
             <div className="stat-label">Monthly Revenue</div>
             <div className="stat-change positive">+12% from last month</div>
           </div>
           <div className="stat-card stat-orders">
-            <div className="stat-icon">📦</div>
+            <div className="stat-icon"></div>
             <div className="stat-value">{dashboardData?.orders?.total_orders || 1234}</div>
             <div className="stat-label">Total Orders</div>
             <div className="stat-change positive">+8% from last month</div>
           </div>
           <div className="stat-card stat-customers">
-            <div className="stat-icon">👥</div>
+            <div className="stat-icon"></div>
             <div className="stat-value">{dashboardData?.users?.customers || 450}</div>
             <div className="stat-label">Active Customers</div>
             <div className="stat-change positive">+15% from last month</div>
           </div>
           <div className="stat-card stat-suppliers">
-            <div className="stat-icon">🤝</div>
+            <div className="stat-icon"></div>
             <div className="stat-value">{dashboardData?.users?.farmers || 87}</div>
             <div className="stat-label">Registered Suppliers</div>
             <div className="stat-change positive">+5% from last month</div>
@@ -178,46 +178,45 @@ function AdminDashboard() {
                   <td>LF2025-1847</td>
                   <td>John Silva</td>
                   <td>Rs. 3,450</td>
-                  <td><span className="status-badge status-delivered">Delivered</span></td>
+                  <td><span className="status-badge delivered">Delivered</span></td>
                   <td>Mar 20, 2025</td>
                 </tr>
                 <tr>
                   <td>LF2025-1846</td>
                   <td>Maria Fernando</td>
                   <td>Rs. 1,280</td>
-                  <td><span className="status-badge status-processing">Processing</span></td>
+                  <td><span className="status-badge processing">Processing</span></td>
                   <td>Mar 20, 2025</td>
                 </tr>
                 <tr>
                   <td>LF2025-1845</td>
                   <td>ABC store</td>
                   <td>Rs. 12,640</td>
-                  <td><span className="status-badge status-delivered">Delivered</span></td>
+                  <td><span className="status-badge delivered">Delivered</span></td>
                   <td>Mar 19, 2025</td>
                 </tr>
                 <tr>
                   <td>LF2025-1844</td>
                   <td>Colombo Restaurant</td>
                   <td>Rs. 8,750</td>
-                  <td><span className="status-badge status-pending">Pending</span></td>
+                  <td><span className="status-badge pending">Pending</span></td>
                   <td>Mar 19, 2025</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
-          <div className="dashboard-section system-alerts-section">
-            <div className="section-header-inline">
-              <h2>System Alerts</h2>
-              <button className="btn btn-view-all">View All</button>
+          <div className="system-alerts-section">
+            <div className="section-header">
+              <h3>System Alerts</h3>
             </div>
             <div className="alerts-list">
-              <div className="alert-item alert-warning">
-                <h4>Low Stock Alert</h4>
-                <p>Mango Cordial stock is running low (5 bottles remaining)</p>
+              <div className="alert-item warning">
+                <p>Low Stock Alert</p>
+                <small>Mango Cordial stock is running low (5 bottles remaining)</small>
               </div>
-              <div className="alert-item alert-success">
-                <h4>New Supplier Application</h4>
+              <div className="alert-item success">
+                <p>New Supplier Application</p>
                 <p>Fresh Farms Ltd. has submitted a new supplier application</p>
               </div>
               <div className="alert-item alert-info">
@@ -237,7 +236,7 @@ function AdminDashboard() {
           <div className="management-grid">
             <div className="management-card" onClick={() => navigate('/admin/users')}>
               <div className="management-icon blue">
-                <span>👥</span>
+                <span></span>
               </div>
               <h3 className="management-title">User Management</h3>
               <p className="management-description">Manage customers, suppliers, and employees accounts</p>
@@ -259,7 +258,7 @@ function AdminDashboard() {
 
             <div className="management-card" onClick={() => navigate('/admin/inventory')}>
               <div className="management-icon green">
-                <span>📦</span>
+                <span></span>
               </div>
               <h3 className="management-title">Inventory Control</h3>
               <p className="management-description">Monitor stock levels, warehouse locations, and product expiry</p>
@@ -281,7 +280,7 @@ function AdminDashboard() {
 
             <div className="management-card" onClick={() => navigate('/products')}>
               <div className="management-icon lime">
-                <span>🏪</span>
+                <span></span>
               </div>
               <h3 className="management-title">Product Catalog</h3>
               <p className="management-description">Add, edit, and manage products with pricing controls</p>
@@ -303,7 +302,7 @@ function AdminDashboard() {
 
             <div className="management-card" onClick={() => navigate('/admin/orders')}>
               <div className="management-icon orange">
-                <span>🛍️</span>
+                <span></span>
               </div>
               <h3 className="management-title">Order Management</h3>
               <p className="management-description">Process orders, manage delivery, and track payments</p>
@@ -325,7 +324,7 @@ function AdminDashboard() {
 
             <div className="management-card" onClick={() => navigate('/admin/suppliers')}>
               <div className="management-icon purple">
-                <span>🤝</span>
+                <span></span>
               </div>
               <h3 className="management-title">Supplier Relations</h3>
               <p className="management-description">Review applications, manage contracts, and quality control</p>
@@ -347,7 +346,7 @@ function AdminDashboard() {
 
             <div className="management-card" onClick={() => navigate('/generate-reports')}>
               <div className="management-icon red">
-                <span>📊</span>
+                <span></span>
               </div>
               <h3 className="management-title">Analytics & Reports</h3>
               <p className="management-description">Generate business insights, sales reports, and performance metrics</p>
@@ -369,7 +368,7 @@ function AdminDashboard() {
 
             <div className="management-card" onClick={() => navigate('/admin/settings')}>
               <div className="management-icon gray">
-                <span>⚙️</span>
+                <span></span>
               </div>
               <h3 className="management-title">System Settings</h3>
               <p className="management-description">Configure platform settings, security, and integrations</p>
