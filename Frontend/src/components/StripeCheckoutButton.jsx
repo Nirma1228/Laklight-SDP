@@ -28,7 +28,7 @@ const StripeCheckoutButton = ({ amount, onSuccess }) => {
 
   return (
     <button className="btn btn-primary" onClick={handleClick} style={{ width: '100%' }}>
-      Pay with Stripe
+      Pay Securely Online
     </button>
   );
 };

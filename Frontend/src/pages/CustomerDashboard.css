@@ -1,3 +1,11 @@
+.add-to-cart-btn {
+  transition: transform 0.2s, background 0.2s, color 0.2s;
+}
+.add-to-cart-btn.added {
+  background: #43a047 !important;
+  color: #fff !important;
+  transform: scale(1.08);
+}
 /* Customer Dashboard Styles */
 .customer-dashboard {
   min-height: 100vh;

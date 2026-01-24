@@ -4,6 +4,67 @@ import Footer from '../components/Footer'
 import StripeCheckoutButton from '../components/StripeCheckoutButton'
 import './CustomerDashboard.css'
 
+// Product Card Component
+const ProductCard = ({ productKey, product, onAddToCart }) => {
+
+  const [quantity, setQuantity] = useState(1)
+  const [added, setAdded] = useState(false)
+
+  const updateQuantity = (change) => {
+    setQuantity(prev => Math.max(1, Math.min(99, prev + change)))
+  }
+
+  const handleAddToCart = () => {
+    onAddToCart(productKey, quantity)
+    setQuantity(1)
+    setAdded(true)
+    setTimeout(() => setAdded(false), 400)
+  }
+
+  return (
+    <div className="product-card" data-key={productKey}>
+      <div className="product-img" style={{ height: '200px', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <img 
+          src={product.image} 
+          alt={product.name} 
+          style={{ height: '100%', width: 'auto', objectFit: 'contain', borderRadius: '8px' }}
+        />
+      </div>
+      <div className="product-info">
+        <div className="product-name">{product.name}</div>
+        <div className="product-price">LKR {product.price.toFixed(2)}</div>
+        <div className="product-description">{product.description}</div>
+        <div className={`product-availability availability-${product.availability}`}>
+          {product.availability === 'in-stock' && 'In Stock'}
+          {product.availability === 'low-stock' && 'Low Stock'}
+          {product.availability === 'out-of-stock' && 'Out of Stock'}
+        </div>
+        <div className="product-actions">
+          <div className="quantity-controls">
+            <button className="quantity-btn" onClick={() => updateQuantity(-1)}>-</button>
+            <input 
+              type="number" 
+              className="quantity-input" 
+              value={quantity}
+              onChange={(e) => setQuantity(Math.max(1, Math.min(99, parseInt(e.target.value) || 1)))}
+              min="1" 
+              max="99"
+            />
+            <button className="quantity-btn" onClick={() => updateQuantity(1)}>+</button>
+          </div>
+          <button 
+            className={`btn btn-primary btn-small add-to-cart-btn${added ? ' added' : ''}`}
+            onClick={handleAddToCart}
+            disabled={product.availability === 'out-of-stock'}
+          >
+            {added ? 'Added!' : 'Add to Cart'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 const CustomerDashboard = () => {
   const navigate = useNavigate()
   const [cart, setCart] = useState([])
@@ -189,7 +250,7 @@ const CustomerDashboard = () => {
             <li><Link to="/home">Dashboard</Link></li>
             <li><a href="#products">Products</a></li>
             <li><a href="#orders">My Orders</a></li>
-            <li><a href="#profile">Profile</a></li>
+            <li><button className="nav-link-btn" style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, fontWeight: 'bold', fontSize: '1rem' }} onClick={() => setIsEditProfileOpen(true)}>Profile</button></li>
           </ul>
           <div className="user-info">
             <div className="cart-icon" onClick={toggleCart}>
@@ -552,15 +613,6 @@ const CustomerDashboard = () => {
                     </select>
                   </div>
                   <div className="form-group">
-                    <label>Preferred Language</label>
-                    <select 
-                      value={profileData.language}
-                      onChange={(e) => setProfileData({...profileData, language: e.target.value})}
-                    >
-                      <option value="en">English</option>
-                      <option value="si">Sinhala</option>
-                      <option value="ta">Tamil</option>
-                    </select>
                   </div>
                 </div>
               </form>
@@ -715,556 +767,5 @@ const CustomerDashboard = () => {
       </div>
     )
   }
-
-  // Product Card Component
-  // Product Card Component
-  const ProductCard = ({ productKey, product, onAddToCart }) => {
-    const [quantity, setQuantity] = useState(1)
-
-    const updateQuantity = (change) => {
-      setQuantity(prev => Math.max(1, Math.min(99, prev + change)))
-    }
-
-    const handleAddToCart = () => {
-      onAddToCart(productKey, quantity)
-      setQuantity(1)
-    }
-
-    return (
-      <div className="product-card" data-key={productKey}>
-        <div className="product-img" style={{ height: '200px', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <img 
-            src={product.image} 
-            alt={product.name} 
-            style={{ height: '100%', width: 'auto', objectFit: 'contain', borderRadius: '8px' }}
-          />
-        </div>
-        <div className="product-info">
-          <div className="product-name">{product.name}</div>
-          <div className="product-price">LKR {product.price.toFixed(2)}</div>
-          <div className="product-description">{product.description}</div>
-          <div className={`product-availability availability-${product.availability}`}>
-            {product.availability === 'in-stock' && 'In Stock'}
-            {product.availability === 'low-stock' && 'Low Stock'}
-            {product.availability === 'out-of-stock' && 'Out of Stock'}
-          </div>
-          <div className="product-actions">
-            <div className="quantity-controls">
-              <button className="quantity-btn" onClick={() => updateQuantity(-1)}>-</button>
-              <input 
-                type="number" 
-                className="quantity-input" 
-                value={quantity}
-                onChange={(e) => setQuantity(Math.max(1, Math.min(99, parseInt(e.target.value) || 1)))}
-                min="1" 
-                max="99"
-              />
-              <button className="quantity-btn" onClick={() => updateQuantity(1)}>+</button>
-            </div>
-            <button 
-              className="btn btn-primary btn-small"
-              onClick={handleAddToCart}
-              disabled={product.availability === 'out-of-stock'}
-            >
-              Add to Cart
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-export default CustomerDashboard
-                <select 
-                  className="filter-select"
-                  value={featuredSort}
-                  onChange={(e) => setFeaturedSort(e.target.value)}
-                >
-                  <option value="">Sort By</option>
-                  <option value="price-low">Price: Low to High</option>
-                  <option value="price-high">Price: High to Low</option>
-                  <option value="popular">Most Popular</option>
-                  <option value="newest">Newest First</option>
-                </select>
-              </div>
-            </div>
-
-            {filteredProducts.length === 0 ? (
-              <div className="no-results">No featured products found matching your criteria.</div>
-            ) : (
-              <div className="products-grid">
-                {filteredProducts.map(([key, product]) => (
-                  <ProductCard 
-                    key={key}
-                    productKey={key}
-                    product={product}
-                    onAddToCart={addToCart}
-                  />
-                ))}
-              </div>
-            )}
-
-            <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
-              <a href="/product-catalog" className="btn btn-primary">View All Products</a>
-              <p style={{ marginTop: '0.5rem', color: '#666', fontSize: '0.9rem' }}>
-                💡 Order 12+ pieces of any product to get automatic 10% wholesale discount!
-              </p>
-            </div>
-          </>
-        </div>
-      </main>
-
-      {/* Shopping Cart Sidebar */}
-      <div className={`cart-overlay ${isCartOpen ? 'open' : ''}`} onClick={toggleCart}></div>
-      <div className={`cart-sidebar ${isCartOpen ? 'open' : ''}`}>
-        <div className="cart-header">
-          <div className="cart-title">
-            Shopping Cart
-            <button className="cart-close" onClick={toggleCart}>×</button>
-          </div>
-        </div>
-        <div className="cart-content">
-          <div id="cart-items">
-            {cart.length === 0 ? (
-              <div className="cart-empty">
-                <p>Your cart is empty</p>
-                <p>Add some delicious products to get started!</p>
-              </div>
-            ) : (
-              <>
-                {cart.map(item => (
-                  <>
-                    <div className="card-header">
-                      <h2 className="card-title">Featured Products</h2>
-                    </div>
-                    {/* Search and Filter */}
-                    <div className="search-container">
-                      <div className="search-box">
-                        <input 
-                          type="text" 
-                          className="search-input" 
-                          placeholder="Search products by name or description..."
-                          value={featuredSearch}
-                          onChange={(e) => setFeaturedSearch(e.target.value)}
-                        />
-                      </div>
-                      <div className="filter-options">
-                        <select 
-                          className="filter-select" 
-                          value={featuredCategory}
-                          onChange={(e) => setFeaturedCategory(e.target.value)}
-                        >
-                          <option value="">All Categories</option>
-                          <option value="fruits">Fresh Fruits</option>
-                          <option value="juice">Fruit Juice</option>
-                          <option value="jam">Fruit Jam</option>
-                          <option value="preserves">Preserves</option>
-                        </select>
-                        <select 
-                          className="filter-select"
-                          value={featuredSort}
-                          onChange={(e) => setFeaturedSort(e.target.value)}
-                        >
-                          <option value="">Sort By</option>
-                          <option value="price-low">Price: Low to High</option>
-                          <option value="price-high">Price: High to Low</option>
-                          <option value="popular">Most Popular</option>
-                          <option value="newest">Newest First</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    {filteredProducts.length === 0 ? (
-                      <div className="no-results">No featured products found matching your criteria.</div>
-                    ) : (
-                      <div className="products-grid">
-                        {filteredProducts.map(([key, product]) => (
-                          <ProductCard 
-                            key={key}
-                            productKey={key}
-                            product={product}
-                            onAddToCart={addToCart}
-                          />
-                        ))}
-                      </div>
-                    )}
-
-                    <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
-                      <a href="/product-catalog" className="btn btn-primary">View All Products</a>
-                      <p style={{ marginTop: '0.5rem', color: '#666', fontSize: '0.9rem' }}>
-                        💡 Order 12+ pieces of any product to get automatic 10% wholesale discount!
-                      </p>
-                    </div>
-                  </>
-                      alert('Your cart is empty! Please add items before checking out.')
-                      return
-                    }
-                    setIsCheckoutOpen(true)
-                  }}
-                >
-                  Proceed to Checkout
-                </button>
-                <button 
-                  className="btn btn-secondary" 
-                  style={{ width: '100%' }}
-                  onClick={toggleCart}
-                >
-                  Continue Shopping
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Edit Profile Modal */}
-      {isEditProfileOpen && (
-        <div className="modal" style={{ display: 'block' }}>
-          <div className="modal-content">
-            <div className="modal-header">
-              <h2 className="modal-title">Edit Profile</h2>
-              <button className="close" onClick={() => setIsEditProfileOpen(false)}>×</button>
-            </div>
-            <div className="modal-body">
-              <form>
-                {/* Personal Information */}
-                <div className="profile-section">
-                  <h3 className="section-title">Personal Information</h3>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>First Name *</label>
-                      <input 
-                        type="text" 
-                        value={profileData.firstName}
-                        onChange={(e) => setProfileData({...profileData, firstName: e.target.value})}
-                        required 
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Last Name *</label>
-                      <input 
-                        type="text" 
-                        value={profileData.lastName}
-                        onChange={(e) => setProfileData({...profileData, lastName: e.target.value})}
-                        required 
-                      />
-                    </div>
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Email Address *</label>
-                      <input 
-                        type="email" 
-                        value={profileData.email}
-                        onChange={(e) => setProfileData({...profileData, email: e.target.value})}
-                        required 
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Phone Number *</label>
-                      <input 
-                        type="tel" 
-                        value={profileData.phone}
-                        onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
-                        required 
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Delivery Address */}
-                <div className="profile-section">
-                  <h3 className="section-title">Delivery Address</h3>
-                  <div className="form-group">
-                    <label>Street Address *</label>
-                    <input 
-                      type="text" 
-                      value={profileData.address}
-                      onChange={(e) => setProfileData({...profileData, address: e.target.value})}
-                      required 
-                    />
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>City *</label>
-                      <input 
-                        type="text" 
-                        value={profileData.city}
-                        onChange={(e) => setProfileData({...profileData, city: e.target.value})}
-                        required 
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Postal Code *</label>
-                      <input 
-                        type="text" 
-                        value={profileData.postalCode}
-                        onChange={(e) => setProfileData({...profileData, postalCode: e.target.value})}
-                        required 
-                      />
-                    </div>
-                  </div>
-                  <div className="form-group">
-                    <label>District *</label>
-                    <select 
-                      value={profileData.district}
-                      onChange={(e) => setProfileData({...profileData, district: e.target.value})}
-                      required
-                    >
-                      <option value="">Select District</option>
-                      <option value="colombo">Colombo</option>
-                      <option value="gampaha">Gampaha</option>
-                      <option value="kalutara">Kalutara</option>
-                      <option value="kandy">Kandy</option>
-                      <option value="matale">Matale</option>
-                      <option value="nuwara-eliya">Nuwara Eliya</option>
-                      <option value="galle">Galle</option>
-                      <option value="matara">Matara</option>
-                      <option value="hambantota">Hambantota</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Account Preferences */}
-                <div className="profile-section">
-                  <h3 className="section-title">Account Preferences</h3>
-                  <div className="form-group">
-                    <label>Email Notifications</label>
-                    <select 
-                      value={profileData.notifications}
-                      onChange={(e) => setProfileData({...profileData, notifications: e.target.value})}
-                    >
-                      <option value="all">All Notifications</option>
-                      <option value="orders">Order Updates Only</option>
-                      <option value="promotions">Promotions Only</option>
-                      <option value="none">None</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Preferred Language</label>
-                    <select 
-                      value={profileData.language}
-                      onChange={(e) => setProfileData({...profileData, language: e.target.value})}
-                    >
-                      <option value="en">English</option>
-                      <option value="si">Sinhala</option>
-                      <option value="ta">Tamil</option>
-                    </select>
-                  </div>
-                </div>
-              </form>
-            </div>
-            <div className="modal-footer">
-              <button className="btn btn-cancel" onClick={() => setIsEditProfileOpen(false)}>
-                Cancel
-              </button>
-              <button className="btn btn-save" onClick={saveProfile}>
-                Save Changes
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Checkout Modal */}
-      {isCheckoutOpen && (
-        <div className="modal" style={{ display: 'block' }}>
-          <div className="modal-content" style={{ maxWidth: '600px' }}>
-            <div className="modal-header">
-              <h2 className="modal-title">Checkout - Delivery Details</h2>
-              <span className="close" onClick={() => setIsCheckoutOpen(false)}>×</span>
-            </div>
-            <form onSubmit={handleCheckoutSubmit}>
-              <div className="modal-body">
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>First Name *</label>
-                    <input 
-                      type="text" 
-                      value={checkoutData.firstName}
-                      onChange={(e) => setCheckoutData({...checkoutData, firstName: e.target.value})}
-                      placeholder="Enter first name"
-                      required 
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Last Name *</label>
-                    <input 
-                      type="text" 
-                      value={checkoutData.lastName}
-                      onChange={(e) => setCheckoutData({...checkoutData, lastName: e.target.value})}
-                      placeholder="Enter last name"
-                      required 
-                    />
-                  </div>
-                </div>
-                
-                <div className="form-group">
-                  <label>Delivery Address *</label>
-                  <textarea 
-                    value={checkoutData.deliveryAddress}
-                    onChange={(e) => setCheckoutData({...checkoutData, deliveryAddress: e.target.value})}
-                    placeholder="Enter full delivery address"
-                    rows="3"
-                    required
-                  />
-                </div>
-                
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Contact Number *</label>
-                    <input 
-                      type="tel" 
-                      value={checkoutData.contactNumber}
-                      onChange={(e) => setCheckoutData({...checkoutData, contactNumber: e.target.value})}
-                      placeholder="07XXXXXXXX"
-                      pattern="[0-9]{10}"
-                      required 
-                    />
-                  </div>
-                  <div className="form-group">
-                    <label>Postal Code *</label>
-                    <input 
-                      type="text" 
-                      value={checkoutData.postalCode}
-                      onChange={(e) => setCheckoutData({...checkoutData, postalCode: e.target.value})}
-                      placeholder="Enter postal code"
-                      pattern="[0-9]{5}"
-                      required 
-                    />
-                  </div>
-                </div>
-                
-                <div className="form-group">
-                  <label>Order Notes (Optional)</label>
-                  <textarea 
-                    value={checkoutData.orderNotes}
-                    onChange={(e) => setCheckoutData({...checkoutData, orderNotes: e.target.value})}
-                    placeholder="Any special instructions for delivery?"
-                    rows="2"
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label>Payment Method *</label>
-                  <select
-                    value={checkoutData.paymentMethod}
-                    onChange={e => setCheckoutData({ ...checkoutData, paymentMethod: e.target.value })}
-                    required
-                  >
-                    <option value="visa">VISA</option>
-                    <option value="mastercard">MasterCard</option>
-                    <option value="cod">Cash on Delivery</option>
-                  </select>
-                </div>
-              </div>
-              
-
-              <div className="modal-footer">
-                <button 
-                  type="button" 
-                  className="btn btn-secondary" 
-                  onClick={() => setIsCheckoutOpen(false)}
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Continue to Payment
-                </button>
-              </div>
-            </form>
-            {/* Payment Gateway Section */}
-            {checkoutData.firstName && checkoutData.lastName && checkoutData.deliveryAddress && checkoutData.contactNumber && checkoutData.postalCode && (
-              <div style={{ marginTop: '1.5rem' }}>
-                <h3>Pay Securely</h3>
-                <p>Total: <strong>LKR {total.toFixed(2)}</strong></p>
-                {['visa', 'mastercard'].includes(checkoutData.paymentMethod) ? (
-                  <>
-                    <p>Click below to pay with Stripe using your card:</p>
-                    <StripeCheckoutButton amount={total} onSuccess={() => {
-                      setIsCheckoutOpen(false);
-                      setCart([]);
-                      alert('Payment successful! Your order has been placed.');
-                    }} />
-                  </>
-                ) : (
-                  <>
-                    <p>You selected <strong>Cash on Delivery</strong>. Your order will be placed and you can pay upon delivery.</p>
-                    <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => {
-                      setIsCheckoutOpen(false);
-                      setCart([]);
-                      alert('Order placed! Please pay cash upon delivery.');
-                    }}>
-                      Place Order (Cash on Delivery)
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      <Footer />
-    </div>
-  )
-}
-
-// Product Card Component
-const ProductCard = ({ productKey, product, onAddToCart }) => {
-  const [quantity, setQuantity] = useState(1)
-
-  const updateQuantity = (change) => {
-    setQuantity(prev => Math.max(1, Math.min(99, prev + change)))
-  }
-
-  const handleAddToCart = () => {
-    onAddToCart(productKey, quantity)
-    setQuantity(1)
-  }
-
-  return (
-    <div className="product-card" data-key={productKey}>
-      <div className="product-img" style={{ height: '200px', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <img 
-          src={product.image} 
-          alt={product.name} 
-          style={{ height: '100%', width: 'auto', objectFit: 'contain', borderRadius: '8px' }}
-        />
-      </div>
-      <div className="product-info">
-        <div className="product-name">{product.name}</div>
-        <div className="product-price">LKR {product.price.toFixed(2)}</div>
-        <div className="product-description">{product.description}</div>
-        <div className={`product-availability availability-${product.availability}`}>
-          {product.availability === 'in-stock' && 'In Stock'}
-          {product.availability === 'low-stock' && 'Low Stock'}
-          {product.availability === 'out-of-stock' && 'Out of Stock'}
-        </div>
-        <div className="product-actions">
-          <div className="quantity-controls">
-            <button className="quantity-btn" onClick={() => updateQuantity(-1)}>-</button>
-            <input 
-              type="number" 
-              className="quantity-input" 
-              value={quantity}
-              onChange={(e) => setQuantity(Math.max(1, Math.min(99, parseInt(e.target.value) || 1)))}
-              min="1" 
-              max="99"
-            />
-            <button className="quantity-btn" onClick={() => updateQuantity(1)}>+</button>
-          </div>
-          <button 
-            className="btn btn-primary btn-small"
-            onClick={handleAddToCart}
-            disabled={product.availability === 'out-of-stock'}
-          >
-            Add to Cart
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 export default CustomerDashboard

@@ -2,7 +2,52 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import './FarmerDashboard.css'
 
+// Utility: get today's date in YYYY-MM-DD
+const getToday = () => new Date().toISOString().slice(0, 10);
+
 function FarmerDashboard() {
+  // Notification state for new approvals/rejections
+  const [notifications, setNotifications] = useState([]);
+  const [submissions, setSubmissions] = useState([]);
+  const [deliveries, setDeliveries] = useState([]);
+
+  // Fetch farmer submissions and deliveries on mount
+  React.useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        const res = await fetch('http://localhost:5000/api/farmer/submissions', {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setSubmissions(data.submissions || []);
+        } else {
+          setSubmissions([]);
+        }
+        // TODO: Fetch deliveries if you have an endpoint
+      } catch (err) {
+        setSubmissions([]);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // Notifications for selected/not-selected
+  React.useEffect(() => {
+    const newNotifs = submissions
+      .filter(sub => sub.status === 'selected' || sub.status === 'not-selected')
+      .map(sub => {
+        if (sub.status === 'selected') {
+          return { type: 'success', message: `Your product "${sub.product}" was selected!` };
+        } else if (sub.status === 'not-selected') {
+          return { type: 'error', message: `Your product "${sub.product}" was not selected. Reason: ${sub.rejectionReason || 'No reason provided.'}` };
+        }
+        return null;
+      })
+      .filter(Boolean);
+    setNotifications(newNotifs);
+  }, [submissions]);
   const navigate = useNavigate()
   const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false)
   const [selectedDelivery, setSelectedDelivery] = useState(null)
@@ -23,69 +68,7 @@ function FarmerDashboard() {
     images: null,
     notes: ''
   }])
-  const [submissions, setSubmissions] = useState([
-    { 
-      id: 1, 
-      product: 'Fresh Mango', 
-      grade: 'Grade A',
-      quantity: '100kg', 
-      price: 'LKR 200.00/kg',
-      harvestDate: '2025-09-18',
-      status: 'selected', 
-      date: '2025-09-15'
-    },
-    { 
-      id: 2, 
-      product: 'Strawberry', 
-      grade: 'Grade A',
-      quantity: '50kg', 
-      price: 'LKR 400.00/kg',
-      harvestDate: '2025-09-20',
-      status: 'under-review', 
-      date: '2025-09-19'
-    },
-    { 
-      id: 3, 
-      product: 'Pineapple', 
-      grade: 'Grade B',
-      quantity: '75kg', 
-      price: 'LKR 180.00/kg',
-      harvestDate: '2025-09-10',
-      status: 'not-selected', 
-      date: '2025-09-08',
-      rejectionReason: 'Quality does not meet Grade A standards. Product shows signs of early ripening and minor surface blemishes. Please ensure proper harvest timing for future submissions.'
-    }
-  ])
 
-  const [deliveries, setDeliveries] = useState([
-    { 
-      id: 'DEL-001', 
-      product: 'Fresh Mango - Grade A', 
-      quantity: '100kg', 
-      proposedDate: 'Oct 22, 2025',
-      scheduleDate: '',
-      transportMethod: 'Company Truck Pickup',
-      status: 'pending'
-    },
-    { 
-      id: 'DEL-002', 
-      product: 'Strawberry - Grade A', 
-      quantity: '50kg', 
-      proposedDate: 'Oct 25, 2025',
-      scheduleDate: 'Oct 25, 2025',
-      transportMethod: 'Self Transport',
-      status: 'confirmed'
-    },
-    { 
-      id: 'DEL-003', 
-      product: 'Pineapple - Grade B', 
-      quantity: '75kg', 
-      proposedDate: 'Oct 20, 2025',
-      scheduleDate: 'Oct 20, 2025',
-      transportMethod: 'Company Truck Pickup',
-      status: 'completed'
-    }
-  ])
 
   const handleRescheduleClick = (delivery) => {
     setSelectedDelivery(delivery)
@@ -95,40 +78,25 @@ function FarmerDashboard() {
     setNewDeliveryDate(currentDate)
   }
 
-  const handleRescheduleSubmit = (e) => {
-    e.preventDefault()
-    if (!newDeliveryDate) {
-      alert('Please select a new delivery date')
-      return
+  // Reschedule delivery handler (with backend update)
+  const handleRescheduleSubmit = async (e) => {
+    e.preventDefault();
+    if (!selectedDelivery || !newDeliveryDate) return;
+    try {
+      const res = await fetch('/api/deliveries/reschedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deliveryId: selectedDelivery.id, newDate: newDeliveryDate, confirmDate: getToday() })
+      });
+      if (res.ok) {
+        alert('Delivery rescheduled!')
+        // Optionally refresh deliveries list here
+      } else {
+        alert('Failed to reschedule delivery.')
+      }
+    } catch (err) {
+      alert('Error rescheduling delivery.')
     }
-
-    // Create notification for employee dashboard
-    const notification = {
-      id: Date.now(),
-      type: 'delivery-reschedule',
-      deliveryId: selectedDelivery.id,
-      product: selectedDelivery.product,
-      quantity: selectedDelivery.quantity,
-      farmerName: 'Farmer Name',
-      oldDate: selectedDelivery.scheduleDate,
-      newDate: newDeliveryDate,
-      timestamp: new Date().toISOString(),
-      status: 'pending'
-    }
-
-    // Store notification in localStorage for employee dashboard
-    const existingNotifications = JSON.parse(localStorage.getItem('employee_notifications') || '[]')
-    existingNotifications.push(notification)
-    localStorage.setItem('employee_notifications', JSON.stringify(existingNotifications))
-
-    // Update delivery schedule
-    setDeliveries(deliveries.map(d => 
-      d.id === selectedDelivery.id 
-        ? { ...d, scheduleDate: newDeliveryDate, status: 'pending' }
-        : d
-    ))
-
-    alert(`✅ Reschedule request submitted!\n\nDelivery: ${selectedDelivery.product}\nNew Date: ${newDeliveryDate}\n\nEmployee will review your request.`)
     setIsRescheduleModalOpen(false)
     setSelectedDelivery(null)
     setNewDeliveryDate('')
@@ -177,8 +145,37 @@ function FarmerDashboard() {
     }
   }
 
+  // Confirm delivery handler
+  const handleConfirmClick = async (delivery) => {
+    try {
+      const res = await fetch('/api/deliveries/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deliveryId: delivery.id, confirmDate: getToday() })
+      });
+      if (res.ok) {
+        alert('Delivery confirmed!')
+        // Optionally refresh deliveries list here
+      } else {
+        alert('Failed to confirm delivery.')
+      }
+    } catch (err) {
+      alert('Error confirming delivery.')
+    }
+  };
+
   return (
     <div className="farmer-dashboard">
+      {/* Notifications */}
+      {notifications.length > 0 && (
+        <div className="notifications-section">
+          {notifications.map((notif, idx) => (
+            <div key={idx} className={`notification notification-${notif.type}`} style={{marginBottom: '10px', padding: '10px', borderRadius: '5px', background: notif.type === 'success' ? '#e6ffed' : '#ffeaea', color: notif.type === 'success' ? '#256029' : '#a4262c', border: `1px solid ${notif.type === 'success' ? '#b7ebc6' : '#ffb3b3'}`}}>
+              {notif.message}
+            </div>
+          ))}
+        </div>
+      )}
       {/* Header */}
       <div className="header">
         <div className="nav-container">
@@ -511,12 +508,15 @@ function FarmerDashboard() {
                       </span>
                     </div>
                     <div className="delivery-col delivery-actions">
-                      {delivery.status === 'pending' && (
-                        <button className="btn-action btn-view">View</button>
-                      )}
+                      {delivery.status === 'pending' && null}
                       {delivery.status === 'confirmed' && (
                         <>
-                          <button className="btn-action btn-view">View</button>
+                          <button 
+                            className="btn-action btn-confirm"
+                            onClick={() => handleConfirmClick(delivery)}
+                          >
+                            Confirm
+                          </button>
                           <button 
                             className="btn-action btn-reschedule"
                             onClick={() => handleRescheduleClick(delivery)}
@@ -525,9 +525,7 @@ function FarmerDashboard() {
                           </button>
                         </>
                       )}
-                      {delivery.status === 'completed' && (
-                        <button className="btn-action btn-view">View</button>
-                      )}
+                      {delivery.status === 'completed' && null}
                     </div>
                   </div>
                 ))}
@@ -537,65 +535,68 @@ function FarmerDashboard() {
         </div>
       </div>
 
-      {/* Reschedule Modal */}
-      {isRescheduleModalOpen && (
-        <div className="modal-overlay" onClick={() => setIsRescheduleModalOpen(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Reschedule Delivery</h3>
-              <button 
-                className="modal-close" 
-                onClick={() => setIsRescheduleModalOpen(false)}
-              >
-                ×
-              </button>
-            </div>
-            <form onSubmit={handleRescheduleSubmit}>
-              <div className="modal-body">
-                <div className="delivery-info">
-                  <p><strong>Delivery ID:</strong> {selectedDelivery?.id}</p>
-                  <p><strong>Product:</strong> {selectedDelivery?.product}</p>
-                  <p><strong>Quantity:</strong> {selectedDelivery?.quantity}</p>
-                  <p><strong>Current Scheduled Date:</strong> {selectedDelivery?.scheduleDate}</p>
-                </div>
-                <div className="form-group">
-                  <label htmlFor="newDeliveryDate">Select New Delivery Date *</label>
-                  <input 
-                    type="date" 
-                    id="newDeliveryDate"
-                    value={newDeliveryDate}
-                    onChange={(e) => setNewDeliveryDate(e.target.value)}
-                    min={new Date().toISOString().split('T')[0]}
-                    required
-                  />
-                </div>
-                <p className="reschedule-note">
-                  ⓘ Your reschedule request will be sent to the employee dashboard for approval.
-                </p>
-              </div>
-              <div className="modal-footer">
+      {/* Wrap the following in a fragment to fix adjacent JSX error */}
+      <>
+        {/* Reschedule Modal */}
+        {isRescheduleModalOpen && (
+          <div className="modal-overlay" onClick={() => setIsRescheduleModalOpen(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>Reschedule Delivery</h3>
                 <button 
-                  type="button" 
-                  className="btn btn-secondary"
+                  className="modal-close" 
                   onClick={() => setIsRescheduleModalOpen(false)}
                 >
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Submit Request
+                  ×
                 </button>
               </div>
-            </form>
+              <form onSubmit={handleRescheduleSubmit}>
+                <div className="modal-body">
+                  <div className="delivery-info">
+                    <p><strong>Delivery ID:</strong> {selectedDelivery?.id}</p>
+                    <p><strong>Product:</strong> {selectedDelivery?.product}</p>
+                    <p><strong>Quantity:</strong> {selectedDelivery?.quantity}</p>
+                    <p><strong>Current Scheduled Date:</strong> {selectedDelivery?.scheduleDate}</p>
+                  </div>
+                  <div className="form-group">
+                    <label htmlFor="newDeliveryDate">Select New Delivery Date *</label>
+                    <input 
+                      type="date" 
+                      id="newDeliveryDate"
+                      value={newDeliveryDate}
+                      onChange={(e) => setNewDeliveryDate(e.target.value)}
+                      min={new Date().toISOString().split('T')[0]}
+                      required
+                    />
+                  </div>
+                  <p className="reschedule-note">
+                    ⓘ Your reschedule request will be sent to the employee dashboard for approval.
+                  </p>
+                </div>
+                <div className="modal-footer">
+                  <button 
+                    type="button" 
+                    className="btn btn-secondary"
+                    onClick={() => setIsRescheduleModalOpen(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button type="submit" className="btn btn-primary">
+                    Submit Request
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Footer */}
+        <div className="footer">
+          <div className="footer-bottom">
+            <p>&copy; 2024 Laklight Food Products. All rights reserved.</p>
           </div>
         </div>
-      )}
-
-      {/* Footer */}
-      <div className="footer">
-        <div className="footer-bottom">
-          <p>&copy; 2024 Laklight Food Products. All rights reserved.</p>
-        </div>
-      </div>
+      </>
     </div>
   )
 }
