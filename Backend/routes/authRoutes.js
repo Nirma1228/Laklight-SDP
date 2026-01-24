@@ -7,6 +7,8 @@ const { registerValidation, loginValidation, validate } = require('../middleware
 // Public routes
 router.post('/register', registerValidation, validate, authController.register);
 router.post('/farmer-register', registerValidation, validate, authController.farmerRegister);
+router.post('/verify-otp', authController.verifyOTP);
+router.post('/resend-otp', authController.resendOTP);
 router.post('/login', loginValidation, validate, authController.login);
 
 // Protected routes

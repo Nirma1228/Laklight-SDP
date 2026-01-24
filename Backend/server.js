@@ -1,3 +1,18 @@
+// Global error logging for uncaught exceptions and unhandled promise rejections
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+  // Optionally, write to a log file:
+  // require('fs').appendFileSync('server-error.log', `${new Date().toISOString()} Uncaught Exception: ${err.stack || err}\n`);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  // Optionally, write to a log file:
+  // require('fs').appendFileSync('server-error.log', `${new Date().toISOString()} Unhandled Rejection: ${reason}\n`);
+  process.exit(1);
+});
+
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
@@ -28,7 +43,7 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001'],
+  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:5173'],
   credentials: true
 }));
 app.use(express.json());
@@ -80,13 +95,13 @@ app.get('/', (req, res) => {
   });
 });
 
-// Error handling middleware
-app.use(errorHandler);
-
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({ message: 'Route not found' });
 });
+
+// Error handling middleware
+app.use(errorHandler);
 
 // FR12: Automated alerts - Run every day at 8 AM
 cron.schedule('0 8 * * *', () => {

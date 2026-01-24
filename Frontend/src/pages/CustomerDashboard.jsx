@@ -100,10 +100,38 @@ const CustomerDashboard = () => {
   const [paymentMethod, setPaymentMethod] = useState('visa') // default to VISA
 
   const products = {
-    'lime': { name: 'Lime Mix', price: 150.00, image: '/images/Lime Mix.png', description: 'Refreshing lime cordial made from fresh lime extracts. Perfect for mixing with water or soda. 350ml bottle.', availability: 'in-stock', category: 'juice' },
-    'woodapple': { name: 'Wood Apple Juice', price: 100.00, image: '/images/Wood Apple Juice.png', description: 'Traditional Sri Lankan wood apple juice rich in nutrients. Naturally sweet and tangy. 200ml liter bottle.', availability: 'in-stock', category: 'juice' },
-    'mangojelly': { name: 'Mango Jelly', price: 200.00, image: '/images/Mango Jelly.png', description: 'Premium mango jelly made from fresh mangoes. Great for desserts and breakfast spreads. 100g pack.', availability: 'out-of-stock', category: 'jam' },
-    'custard': { name: 'Custard powder', price: 300.00, image: '/images/Custard powder.png', description: 'High-quality custard powder for delicious desserts. Rich vanilla flavor. Perfect for puddings and trifles. 100g pack.', availability: 'in-stock', category: 'preserves' }
+    'lime': { 
+      name: 'Lime Mix', 
+      price: 150.00, 
+      image: '/images/Lime Mix.png', 
+      description: 'Refreshing lime cordial made from fresh lime extracts. Perfect for mixing with water or soda. 350ml bottle.', 
+      availability: 'in-stock', 
+      category: 'juice' 
+    },
+    'woodapple': { 
+      name: 'Wood Apple Juice', 
+      price: 100.00, 
+      image: '/images/Wood Apple Juice.png', 
+      description: 'Traditional Sri Lankan wood apple juice rich in nutrients. Naturally sweet and tangy. 200ml liter bottle.', 
+      availability: 'in-stock', 
+      category: 'juice' 
+    },
+    'mangojelly': { 
+      name: 'Mango Jelly', 
+      price: 200.00, 
+      image: '/images/Mango Jelly.png', 
+      description: 'Premium mango jelly made from fresh mangoes. Great for desserts and breakfast spreads. 100g pack.', 
+      availability: 'out-of-stock', 
+      category: 'jam' 
+    },
+    'custard': { 
+      name: 'Custard powder', 
+      price: 300.00, 
+      image: '/images/Custard powder.png', 
+      description: 'High-quality custard powder for delicious desserts. Rich vanilla flavor. Perfect for puddings and trifles. 100g pack.', 
+      availability: 'in-stock', 
+      category: 'preserves' 
+    }
   }
 
   const orders = [

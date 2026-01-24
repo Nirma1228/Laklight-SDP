@@ -24,8 +24,7 @@ exports.registerValidation = [
 // Login validation
 exports.loginValidation = [
   body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
-  body('password').notEmpty().withMessage('Password is required'),
-  body('userType').isIn(['customer', 'farmer', 'employee', 'administrator']).withMessage('Invalid user type')
+  body('password').notEmpty().withMessage('Password is required')
 ];
 
 // Product validation

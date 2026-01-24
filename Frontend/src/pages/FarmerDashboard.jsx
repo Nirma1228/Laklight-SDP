@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import './FarmerDashboard.css'
 
@@ -6,52 +6,8 @@ import './FarmerDashboard.css'
 const getToday = () => new Date().toISOString().slice(0, 10);
 
 function FarmerDashboard() {
-  // Notification state for new approvals/rejections
-  const [notifications, setNotifications] = useState([]);
-  const [submissions, setSubmissions] = useState([]);
-  const [deliveries, setDeliveries] = useState([]);
-
-  // Fetch farmer submissions and deliveries on mount
-  React.useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-        const res = await fetch('http://localhost:5000/api/farmer/submissions', {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setSubmissions(data.submissions || []);
-        } else {
-          setSubmissions([]);
-        }
-        // TODO: Fetch deliveries if you have an endpoint
-      } catch (err) {
-        setSubmissions([]);
-      }
-    };
-    fetchData();
-  }, []);
-
-  // Notifications for selected/not-selected
-  React.useEffect(() => {
-    const newNotifs = submissions
-      .filter(sub => sub.status === 'selected' || sub.status === 'not-selected')
-      .map(sub => {
-        if (sub.status === 'selected') {
-          return { type: 'success', message: `Your product "${sub.product}" was selected!` };
-        } else if (sub.status === 'not-selected') {
-          return { type: 'error', message: `Your product "${sub.product}" was not selected. Reason: ${sub.rejectionReason || 'No reason provided.'}` };
-        }
-        return null;
-      })
-      .filter(Boolean);
-    setNotifications(newNotifs);
-  }, [submissions]);
   const navigate = useNavigate()
-  const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false)
-  const [selectedDelivery, setSelectedDelivery] = useState(null)
-  const [newDeliveryDate, setNewDeliveryDate] = useState('')
+  
   const [products, setProducts] = useState([{ 
     id: 1, 
     name: '', 
@@ -68,7 +24,92 @@ function FarmerDashboard() {
     images: null,
     notes: ''
   }])
+  
+  
+  const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false)
+  const [selectedDelivery, setSelectedDelivery] = useState(null)
+  const [newDeliveryDate, setNewDeliveryDate] = useState('')
+  const [notifications, setNotifications] = useState([])
+  
+  const [submissions, setSubmissions] = useState([
+    { 
+      id: 1, 
+      product: 'Fresh Mango', 
+      grade: 'Grade A',
+      quantity: '100kg', 
+      price: 'LKR 200.00/kg',
+      harvestDate: '2025-09-18',
+      status: 'selected', 
+      date: '2025-09-15'
+    },
+    { 
+      id: 2, 
+      product: 'Strawberry', 
+      grade: 'Grade A',
+      quantity: '50kg', 
+      price: 'LKR 400.00/kg',
+      harvestDate: '2025-09-20',
+      status: 'under-review', 
+      date: '2025-09-19'
+    },
+    { 
+      id: 3, 
+      product: 'Pineapple', 
+      grade: 'Grade B',
+      quantity: '75kg', 
+      price: 'LKR 180.00/kg',
+      harvestDate: '2025-09-10',
+      status: 'not-selected', 
+      date: '2025-09-08',
+      rejectionReason: 'Quality does not meet Grade A standards. Product shows signs of early ripening and minor surface blemishes. Please ensure proper harvest timing for future submissions.'
+    }
+  ])
 
+  const [deliveries, setDeliveries] = useState([
+    { 
+      id: 'DEL-001', 
+      product: 'Fresh Mango - Grade A', 
+      quantity: '100kg', 
+      proposedDate: 'Oct 22, 2025',
+      scheduleDate: '',
+      transportMethod: 'Company Truck Pickup',
+      status: 'pending'
+    },
+    { 
+      id: 'DEL-002', 
+      product: 'Strawberry - Grade A', 
+      quantity: '50kg', 
+      proposedDate: 'Oct 25, 2025',
+      scheduleDate: 'Oct 25, 2025',
+      transportMethod: 'Self Transport',
+      status: 'confirmed'
+    },
+    { 
+      id: 'DEL-003', 
+      product: 'Pineapple - Grade B', 
+      quantity: '75kg', 
+      proposedDate: 'Oct 20, 2025',
+      scheduleDate: 'Oct 20, 2025',
+      transportMethod: 'Company Truck Pickup',
+      status: 'completed'
+    }
+  ])
+
+  // Check for notifications on mount
+  useEffect(() => {
+    const newNotifs = submissions
+      .filter(sub => sub.status === 'selected' || sub.status === 'not-selected')
+      .map(sub => {
+        if (sub.status === 'selected') {
+          return { type: 'success', message: `Your product "${sub.product}" was selected!` };
+        } else if (sub.status === 'not-selected') {
+          return { type: 'error', message: `Your product "${sub.product}" was not selected. Reason: ${sub.rejectionReason || 'No reason provided.'}` };
+        }
+        return null;
+      })
+      .filter(Boolean);
+    setNotifications(newNotifs);
+  }, [submissions]);
 
   const handleRescheduleClick = (delivery) => {
     setSelectedDelivery(delivery)
@@ -164,14 +205,25 @@ function FarmerDashboard() {
     }
   };
 
+  const removeNotification = (index) => {
+    setNotifications(prev => prev.filter((_, i) => i !== index));
+  };
+
   return (
     <div className="farmer-dashboard">
       {/* Notifications */}
       {notifications.length > 0 && (
         <div className="notifications-section">
           {notifications.map((notif, idx) => (
-            <div key={idx} className={`notification notification-${notif.type}`} style={{marginBottom: '10px', padding: '10px', borderRadius: '5px', background: notif.type === 'success' ? '#e6ffed' : '#ffeaea', color: notif.type === 'success' ? '#256029' : '#a4262c', border: `1px solid ${notif.type === 'success' ? '#b7ebc6' : '#ffb3b3'}`}}>
+            <div key={idx} className={`notification notification-${notif.type}`}>
               {notif.message}
+              <button 
+                className="notification-close" 
+                onClick={() => removeNotification(idx)}
+                aria-label="Close notification"
+              >
+                ×
+              </button>
             </div>
           ))}
         </div>

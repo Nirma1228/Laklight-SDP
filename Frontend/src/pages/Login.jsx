@@ -2,33 +2,32 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import './Login.css'
 
+
 function Login() {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    userType: 'customer',
     email: '',
     password: '',
     rememberMe: false
-  })
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  const API_BASE_URL = 'http://localhost:5000/api'
+  const API_BASE_URL = 'http://localhost:5000/api';
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target
+    const { name, value, type, checked } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: type === 'checkbox' ? checked : value
-    }))
-    setError('') // Clear error when user types
-  }
+    }));
+    setError(''); // Clear error when user types
+  };
 
   const handleSubmit = async (e) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setError('')
-    
+    e.preventDefault();
+    setIsLoading(true);
+    setError('');
     try {
       // Call backend API for authentication
       const response = await fetch(`${API_BASE_URL}/auth/login`, {
@@ -38,54 +37,53 @@ function Login() {
         },
         body: JSON.stringify({
           email: formData.email,
-          password: formData.password,
-          userType: formData.userType
+          password: formData.password
         })
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (response.ok && data.token) {
         // Store token based on remember me option
         if (formData.rememberMe) {
-          localStorage.setItem('token', data.token)
+          localStorage.setItem('token', data.token);
         } else {
-          sessionStorage.setItem('token', data.token)
+          sessionStorage.setItem('token', data.token);
         }
 
         // Store user info
-        localStorage.setItem('userType', data.user.userType || formData.userType)
-        localStorage.setItem('userName', data.user.name || data.user.email)
-        
+        localStorage.setItem('userType', data.user.userType);
+        localStorage.setItem('userName', data.user.name || data.user.email);
+
         // Navigate based on user type from response
-        const userType = data.user.userType || formData.userType
-        switch(userType) {
+        const userType = data.user.userType;
+        switch (userType) {
           case 'administrator':
-            navigate('/admin/dashboard')
-            break
+            navigate('/admin/dashboard');
+            break;
           case 'customer':
-            navigate('/customer/dashboard')
-            break
+            navigate('/customer/dashboard');
+            break;
           case 'employee':
-            navigate('/employee/dashboard')
-            break
+            navigate('/employee/dashboard');
+            break;
           case 'farmer':
-            navigate('/farmer/dashboard')
-            break
+            navigate('/farmer/dashboard');
+            break;
           default:
-            navigate('/home')
+            navigate('/home');
         }
       } else {
         // Show error message
-        setError(data.message || 'Login failed. Please check your credentials.')
+        setError(data.message || 'Login failed. Please check your credentials.');
       }
     } catch (error) {
-      console.error('Login error:', error)
-      setError('Connection error. Please try again later.')
+      console.error('Login error:', error);
+      setError('Connection error. Please try again later.');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   return (
     <div className="login-page">
@@ -125,21 +123,7 @@ function Login() {
                 </div>
               )}
 
-              <div className="user-type-selector">
-                <label htmlFor="userType">I am a:</label>
-                <select
-                  id="userType"
-                  name="userType"
-                  value={formData.userType}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="customer">Customer</option>
-                  <option value="farmer">Farmer</option>
-                  <option value="employee">Employee</option>
-                  <option value="administrator">Administrator</option>
-                </select>
-              </div>
+
 
               <div className="form-group">
                 <label htmlFor="email">Email Address</label>
