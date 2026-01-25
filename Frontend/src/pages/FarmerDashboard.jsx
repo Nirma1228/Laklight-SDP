@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { config } from '../config'
 import './FarmerDashboard.css'
 
 // Utility: get today's date in YYYY-MM-DD
 const getToday = () => new Date().toISOString().slice(0, 10);
 
-const API_BASE_URL = 'http://localhost:5000/api';
+
 
 const getAuthToken = () => {
   return localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -62,7 +63,7 @@ function FarmerDashboard() {
       const token = getAuthToken();
       if (!token) return;
 
-      const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+      const response = await fetch(`${config.API_BASE_URL}/auth/profile`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -119,7 +120,7 @@ function FarmerDashboard() {
       const token = getAuthToken()
       if (!token) return
 
-      const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+      const response = await fetch(`${config.API_BASE_URL}/auth/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -330,14 +331,111 @@ function FarmerDashboard() {
     ))
   }
 
-  const handleSubmitAll = (e) => {
+  const handleSubmitAll = async (e) => {
     e.preventDefault()
     const validProducts = products.filter(p => p.name && p.quantity)
-    if (validProducts.length > 0) {
-      alert(`Successfully submitted ${validProducts.length} product(s) for review!`)
-      setProducts([{ id: 1, name: '', category: '', quantity: '', unit: 'kg', priceRange: '', customPrice: '', transport: '', deliveryDate: '' }])
-    } else {
+
+    if (validProducts.length === 0) {
       alert('Please fill in at least one complete product form.')
+      return
+    }
+
+    try {
+      const token = getAuthToken()
+      if (!token) return
+
+      const promises = validProducts.map(p => {
+        // Prepare payload matching backend expectation
+        const payload = {
+          productName: p.name,
+          category: p.category,
+          quantity: p.quantity,
+          unit: p.unit,
+          grade: p.grade,
+          customPrice: p.customPrice,
+          harvestDate: p.harvestDate,
+          transport: p.transport,
+          deliveryDate: p.deliveryDate,
+          notes: p.notes,
+          images: [] // Placeholder until file upload is fully implemented
+        }
+
+        return fetch(`${config.API_BASE_URL}/farmer/submissions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        }).then(async res => {
+          if (!res.ok) {
+            const errorData = await res.json().catch(() => ({}));
+            // Extract validation errors if present
+            const backendError = errorData.message || (errorData.errors && errorData.errors[0]?.msg) || 'Submission failed';
+            throw new Error(backendError);
+          }
+          return res.json()
+        })
+      })
+
+      const results = await Promise.all(promises)
+
+      // Update local state with new real data
+      const newSubmissions = results.map((res, index) => {
+        const p = validProducts[index]
+        return {
+          id: res.submissionId,
+          product: p.name,
+          grade: p.grade || 'N/A',
+          quantity: `${p.quantity}${p.unit}`,
+          price: `LKR ${p.customPrice || '0'}`,
+          harvestDate: p.harvestDate,
+          status: 'under-review',
+          date: getToday()
+        }
+      })
+
+      // Deliveries are auto-created on backend, so we should fetch default deliveries or mock them for now
+      // Ideally we would fetch '/api/farmer/deliveries', but let's just add to local state to reflect UI immediately
+      const newDeliveries = validProducts.filter(p => p.deliveryDate).map((p, index) => ({
+        id: `DEL-${Date.now()}-${index}`,
+        product: `${p.name} - ${p.grade || ''}`,
+        quantity: `${p.quantity}${p.unit}`,
+        proposedDate: p.deliveryDate,
+        scheduleDate: '',
+        transport: p.transport || 'Self Transport',
+        status: 'pending' // Matches backend default
+      }))
+
+      setSubmissions(prev => [...prev, ...newSubmissions])
+      setDeliveries(prev => [...prev, ...newDeliveries])
+
+      // Save for offline backup/view
+      localStorage.setItem('supplier_applications', JSON.stringify([...submissions, ...newSubmissions]))
+      localStorage.setItem('delivery_list', JSON.stringify([...deliveries, ...newDeliveries]))
+
+      alert(`Successfully submitted ${validProducts.length} product(s) to database!`)
+
+      // Reset Form
+      setProducts([{
+        id: 1,
+        name: '',
+        category: '',
+        variety: '',
+        quantity: '',
+        unit: 'kg',
+        customPrice: '',
+        harvestDate: '',
+        grade: '',
+        transport: '',
+        deliveryDate: '',
+        images: null,
+        notes: ''
+      }])
+
+    } catch (error) {
+      console.error('Submission error:', error)
+      alert(`Failed to submit products: ${error.message}`)
     }
   }
 
@@ -398,7 +496,16 @@ function FarmerDashboard() {
           </ul>
           <div className="user-info">
             <span className="farm-welcome">Welcome, Farmer!</span>
-            <Link to="/" className="btn btn-secondary">Logout</Link>
+            <button
+              onClick={() => {
+                localStorage.clear();
+                sessionStorage.clear();
+                navigate('/');
+              }}
+              className="btn btn-secondary"
+            >
+              Logout
+            </button>
           </div>
         </div>
       </div>
@@ -583,16 +690,7 @@ function FarmerDashboard() {
                         <small className="form-hint">Must be after harvest date</small>
                       </div>
 
-                      <div className="form-group">
-                        <label>Storage Location: *</label>
-                        <input
-                          type="text"
-                          required
-                          value={product.storage || ''}
-                          onChange={(e) => updateProduct(product.id, 'storage', e.target.value)}
-                          placeholder="e.g., Cold Storage Room A"
-                        />
-                      </div>
+
                     </div>
 
                     <div className="form-group full-width">
@@ -612,6 +710,21 @@ function FarmerDashboard() {
                           <small>PNG, JPG up to 5MB each</small>
                         </label>
                       </div>
+
+                      {/* Image Preview Area */}
+                      {product.images && product.images.length > 0 && (
+                        <div className="image-previews" style={{ display: 'flex', gap: '10px', marginTop: '10px', flexWrap: 'wrap' }}>
+                          {Array.from(product.images).map((file, index) => (
+                            <div key={index} className="preview-item" style={{ position: 'relative', width: '80px', height: '80px' }}>
+                              <img
+                                src={URL.createObjectURL(file)}
+                                alt="Preview"
+                                style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }}
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                     <div className="form-group full-width">

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
+import { config } from '../config'
 import Footer from '../components/Footer'
 import './AdminDashboard.css'
 
@@ -17,7 +18,7 @@ function AdminDashboard() {
   }
 
   // API base URL
-  const API_BASE_URL = 'http://localhost:5000/api'
+
 
   // Fetch dashboard data from backend
   useEffect(() => {

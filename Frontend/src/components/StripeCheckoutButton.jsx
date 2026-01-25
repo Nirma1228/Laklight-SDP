@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { config } from '../config';
 
 const StripeCheckoutButton = ({ amount, onSuccess }) => {
   useEffect(() => {
@@ -12,7 +13,7 @@ const StripeCheckoutButton = ({ amount, onSuccess }) => {
 
   const handleClick = async () => {
     // Call backend to create a Stripe Checkout session
-    const response = await fetch('http://localhost:5000/api/payment/create-checkout-session', {
+    const response = await fetch(`${config.API_BASE_URL}/payment/create-checkout-session`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ amount })

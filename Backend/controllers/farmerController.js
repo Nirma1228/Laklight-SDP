@@ -2,6 +2,7 @@ const db = require('../config/database');
 const upload = require('../config/multer');
 
 // FR09: Submit product for review
+// FR09: Submit product for review
 exports.submitProduct = async (req, res) => {
   try {
     const farmerId = req.user.userId;
@@ -17,15 +18,16 @@ exports.submitProduct = async (req, res) => {
       transport,
       deliveryDate,
       storageInstructions,
-      notes
+      notes,
+      images
     } = req.body;
 
     // Insert submission
     const [result] = await db.query(
       `INSERT INTO farmer_submissions 
        (farmer_id, product_name, category, variety, quantity, unit, grade, custom_price, 
-        harvest_date, transport, delivery_date, storage_instructions, notes, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        harvest_date, transport, delivery_date, storage_instructions, notes, status, images)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         farmerId,
         productName,
@@ -38,11 +40,34 @@ exports.submitProduct = async (req, res) => {
         harvestDate,
         transport || null,
         deliveryDate || null,
-        storageInstructions || null,
+        storageInstructions || null, // Storage instruction (optional)
         notes || null,
-        'under-review'
+        'under-review',
+        JSON.stringify(images || []) // Store images as JSON string if passed
       ]
     );
+
+    const submissionId = result.insertId;
+
+    // Auto-create delivery record if deliveryDate is provided
+    if (deliveryDate) {
+      const deliveryNumber = `DEL-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      await db.query(
+        `INSERT INTO deliveries 
+         (delivery_number, submission_id, farmer_id, product_name, quantity, proposed_date, transport_method, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          deliveryNumber,
+          submissionId,
+          farmerId,
+          productName,
+          `${quantity} ${unit}`,
+          deliveryDate,
+          transport || 'Self Transport',
+          'pending'
+        ]
+      );
+    }
 
     res.status(201).json({
       success: true,
@@ -132,8 +157,8 @@ exports.updateSubmission = async (req, res) => {
 
     // Can only edit submissions that are under review
     if (submission.status !== 'under-review') {
-      return res.status(400).json({ 
-        message: `Cannot edit submission with status: ${submission.status}` 
+      return res.status(400).json({
+        message: `Cannot edit submission with status: ${submission.status}`
       });
     }
 
@@ -189,8 +214,8 @@ exports.deleteSubmission = async (req, res) => {
 
     // Can only delete submissions that are under review
     if (submission.status !== 'under-review') {
-      return res.status(400).json({ 
-        message: `Cannot delete submission with status: ${submission.status}` 
+      return res.status(400).json({
+        message: `Cannot delete submission with status: ${submission.status}`
       });
     }
 
@@ -249,8 +274,8 @@ exports.updateDelivery = async (req, res) => {
 
     // Can only update pending deliveries
     if (deliveries[0].status !== 'pending') {
-      return res.status(400).json({ 
-        message: `Cannot update delivery with status: ${deliveries[0].status}` 
+      return res.status(400).json({
+        message: `Cannot update delivery with status: ${deliveries[0].status}`
       });
     }
 

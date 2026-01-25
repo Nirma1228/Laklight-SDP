@@ -46,9 +46,9 @@ exports.orderValidation = [
 // Farmer submission validation
 exports.farmerSubmissionValidation = [
   body('productName').notEmpty().trim().withMessage('Product name is required'),
-  body('category').isIn(['fruits', 'vegetables', 'other']).withMessage('Invalid category'),
+  body('category').isIn(['fruits', 'vegetables', 'dairy', 'grains', 'beverages', 'desserts', 'other']).withMessage('Invalid category'),
   body('quantity').isFloat({ min: 0 }).withMessage('Quantity must be positive'),
-  body('unit').isIn(['kg', 'g', 'units']).withMessage('Invalid unit'),
+  body('unit').isIn(['kg', 'g', 'units', 'L', 'bottle', 'pack', 'piece']).withMessage('Invalid unit'),
   body('harvestDate').isISO8601().withMessage('Valid harvest date is required')
 ];
 

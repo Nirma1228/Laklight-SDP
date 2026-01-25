@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { config } from '../config'
 import './Login.css'
 
 
@@ -13,7 +14,7 @@ function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const API_BASE_URL = 'http://localhost:5000/api';
+
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -30,7 +31,7 @@ function Login() {
     setError('');
     try {
       // Call backend API for authentication
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      const response = await fetch(`${config.API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -44,6 +45,10 @@ function Login() {
       const data = await response.json();
 
       if (response.ok && data.token) {
+        // Clear any existing tokens to prevent conflicts
+        localStorage.removeItem('token');
+        sessionStorage.removeItem('token');
+
         // Store token based on remember me option
         if (formData.rememberMe) {
           localStorage.setItem('token', data.token);
@@ -88,7 +93,7 @@ function Login() {
   return (
     <div className="login-page">
       <Link to="/" className="back-home">← Back to Home</Link>
-      
+
       <div className="main-content">
         <div className="login-container">
           <div className="login-left">

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { config } from '../config'
 import './Register.css'
 
 function Register() {
@@ -55,8 +56,8 @@ function Register() {
     try {
       // Determine endpoint based on user type
       const endpoint = formData.userType === 'farmer'
-        ? 'http://localhost:5000/api/auth/farmer-register'
-        : 'http://localhost:5000/api/auth/register'
+        ? `${config.API_BASE_URL}/auth/farmer-register`
+        : `${config.API_BASE_URL}/auth/register`
 
       const response = await fetch(endpoint, {
         method: 'POST',
@@ -74,8 +75,6 @@ function Register() {
       })
 
       const data = await response.json()
-
-      console.log('Registration Response:', data); // Debug log
 
       if (!response.ok) {
         let errorMsg = data.message || 'Registration failed';
@@ -101,7 +100,7 @@ function Register() {
 
         if (data.debugOtp) {
           alert(`DEV MODE: Your OTP is ${data.debugOtp}\n\n(It was also sent to your email)`)
-          console.log('Debug OTP:', data.debugOtp)
+
         } else {
           alert('OTP sent to your email! Please check your inbox.')
         }
@@ -126,7 +125,7 @@ function Register() {
     setLoading(true)
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/verify-otp', {
+      const response = await fetch(`${config.API_BASE_URL}/auth/verify-otp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -182,7 +181,7 @@ function Register() {
     setError('')
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/resend-otp', {
+      const response = await fetch(`${config.API_BASE_URL}/auth/resend-otp`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
