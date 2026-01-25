@@ -5,13 +5,13 @@ import './UserManagement.css'
 function UserManagement() {
   const navigate = useNavigate()
   const [users, setUsers] = useState([
-    { id: 1, name: 'John Admin', email: 'john@laklight.com', role: 'admin', status: 'active', phone: '0771234567', joinDate: '2023-01-15' },
-    { id: 2, name: 'Sarah Manager', email: 'sarah@laklight.com', role: 'employee', status: 'active', phone: '0772345678', joinDate: '2023-02-20' },
-    { id: 3, name: 'Mike Customer', email: 'mike@email.com', role: 'customer', status: 'active', phone: '0773456789', joinDate: '2023-05-10' },
-    { id: 4, name: 'David Farmer', email: 'david@farm.lk', role: 'supplier', status: 'active', phone: '0774567890', joinDate: '2023-03-15' },
-    { id: 5, name: 'Lisa Employee', email: 'lisa@laklight.com', role: 'employee', status: 'active', phone: '0775678901', joinDate: '2023-06-01' },
-    { id: 6, name: 'Tom Supplier', email: 'tom@supplier.lk', role: 'supplier', status: 'pending', phone: '0776789012', joinDate: '2024-01-10' },
-    { id: 7, name: 'Emma Customer', email: 'emma@email.com', role: 'customer', status: 'inactive', phone: '0777890123', joinDate: '2022-12-05' }
+    { id: 1, name: 'Hirun Perera', email: 'Hirun@laklight.com', role: 'admin', status: 'active', phone: '0771234567', joinDate: '2023-01-15' },
+    { id: 2, name: 'Sarah Fdo', email: 'sarah@laklight.com', role: 'employee', status: 'active', phone: '0772345678', joinDate: '2023-02-20' },
+    { id: 3, name: 'Asoka Perera', email: 'asoka@email.com', role: 'customer', status: 'active', phone: '0773456789', joinDate: '2023-05-10' },
+    { id: 4, name: 'Kamal Herath', email: 'Kamal@farm.lk', role: 'supplier', status: 'active', phone: '0774567890', joinDate: '2023-03-15' },
+    { id: 5, name: 'Sachini Bandara', email: 'Sachini@laklight.com', role: 'employee', status: 'active', phone: '0775678901', joinDate: '2023-06-01' },
+    { id: 6, name: 'Dwini Adikari', email: 'duwini@supplier.lk', role: 'supplier', status: 'pending', phone: '0776789012', joinDate: '2024-01-10' },
+    { id: 7, name: 'Kusal Rathnayake', email: 'Kusal@email.com', role: 'customer', status: 'inactive', phone: '0777890123', joinDate: '2022-12-05' }
   ])
 
   const [showModal, setShowModal] = useState(false)
@@ -58,8 +58,8 @@ function UserManagement() {
   }
 
   const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesRole = roleFilter === 'all' || user.role === roleFilter
     const matchesStatus = statusFilter === 'all' || user.status === statusFilter
     return matchesSearch && matchesRole && matchesStatus
@@ -128,9 +128,9 @@ function UserManagement() {
           <div className="filter-row">
             <div className="form-group">
               <label>Search Users</label>
-              <input 
-                type="text" 
-                placeholder="Search by name or email..." 
+              <input
+                type="text"
+                placeholder="Search by name or email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -154,7 +154,7 @@ function UserManagement() {
                 <option value="pending">Pending</option>
               </select>
             </div>
-            <div style={{paddingTop: '1.7rem'}}>
+            <div style={{ paddingTop: '1.7rem' }}>
               <button className="btn btn-primary" onClick={() => alert('Apply filters')}>Filter</button>
             </div>
           </div>
@@ -165,7 +165,7 @@ function UserManagement() {
           <div className="section-header">
             <h2 className="section-title">All Users ({filteredUsers.length})</h2>
           </div>
-          <div style={{overflowX: 'auto'}}>
+          <div style={{ overflowX: 'auto' }}>
             <table className="user-table">
               <thead>
                 <tr>
@@ -182,7 +182,7 @@ function UserManagement() {
                 {filteredUsers.map(user => (
                   <tr key={user.id}>
                     <td>
-                      <div style={{display: 'flex', alignItems: 'center', gap: '1rem'}}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                         <div className="user-avatar">{user.name.charAt(0)}</div>
                         <span>{user.name}</span>
                       </div>
@@ -226,30 +226,30 @@ function UserManagement() {
               <div className="form-row">
                 <div className="form-group">
                   <label>Full Name *</label>
-                  <input 
-                    type="text" 
-                    required 
+                  <input
+                    type="text"
+                    required
                     value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   />
                 </div>
                 <div className="form-group">
                   <label>Email *</label>
-                  <input 
-                    type="email" 
-                    required 
+                  <input
+                    type="email"
+                    required
                     value={formData.email}
-                    onChange={(e) => setFormData({...formData, email: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   />
                 </div>
               </div>
               <div className="form-row">
                 <div className="form-group">
                   <label>Role *</label>
-                  <select 
+                  <select
                     required
                     value={formData.role}
-                    onChange={(e) => setFormData({...formData, role: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                   >
                     <option value="">Select role</option>
                     <option value="admin">Admin</option>
@@ -260,9 +260,9 @@ function UserManagement() {
                 </div>
                 <div className="form-group">
                   <label>Status *</label>
-                  <select 
+                  <select
                     value={formData.status}
-                    onChange={(e) => setFormData({...formData, status: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value })}
                   >
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
@@ -273,20 +273,20 @@ function UserManagement() {
               <div className="form-row">
                 <div className="form-group">
                   <label>Phone *</label>
-                  <input 
-                    type="tel" 
-                    required 
+                  <input
+                    type="tel"
+                    required
                     value={formData.phone}
-                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   />
                 </div>
                 <div className="form-group">
                   <label>Join Date *</label>
-                  <input 
-                    type="date" 
-                    required 
+                  <input
+                    type="date"
+                    required
                     value={formData.joinDate}
-                    onChange={(e) => setFormData({...formData, joinDate: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, joinDate: e.target.value })}
                   />
                 </div>
               </div>

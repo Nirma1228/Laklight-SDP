@@ -21,7 +21,7 @@ exports.register = async (req, res) => {
 
     // Generate OTP
     const otp = generateOTP();
-    
+
     // Calculate expiry time (10 minutes from now)
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
@@ -34,8 +34,15 @@ exports.register = async (req, res) => {
       [email, otp, fullName, phone, passwordHash, userType || 'customer', address || null, expiresAt]
     );
 
-    // Send OTP email
-    await sendOTPEmail(email, fullName, otp);
+    // Send OTP email (Soft Fail)
+    let emailSent = false;
+    try {
+      await sendOTPEmail(email, fullName, otp);
+      emailSent = true;
+    } catch (emailErr) {
+      console.error('⚠️ Registration email failed (Soft Fail):', emailErr.message);
+      // Continue anyway since we have debugOtp
+    }
 
     // DEVELOPMENT ONLY: Log OTP to console for testing
     console.log('='.repeat(50));
@@ -48,7 +55,8 @@ exports.register = async (req, res) => {
     res.status(200).json({
       message: 'OTP sent to your email. Please verify to complete registration.',
       email: email,
-      requiresVerification: true
+      requiresVerification: true,
+      debugOtp: otp // TEMPORARY: Expose OTP for debugging
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -72,7 +80,7 @@ exports.farmerRegister = async (req, res) => {
 
     // Generate OTP
     const otp = generateOTP();
-    
+
     // Calculate expiry time (10 minutes from now)
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
@@ -85,8 +93,14 @@ exports.farmerRegister = async (req, res) => {
       [email, otp, fullName, phone, passwordHash, 'farmer', address || null, expiresAt]
     );
 
-    // Send OTP email
-    await sendOTPEmail(email, fullName, otp);
+    // Send OTP email (Soft Fail)
+    let emailSent = false;
+    try {
+      await sendOTPEmail(email, fullName, otp);
+      emailSent = true;
+    } catch (emailErr) {
+      console.error('⚠️ Farmer registration email failed (Soft Fail):', emailErr.message);
+    }
 
     // DEVELOPMENT ONLY: Log OTP to console
     console.log('='.repeat(50));
@@ -97,9 +111,11 @@ exports.farmerRegister = async (req, res) => {
     console.log('='.repeat(50));
 
     res.status(200).json({
-      message: 'OTP sent to your email. Please verify to complete registration.',
+      message: emailSent ? 'OTP sent to your email.' : 'OTP generated (Email failed, check popup).',
       email: email,
-      requiresVerification: true
+      requiresVerification: true,
+      debugOtp: otp, // TEMPORARY: Expose OTP for debugging
+      emailSent: emailSent
     });
   } catch (error) {
     console.error('Farmer registration error:', error);
@@ -127,8 +143,8 @@ exports.login = async (req, res) => {
 
     // Check if account is active
     if (user.status !== 'active') {
-      return res.status(403).json({ 
-        message: `Account is ${user.status}. Please contact administrator.` 
+      return res.status(403).json({
+        message: `Account is ${user.status}. Please contact administrator.`
       });
     }
 
@@ -213,7 +229,7 @@ exports.changePassword = async (req, res) => {
 
     // Get current password hash
     const [users] = await db.query('SELECT password_hash FROM users WHERE id = ?', [userId]);
-    
+
     if (users.length === 0) {
       return res.status(404).json({ message: 'User not found' });
     }

@@ -1,4 +1,4 @@
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import './LoggedHome.css'
 
 function LoggedHome() {
@@ -53,7 +53,7 @@ function LoggedHome() {
           </div>
           <div className="user-info">
             <span className="welcome-text">Welcome back!</span>
-            <a href="/" className="logout-btn">Logout</a>
+            <Link to="/" className="logout-btn">Logout</Link>
           </div>
         </nav>
       </header>
@@ -67,7 +67,7 @@ function LoggedHome() {
 
           <div className="dashboard-grid">
             {dashboards.map(dashboard => (
-              <div 
+              <div
                 key={dashboard.id}
                 className="dashboard-card"
                 onClick={() => handleDashboardClick(dashboard.path)}

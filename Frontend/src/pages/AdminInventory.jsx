@@ -59,31 +59,28 @@ function AdminInventory() {
       <div className="main-content">
         {/* Page Header */}
         <div className="page-header">
-          <h1 className="page-title">📦 Complete Inventory Control</h1>
+          <h1 className="page-title">Complete Inventory Control</h1>
           <p className="page-description">Monitor raw materials (fruits) and finished products - Track stock levels, locations, and expiry dates</p>
         </div>
 
         {/* Tabs */}
         <div className="tabs">
-          <button 
+          <button
             className={`tab-button ${activeTab === 'fruits' ? 'active' : ''}`}
             onClick={() => setActiveTab('fruits')}
           >
-            <span>🍎</span>
             Fruit Inventory (Raw Materials)
           </button>
-          <button 
+          <button
             className={`tab-button ${activeTab === 'products' ? 'active' : ''}`}
             onClick={() => setActiveTab('products')}
           >
-            <span>📦</span>
             Finished Products
           </button>
-          <button 
+          <button
             className={`tab-button ${activeTab === 'alerts' ? 'active' : ''}`}
             onClick={() => setActiveTab('alerts')}
           >
-            <span>⚠️</span>
             Critical Alerts
           </button>
         </div>
@@ -115,10 +112,10 @@ function AdminInventory() {
             <div className="section-card">
               <div className="section-header">
                 <h2 className="section-title">
-                  <span className="section-icon">🍇</span>
+                  <span className="section-icon"></span>
                   All Fruits Inventory
                 </h2>
-                <div style={{display: 'flex', gap: '1rem'}}>
+                <div style={{ display: 'flex', gap: '1rem' }}>
                   <button className="btn btn-primary" onClick={() => alert('Add fruit inventory')}>+ Add Inventory</button>
                   <button className="btn btn-warning" onClick={() => alert('Export report')}>Export Report</button>
                 </div>
@@ -127,7 +124,7 @@ function AdminInventory() {
                 {fruitInventory.map(item => (
                   <div key={item.id} className={`inventory-card ${item.status === 'low' ? 'low-stock' : item.status === 'critical' ? 'critical' : ''}`}>
                     <div className="item-header">
-                      <div className="item-icon">🍇</div>
+                      <div className="item-icon"></div>
                       <div className="item-info">
                         <div className="item-name">{item.name}</div>
                         <div className="item-id">ID: FRUIT-{String(item.id).padStart(3, '0')}</div>
@@ -189,10 +186,10 @@ function AdminInventory() {
             <div className="section-card">
               <div className="section-header">
                 <h2 className="section-title">
-                  <span className="section-icon">📦</span>
+                  <span className="section-icon"></span>
                   All Finished Products
                 </h2>
-                <div style={{display: 'flex', gap: '1rem'}}>
+                <div style={{ display: 'flex', gap: '1rem' }}>
                   <button className="btn btn-primary" onClick={() => alert('Add product inventory')}>+ Add Product</button>
                   <button className="btn btn-warning" onClick={() => alert('Export report')}>Export Report</button>
                 </div>
@@ -201,7 +198,7 @@ function AdminInventory() {
                 {productInventory.map(item => (
                   <div key={item.id} className={`inventory-card ${item.status === 'low' ? 'low-stock' : item.status === 'critical' ? 'critical' : ''}`}>
                     <div className="item-header">
-                      <div className="item-icon product">📦</div>
+                      <div className="item-icon product"></div>
                       <div className="item-info">
                         <div className="item-name">{item.name}</div>
                         <div className="item-id">ID: PROD-{String(item.id).padStart(3, '0')}</div>
@@ -242,7 +239,7 @@ function AdminInventory() {
             <div className="section-card">
               <div className="section-header">
                 <h2 className="section-title">
-                  <span className="section-icon">⚠️</span>
+                  <span className="section-icon"></span>
                   Critical Alerts
                 </h2>
               </div>

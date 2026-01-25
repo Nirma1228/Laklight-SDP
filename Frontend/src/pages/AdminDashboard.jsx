@@ -70,7 +70,7 @@ function AdminDashboard() {
   const handleLogout = () => {
     localStorage.removeItem('token')
     sessionStorage.removeItem('token')
-    navigate('/login')
+    navigate('/')
   }
 
   // Format currency
@@ -176,7 +176,7 @@ function AdminDashboard() {
               <tbody>
                 <tr>
                   <td>LF2025-1847</td>
-                  <td>John Silva</td>
+                  <td>Nimal Silva</td>
                   <td>Rs. 3,450</td>
                   <td><span className="status-badge delivered">Delivered</span></td>
                   <td>Mar 20, 2025</td>

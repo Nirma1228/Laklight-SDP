@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Footer from '../components/Footer'
 import './EmployeeDashboard.css'
@@ -11,25 +11,23 @@ const EmployeeDashboard = () => {
   const [isDeliveryDetailsOpen, setIsDeliveryDetailsOpen] = useState(false)
   const [currentDelivery, setCurrentDelivery] = useState(null)
   const [notifications, setNotifications] = useState([])
+  const [dashboardAlerts, setDashboardAlerts] = useState([])
+
+  const [isUpdateStockOpen, setIsUpdateStockOpen] = useState(false)
+  const [updatingItem, setUpdatingItem] = useState(null)
+  const [updateAmount, setUpdateAmount] = useState('')
 
   const [searchTerm, setSearchTerm] = useState('')
   const [categoryFilter, setCategoryFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [sortFilter, setSortFilter] = useState('')
   const [deliveryStatusFilter, setDeliveryStatusFilter] = useState('all')
-
-  // Load reschedule notifications from localStorage
-  useEffect(() => {
-    const loadNotifications = () => {
-      const storedNotifications = JSON.parse(localStorage.getItem('employee_notifications') || '[]')
-      setNotifications(storedNotifications.filter(n => n.status === 'pending'))
-    }
-    loadNotifications()
-
-    // Poll for new notifications every 5 seconds
-    const interval = setInterval(loadNotifications, 5000)
-    return () => clearInterval(interval)
-  }, [])
+  const [isProcessModalOpen, setIsProcessModalOpen] = useState(false)
+  const [selectedOrder, setSelectedOrder] = useState(null)
+  const [isApproveModalOpen, setIsApproveModalOpen] = useState(false)
+  const [selectedApp, setSelectedApp] = useState(null)
+  const [customScheduleDate, setCustomScheduleDate] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
 
   const [profileData, setProfileData] = useState({
     firstName: 'Nimal',
@@ -51,42 +49,35 @@ const EmployeeDashboard = () => {
     {
       id: 1,
       name: 'Fresh Mango - Grade A',
-      location: 'C03-R04 (Cold Storage A)',
-      expiry: '2025-09-30',
-      daysUntilExpiry: 5,
-      stock: '85 kg',
-      reorder: '20 kg',
-      status: 'critical'
+      batches: [
+        { id: 101, location: 'C03-R04 (Cold Storage A)', stock: '50 kg', receivedDate: '2025-09-20', expiry: '2025-09-30', daysUntilExpiry: 5, status: 'critical' },
+        { id: 102, location: 'C01-R02 (Cold Storage A)', stock: '35 kg', receivedDate: '2025-09-25', expiry: '2025-10-05', daysUntilExpiry: 10, status: 'warning' }
+      ],
+      category: 'raw'
     },
     {
       id: 2,
       name: 'Pineapple Chunks',
-      location: 'C02-R01 (Cold Storage B)',
-      expiry: '2025-10-15',
-      daysUntilExpiry: 20,
-      stock: '25 kg',
-      reorder: '40 kg',
-      status: 'warning'
+      batches: [
+        { id: 201, location: 'C02-R01 (Cold Storage B)', stock: '25 kg', receivedDate: '2025-09-18', expiry: '2025-10-15', daysUntilExpiry: 20, status: 'warning' }
+      ],
+      category: 'raw'
     },
     {
       id: 3,
       name: 'Fresh Papaya - Grade A',
-      location: 'C01-R03 (Cold Storage A)',
-      expiry: '2025-10-05',
-      daysUntilExpiry: 10,
-      stock: '45 kg',
-      reorder: '15 kg',
-      status: 'good'
+      batches: [
+        { id: 301, location: 'C01-R03 (Cold Storage A)', stock: '45 kg', receivedDate: '2025-09-22', expiry: '2025-10-05', daysUntilExpiry: 10, status: 'good' }
+      ],
+      category: 'raw'
     },
     {
       id: 4,
       name: 'Passion Fruit - Grade B',
-      location: 'C03-R02 (Cold Storage B)',
-      expiry: '2025-10-08',
-      daysUntilExpiry: 13,
-      stock: '32 kg',
-      reorder: '20 kg',
-      status: 'good'
+      batches: [
+        { id: 401, location: 'C03-R02 (Cold Storage B)', stock: '32 kg', receivedDate: '2025-09-21', expiry: '2025-10-08', daysUntilExpiry: 13, status: 'good' }
+      ],
+      category: 'raw'
     }
   ])
 
@@ -99,7 +90,8 @@ const EmployeeDashboard = () => {
       manufactured: '2025-09-01',
       bestBefore: '2026-04-01',
       quantity: 120,
-      status: 'good'
+      status: 'good',
+      category: 'processed'
     },
     {
       id: 2,
@@ -109,7 +101,8 @@ const EmployeeDashboard = () => {
       manufactured: '2025-05-10',
       bestBefore: '2026-02-10',
       quantity: 50,
-      status: 'warning'
+      status: 'warning',
+      category: 'processed'
     },
     {
       id: 3,
@@ -119,146 +112,430 @@ const EmployeeDashboard = () => {
       manufactured: '2025-04-20',
       bestBefore: '2026-01-20',
       quantity: 80,
-      status: 'unit-low'
+      status: 'unit-low',
+      category: 'processed'
     }
   ])
 
-  const [supplierApplications, setSupplierApplications] = useState([
-    {
-      id: 1,
-      farmerName: 'Mountain Fresh Farm - Badulla',
-      product: 'Fresh Mango - Grade A',
-      quantity: '200kg',
-      price: 'LKR 180.00/kg',
-      harvestDate: '2025-09-20',
-      qualityGrade: 'Grade A',
-      license: 'AG2025078',
-      submitted: '2025-09-21',
-      transport: 'Self Transport',
-      date: '2025-09-25',
-      images: ['Mango+1', 'Mango+2', 'Quality+Cert']
-    },
-    {
-      id: 2,
-      farmerName: 'Sunrise Plantation - Matale',
-      product: 'Strawberry - Grade B',
-      quantity: '80kg',
-      price: 'LKR 350.00/kg',
-      harvestDate: '2025-09-22',
-      qualityGrade: 'Grade B',
-      license: 'AG2025045',
-      submitted: '2025-09-20',
-      transport: 'Company Truck Pickup',
-      date: '2025-09-25',
-      images: ['Strawberry+1', 'Strawberry+2', 'Farm+View']
-    },
-    {
-      id: 3,
-      farmerName: 'Golden Valley Farms - Nuwara Eliya',
-      product: 'Passion Fruit - Grade A',
-      quantity: '60kg',
-      price: 'LKR 450.00/kg',
-      harvestDate: '2025-09-23',
-      qualityGrade: 'Grade A',
-      license: 'AG2025123',
-      submitted: '2025-09-22',
-      transport: 'Self Transport',
-      date: '2025-09-26',
-      images: ['Passion+Fruit', 'Quality+Check', 'Packaging']
-    }
-  ])
+  const [supplierApplications, setSupplierApplications] = useState(() => {
+    const saved = localStorage.getItem('supplier_applications')
+    if (saved) return JSON.parse(saved)
+    return [
+      {
+        id: 1,
+        farmerName: 'Mountain Fresh Farm - Badulla',
+        product: 'Fresh Mango - Grade A',
+        quantity: '200kg',
+        price: 'LKR 180.00/kg',
+        harvestDate: '2025-09-20',
+        qualityGrade: 'Grade A',
+        license: 'AG2025078',
+        submitted: '2025-09-21',
+        transport: 'Self Transport',
+        date: '2025-09-25',
+        images: ['Mango+1', 'Mango+2', 'Quality+Cert'],
+        category: 'raw',
+        status: 'under-review'
+      },
+      {
+        id: 2,
+        farmerName: 'Sunrise Plantation - Matale',
+        product: 'Strawberry - Grade B',
+        quantity: '80kg',
+        price: 'LKR 350.00/kg',
+        harvestDate: '2025-09-22',
+        qualityGrade: 'Grade B',
+        license: 'AG2025045',
+        submitted: '2025-09-20',
+        transport: 'Company Truck Pickup',
+        date: '2025-09-25',
+        images: ['Strawberry+1', 'Strawberry+2', 'Farm+View'],
+        category: 'raw',
+        status: 'under-review'
+      },
+      {
+        id: 3,
+        farmerName: 'Golden Valley Farms - Nuwara Eliya',
+        product: 'Passion Fruit - Grade A',
+        quantity: '60kg',
+        price: 'LKR 450.00/kg',
+        harvestDate: '2025-09-23',
+        qualityGrade: 'Grade A',
+        license: 'AG2025123',
+        submitted: '2025-09-22',
+        transport: 'Self Transport',
+        date: '2025-09-26',
+        images: ['Passion+Fruit', 'Quality+Check', 'Packaging'],
+        category: 'raw',
+        status: 'under-review'
+      }
+    ]
+  })
 
-  const [orders, setOrders] = useState([
-    {
-      id: 'O001',
-      customer: 'Asoka Perera',
-      items: '15x Fresh Mango Cordial (Wholesale Discount Applied)',
-      total: 3375.00,
-      payment: 'Completed',
-      status: 'Ready',
-      date: 'Sept 20, 2025'
-    },
-    {
-      id: 'O003',
-      customer: 'Sarah Wilson',
-      items: '8x Mixed Jam Collection',
-      total: 2400.00,
-      payment: 'Pending',
-      status: 'Hold',
-      date: 'Sept 21, 2025'
-    },
-    {
-      id: 'O004',
-      customer: 'ABC Restaurant',
-      items: '25x Chili Sauce (Bulk Order - 10% Discount)',
-      total: 4500.00,
-      payment: 'Completed',
-      status: 'Ready',
-      date: 'Sept 22, 2025'
+  // Load reschedule notifications from localStorage
+  useEffect(() => {
+    const loadNotifications = () => {
+      const storedNotifications = JSON.parse(localStorage.getItem('employee_notifications') || '[]')
+      setNotifications(storedNotifications.filter(n => n.status === 'pending'))
     }
-  ])
+    loadNotifications()
 
-  const [deliveries, setDeliveries] = useState([
-    {
-      id: 'DEL-001',
-      farmer: 'Green Valley Farm',
-      product: 'Fresh Mango - Grade A',
-      quantity: '100kg',
-      proposedDate: 'Oct 22, 2025',
-      scheduleDate: '-',
-      transport: 'Company Truck Pickup',
-      status: 'pending'
-    },
-    {
-      id: 'DEL-004',
-      farmer: 'Sunrise Organic Farm',
-      product: 'Papaya - Grade A',
-      quantity: '80kg',
-      proposedDate: 'Oct 23, 2025',
-      scheduleDate: '-',
-      transport: 'Self Transport',
-      status: 'pending'
-    },
-    {
-      id: 'DEL-002',
-      farmer: 'Green Valley Farm',
-      product: 'Strawberry - Grade A',
-      quantity: '50kg',
-      proposedDate: 'Oct 25, 2025',
-      scheduleDate: 'Oct 25, 2025',
-      transport: 'Self Transport',
-      status: 'confirmed'
-    },
-    {
-      id: 'DEL-003',
-      farmer: 'Green Valley Farm',
-      product: 'Pineapple - Grade B',
-      quantity: '75kg',
-      proposedDate: 'Oct 20, 2025',
-      scheduleDate: 'Oct 20, 2025',
-      transport: 'Company Truck Pickup',
-      status: 'completed'
+    // Poll for new notifications every 5 seconds
+    const interval = setInterval(loadNotifications, 5000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // Generate dashboard alerts automatically
+  useEffect(() => {
+    const alerts = []
+
+    // 1. Check Farmer Products - Sum total stock per fruit type before alerting
+    farmerProducts.forEach(product => {
+      const totalStock = product.batches.reduce((sum, batch) => sum + parseInt(batch.stock), 0)
+
+      // Check for expirations on individual batches (always critical)
+      product.batches.forEach(batch => {
+        if (batch.status === 'critical' && batch.daysUntilExpiry <= 5) {
+          alerts.push({
+            id: `fp-expiry-${batch.id}`,
+            type: 'danger',
+            heading: '⌛ EXPIRY ALERT: FARMER PRODUCT',
+            message: `${product.name} at ${batch.location} expires in ${batch.daysUntilExpiry} days (${batch.stock}).`
+          })
+        }
+      })
+
+      // Check aggregated stock levels
+      if (totalStock < 50) {
+        alerts.push({
+          id: `fp-total-crit-${product.id}`,
+          type: 'danger',
+          heading: '🔴 CRITICAL TOTAL STOCK',
+          message: `Total ${product.name} stock is critically low: only ${totalStock} kg remaining across all locations.`
+        })
+      } else if (totalStock < 100) {
+        alerts.push({
+          id: `fp-total-warn-${product.id}`,
+          type: 'warning',
+          heading: '⚠️ LOW TOTAL STOCK',
+          message: `Total ${product.name} stock is low: ${totalStock} kg remaining. Consider reordering.`
+        })
+      }
+    })
+
+    // 2. Check Finished Products for low stock and expiry
+    finishedProducts.forEach(product => {
+      // Calculate days until Best Before
+      const today = new Date();
+      const bestBeforeDate = new Date(product.bestBefore);
+      const diffTime = bestBeforeDate - today;
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+      // Expiry Alert (5 days before)
+      if (diffDays <= 5 && diffDays >= 0) {
+        alerts.push({
+          id: `gp-expiry-${product.id}`,
+          type: 'danger',
+          heading: '⌛ BEST BEFORE ALERT: FINISHED PRODUCT',
+          message: `${product.name} (Batch ${product.batch}) is approaching its best-before date in ${diffDays} days.`
+        })
+      }
+
+      // Stock Level Alerts
+      if (product.status === 'unit-low') {
+        alerts.push({
+          id: `gp-crit-${product.id}`,
+          type: 'danger',
+          heading: '🔴 CRITICAL STOCK ALERT: FINISHED PRODUCT',
+          message: `${product.name} is extremely low (${product.quantity} units). Batch: ${product.batch}`
+        })
+      } else if (product.status === 'warning') {
+        alerts.push({
+          id: `gp-warn-${product.id}`,
+          type: 'warning',
+          heading: '⚠️ LOW STOCK WARNING: FINISHED PRODUCT',
+          message: `${product.name} stock is decreasing (${product.quantity} units).`
+        })
+      }
+    })
+
+    // 3. Check for Pending Farmer Applications
+    if (supplierApplications.length > 0) {
+      alerts.push({
+        id: 'application-notification',
+        type: 'info',
+        heading: '📢 PENDING FARMER APPLICATIONS',
+        message: `You have ${supplierApplications.length} new supplier applications waiting for review and approval.`
+      })
     }
-  ])
+
+    setDashboardAlerts(alerts)
+  }, [farmerProducts, finishedProducts, supplierApplications])
+
+  // Filtering Logic
+  const filteredFarmerProducts = useMemo(() => {
+    return farmerProducts
+      .filter(p => {
+        const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase())
+        const matchesCategory = !categoryFilter || p.category === categoryFilter
+        const totalStock = p.batches.reduce((sum, b) => sum + parseInt(b.stock), 0)
+
+        let matchesStatus = true
+        if (statusFilter === 'in-stock') matchesStatus = totalStock >= 100
+        if (statusFilter === 'low-stock') matchesStatus = totalStock < 100 && totalStock > 0
+        if (statusFilter === 'out-of-stock') matchesStatus = totalStock === 0
+
+        return matchesSearch && matchesCategory && matchesStatus
+      })
+      .sort((a, b) => {
+        if (sortFilter === 'name-asc') return a.name.localeCompare(b.name)
+        if (sortFilter === 'name-desc') return b.name.localeCompare(a.name)
+
+        const totalA = a.batches.reduce((sum, b) => sum + parseInt(b.stock), 0)
+        const totalB = b.batches.reduce((sum, b) => sum + parseInt(b.stock), 0)
+
+        if (sortFilter === 'low-stock-priority') {
+          // Priority: Critical (3) > Warning (2) > Good (1)
+          const getPriority = (batches) => {
+            if (batches.some(b => b.status === 'critical')) return 3
+            if (batches.some(b => b.status === 'warning')) return 2
+            return 1
+          }
+          return getPriority(b.batches) - getPriority(a.batches) || totalA - totalB
+        }
+
+        if (sortFilter === 'stock-low') return totalA - totalB
+        if (sortFilter === 'stock-high') return totalB - totalA
+        return 0
+      })
+  }, [farmerProducts, searchTerm, categoryFilter, statusFilter, sortFilter])
+
+  const filteredFinishedProducts = useMemo(() => {
+    return finishedProducts
+      .filter(p => {
+        const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase())
+        const matchesCategory = !categoryFilter || p.category === categoryFilter
+
+        let matchesStatus = true
+        if (statusFilter === 'in-stock') matchesStatus = p.quantity >= 100
+        if (statusFilter === 'low-stock') matchesStatus = p.quantity < 100 && p.quantity > 0
+        if (statusFilter === 'out-of-stock') matchesStatus = p.quantity === 0
+
+        return matchesSearch && matchesCategory && matchesStatus
+      })
+      .sort((a, b) => {
+        if (sortFilter === 'name-asc') return a.name.localeCompare(b.name)
+        if (sortFilter === 'name-desc') return b.name.localeCompare(a.name)
+
+        if (sortFilter === 'low-stock-priority') {
+          const statusMap = { 'unit-low': 3, 'warning': 2, 'good': 1 }
+          return (statusMap[b.status] || 0) - (statusMap[a.status] || 0) || a.quantity - b.quantity
+        }
+
+        if (sortFilter === 'stock-low') return a.quantity - b.quantity
+        if (sortFilter === 'stock-high') return b.quantity - a.quantity
+        return 0
+      })
+  }, [finishedProducts, searchTerm, categoryFilter, statusFilter, sortFilter])
+
+  const filteredApplications = useMemo(() => {
+    return supplierApplications
+      .filter(app => {
+        // Show only pending (under-review) applications in this dashboard
+        if (app.status !== 'under-review') return false
+
+        const matchesSearch = app.farmerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          app.product.toLowerCase().includes(searchTerm.toLowerCase())
+        const matchesCategory = !categoryFilter || app.category === categoryFilter
+
+        // Use Status Filter for Quality Grade mapping
+        let matchesStatus = true
+        if (statusFilter === 'in-stock') matchesStatus = app.qualityGrade === 'Grade A'
+        if (statusFilter === 'low-stock') matchesStatus = app.qualityGrade === 'Grade B'
+        if (statusFilter === 'out-of-stock') matchesStatus = app.qualityGrade === 'Grade C'
+
+        return matchesSearch && matchesCategory && matchesStatus
+      })
+      .sort((a, b) => {
+        if (sortFilter === 'name-asc') return a.farmerName.localeCompare(b.farmerName)
+        if (sortFilter === 'name-desc') return b.farmerName.localeCompare(a.farmerName)
+
+        // Date sort (assuming submitted date strings)
+        if (sortFilter === 'newest') return new Date(b.submitted) - new Date(a.submitted)
+
+        // Quantity sort (parsing '200kg' etc)
+        const qtyA = parseInt(a.quantity)
+        const qtyB = parseInt(b.quantity)
+        if (sortFilter === 'stock-low') return qtyA - qtyB
+        if (sortFilter === 'stock-high') return qtyB - qtyA
+
+        // Price sort (parsing 'LKR 180.00/kg')
+        if (sortFilter === 'price-low' || sortFilter === 'price-high') {
+          const parsePrice = (str) => {
+            const match = str.match(/[\d.]+/);
+            return match ? parseFloat(match[0]) : 0;
+          }
+          const priceA = parsePrice(a.price)
+          const priceB = parsePrice(b.price)
+          return sortFilter === 'price-low' ? priceA - priceB : priceB - priceA
+        }
+
+        return 0
+      })
+  }, [supplierApplications, searchTerm, categoryFilter, statusFilter, sortFilter])
+
+
+  const [orders, setOrders] = useState(() => {
+    const saved = localStorage.getItem('order_list')
+    if (saved) return JSON.parse(saved)
+    return [
+      {
+        id: 'O001',
+        customer: 'Asoka Perera',
+        address: '123 Main Street, Colombo',
+        phone: '+94 71 234 5678',
+        items: '15x Fresh Mango Cordial (Wholesale Discount Applied)',
+        total: 3375.00,
+        payment: 'Completed',
+        status: 'Ready',
+        date: 'Sept 20, 2025'
+      },
+      {
+        id: 'O003',
+        customer: 'Sarah Wilson',
+        address: '45 Lake View Road, Kandy',
+        phone: '+94 77 987 6543',
+        items: '8x Mixed Jam Collection',
+        total: 2400.00,
+        payment: 'Pending',
+        status: 'Hold',
+        date: 'Sept 21, 2025'
+      },
+      {
+        id: 'O004',
+        customer: 'ABC Restaurant',
+        address: 'Restaurant Row, Galle Road, Colombo',
+        phone: '+94 11 555 1234',
+        items: '25x Chili Sauce (Bulk Order - 10% Discount)',
+        total: 4500.00,
+        payment: 'Completed',
+        status: 'Ready',
+        date: 'Sept 22, 2025'
+      }
+    ]
+  })
+
+  const [isPackingSlipOpen, setIsPackingSlipOpen] = useState(false)
+
+  const handleProcessOrder = (orderId) => {
+    const order = orders.find(o => o.id === orderId)
+    setSelectedOrder(order)
+    setIsPackingSlipOpen(true)
+  }
+
+  const updateOrderStatus = (orderId, newStatus) => {
+    const updated = orders.map(o =>
+      o.id === orderId ? { ...o, status: newStatus } : o
+    )
+    setOrders(updated)
+    localStorage.setItem('order_list', JSON.stringify(updated))
+
+    // If selecting order being viewed in modal, update it
+    if (selectedOrder && selectedOrder.id === orderId) {
+      setSelectedOrder({ ...selectedOrder, status: newStatus })
+    }
+
+    if (newStatus === 'Completed') {
+      showNotification(`Order #${orderId} fulfilled successfully!`)
+      setIsPackingSlipOpen(false)
+    } else {
+      showNotification(`Order #${orderId} status: ${newStatus}`)
+    }
+  }
+
+  const [deliveries, setDeliveries] = useState(() => {
+    const defaultDeliveries = [
+      { id: 'DEL-1001', farmer: 'Green Valley Farm', product: 'Fresh Mango - Grade A', quantity: '100kg', proposedDate: '2025-10-22', scheduleDate: '-', transport: 'Company Truck Pickup', status: 'pending' },
+      { id: 'DEL-1004', farmer: 'Sunrise Organic Farm', product: 'Papaya - Grade A', quantity: '80kg', proposedDate: '2025-10-23', scheduleDate: '-', transport: 'Self Transport', status: 'pending' },
+      { id: 'DEL-1010', farmer: 'Highland Farms - Nuwara Eliya', product: 'Strawberry - Grade A', quantity: '50kg', proposedDate: '2025-10-25', scheduleDate: '2025-10-27', transport: 'Self Transport', status: 'pending-confirmation' },
+      { id: 'DEL-1015', farmer: 'Golden Valley - Matale', product: 'Passion Fruit - Grade A', quantity: '40kg', proposedDate: '2025-10-28', scheduleDate: '-', transport: 'Company Truck Pickup', status: 'pending' },
+      { id: 'DEL-1020', farmer: 'Mountain Oasis - Badulla', product: 'Papaya - Grade A', quantity: '120kg', proposedDate: '2025-10-20', scheduleDate: '2025-10-22', transport: 'Self Transport', status: 'pending-confirmation' },
+      { id: 'DEL-1025', farmer: 'Valley Greens - Nuwara Eliya', product: 'Pineapple - Grade B', quantity: '90kg', proposedDate: '2025-10-25', scheduleDate: '2025-10-26', transport: 'Company Truck Pickup', status: 'pending-confirmation' }
+    ]
+
+    const saved = localStorage.getItem('delivery_list')
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      // Merge: keep all saved, but ensure the new sample IDs are there if missing
+      const existingIds = new Set(parsed.map(d => d.id))
+      const newItems = defaultDeliveries.filter(d => !existingIds.has(d.id))
+      return [...parsed, ...newItems]
+    }
+    return defaultDeliveries
+  })
+
+  // Auto-save deliveries
+  useEffect(() => {
+    localStorage.setItem('delivery_list', JSON.stringify(deliveries))
+  }, [deliveries])
 
   const showTab = (tabName) => {
     setActiveTab(tabName)
   }
 
   const approveApplication = (farmName) => {
-    if (window.confirm(`Approve application from ${farmName}?\n\nThis will:\n- Accept their product submission\n- Schedule delivery pickup\n- Send confirmation to farmer`)) {
-      alert(`✅ Application from ${farmName} has been approved!\n\nDelivery scheduled for next available slot.\nFarmer will receive confirmation notification.`)
-      // Remove application from list
-      setSupplierApplications(prev => prev.filter(app => app.farmerName !== farmName))
+    const app = supplierApplications.find(a => a.farmerName === farmName)
+    if (!app) return
+    setSelectedApp(app)
+    setCustomScheduleDate(app.date)
+    setIsApproveModalOpen(true)
+  }
+
+  const confirmApproveWithDate = () => {
+    if (!selectedApp || !customScheduleDate) {
+      alert('Please provide a valid schedule date.')
+      return
     }
+
+    const updatedApplications = supplierApplications.map(a =>
+      a.farmerName === selectedApp.farmerName ? {
+        ...a,
+        status: 'selected',
+        scheduleDate: customScheduleDate,
+        originalProposedDate: a.date
+      } : a
+    )
+    setSupplierApplications(updatedApplications)
+    localStorage.setItem('supplier_applications', JSON.stringify(updatedApplications))
+
+    // Also create a entry in Deliveries tab for negotiation
+    const newDelivery = {
+      id: `DEL-${Date.now()}`,
+      farmer: selectedApp.farmerName,
+      product: selectedApp.product,
+      quantity: selectedApp.quantity,
+      proposedDate: selectedApp.date,
+      scheduleDate: customScheduleDate,
+      transport: selectedApp.transport,
+      status: customScheduleDate !== selectedApp.date ? 'pending-confirmation' : 'confirmed'
+    }
+    setDeliveries(prev => [...prev, newDelivery])
+
+    setIsApproveModalOpen(false)
+    showNotification(`Application from ${selectedApp.farmerName} approved!`)
+    setSelectedApp(null)
   }
 
   const rejectApplication = (farmName) => {
     const reason = window.prompt(`Reject application from ${farmName}?\n\nPlease provide reason for rejection:`)
     if (reason && reason.trim()) {
       alert(`❌ Application from ${farmName} has been rejected.\n\nReason: ${reason}\n\nFarmer will receive notification with feedback.`)
-      // Remove application from list
-      setSupplierApplications(prev => prev.filter(app => app.farmerName !== farmName))
+
+      const updatedApplications = supplierApplications.map(app =>
+        app.farmerName === farmName ? { ...app, status: 'not-selected', rejectionReason: reason } : app
+      )
+      setSupplierApplications(updatedApplications)
+      localStorage.setItem('supplier_applications', JSON.stringify(updatedApplications))
     }
   }
 
@@ -286,9 +563,14 @@ const EmployeeDashboard = () => {
 
   const requestScheduleChange = () => {
     if (currentDelivery) {
-      const newDate = window.prompt('Enter the new proposed date (YYYY-MM-DD):')
+      const newDate = window.prompt('Enter the new proposed date (YYYY-MM-DD):', currentDelivery.proposedDate)
       if (newDate) {
-        alert(`Schedule change request sent to farmer.\n\nDelivery ID: ${currentDelivery.id}\nNew Proposed Date: ${newDate}\n\nThe farmer will receive a notification about the requested change.`)
+        setDeliveries(prev => prev.map(d =>
+          d.id === currentDelivery.id
+            ? { ...d, status: 'pending-confirmation', scheduleDate: newDate }
+            : d
+        ))
+        showNotification(`Proposed date updated to ${newDate}`)
         setIsReviewDeliveryOpen(false)
         setCurrentDelivery(null)
       }
@@ -361,15 +643,20 @@ const EmployeeDashboard = () => {
       const newProduct = {
         id: farmerProducts.length + 1,
         name: productName,
-        location: location,
-        expiry: expiryDate,
-        daysUntilExpiry: 'N/A',
-        stock: quantity,
-        reorder: '0',
-        status: 'good'
+        batches: [
+          {
+            id: Date.now(), // Unique ID for the batch
+            location: location,
+            stock: quantity,
+            receivedDate: new Date().toISOString().split('T')[0],
+            expiry: expiryDate,
+            daysUntilExpiry: 'N/A',
+            status: 'good'
+          }
+        ]
       }
       setFarmerProducts(prev => [...prev, newProduct])
-      alert(`✅ New inventory item added!\n\nProduct: ${productName}\nQuantity: ${quantity}\nLocation: ${location}\nExpiry: ${expiryDate}`)
+      alert(`✅ New inventory item added!\n\nProduct: ${productName}\nBatch Location: ${location}\nQuantity: ${quantity}\nExpiry: ${expiryDate}`)
     }
   }
 
@@ -418,6 +705,58 @@ const EmployeeDashboard = () => {
     setIsEditProfileOpen(false)
   }
 
+  const openUpdateModal = (type, item, batch = null) => {
+    setUpdatingItem({
+      type,
+      productId: item.id,
+      productName: item.name,
+      batchId: batch ? batch.id : null,
+      currentQty: batch ? parseInt(batch.stock) : item.quantity,
+      unit: type === 'farmer' ? 'kg' : 'units'
+    })
+    setUpdateAmount('')
+    setIsUpdateStockOpen(true)
+  }
+
+  const handleStockUpdate = (adjustmentType) => {
+    const amount = parseInt(updateAmount)
+    if (isNaN(amount) || amount <= 0) {
+      alert('Please enter a valid positive number.')
+      return
+    }
+
+    const finalAdjustment = adjustmentType === 'add' ? amount : -amount
+
+    if (updatingItem.type === 'farmer') {
+      setFarmerProducts(prev => prev.map(p => {
+        if (p.id === updatingItem.productId) {
+          return {
+            ...p,
+            batches: p.batches.map(b => {
+              if (b.id === updatingItem.batchId) {
+                const newStock = Math.max(0, parseInt(b.stock) + finalAdjustment)
+                return { ...b, stock: `${newStock} kg` }
+              }
+              return b
+            })
+          }
+        }
+        return p
+      }))
+    } else {
+      setFinishedProducts(prev => prev.map(p => {
+        if (p.id === updatingItem.productId) {
+          const newQty = Math.max(0, p.quantity + finalAdjustment)
+          return { ...p, quantity: newQty }
+        }
+        return p
+      }))
+    }
+
+    setIsUpdateStockOpen(false)
+    alert(`Successfully ${adjustmentType === 'add' ? 'added' : 'reduced'} ${amount} ${updatingItem.unit} for ${updatingItem.productName}`)
+  }
+
   return (
     <div className="employee-dashboard">
       {/* Header */}
@@ -451,6 +790,21 @@ const EmployeeDashboard = () => {
         <section className="welcome-section">
           <h1 className="welcome-title">Employee Dashboard</h1>
           <p>Manage inventory, review supplier applications, and oversee manufacturing operations for Laklights Food Products.</p>
+
+          {/* Dashboard Alert Banners */}
+          {dashboardAlerts.length > 0 && (
+            <div className="dashboard-alerts">
+              {dashboardAlerts.map(alert => (
+                <div key={alert.id} className={`alert-banner alert-${alert.type}`}>
+                  <div className="alert-content">
+                    <span className="alert-heading">{alert.heading}</span>
+                    <p className="alert-message">{alert.message}</p>
+                  </div>
+                  <button className="alert-close" onClick={() => setDashboardAlerts(prev => prev.filter(a => a.id !== alert.id))}>×</button>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="stats-grid">
             <div className="stat-card">
@@ -568,7 +922,7 @@ const EmployeeDashboard = () => {
             <div className="dashboard-card" style={{ gridColumn: '1 / -1' }}>
               <div className="card-header">
                 <div className="card-title">
-                  <div className="card-icon">📦</div>
+                  <div className="card-icon"></div>
                   <h2>Current Inventory</h2>
                 </div>
               </div>
@@ -614,6 +968,7 @@ const EmployeeDashboard = () => {
                     onChange={(e) => setSortFilter(e.target.value)}
                   >
                     <option value="">Sort By</option>
+                    <option value="low-stock-priority">Priority: Low Stock First</option>
                     <option value="name-asc">Name: A to Z</option>
                     <option value="name-desc">Name: Z to A</option>
                     <option value="stock-low">Stock: Low to High</option>
@@ -642,22 +997,44 @@ const EmployeeDashboard = () => {
                     </ul>
                   </div>
 
-                  {farmerProducts.map(product => (
-                    <div key={product.id} className="inventory-item">
-                      <div className="inventory-details">
-                        <h4>{product.name}</h4>
-                        <div className="inventory-location">Location: {product.location}</div>
-                        <div>Expiry: {product.expiry} ({product.daysUntilExpiry} days)</div>
+                  {filteredFarmerProducts.length > 0 ? (
+                    filteredFarmerProducts.map(product => (
+                      <div key={product.id} className="inventory-item nested-inventory">
+                        <div className="inventory-header">
+                          <h4>{product.name}</h4>
+                          <span className="total-stock-label">
+                            Total: {product.batches.reduce((sum, b) => sum + parseInt(b.stock), 0)} kg
+                          </span>
+                        </div>
+
+                        <div className="batch-list">
+                          {product.batches.map(batch => (
+                            <div key={batch.id} className="batch-item">
+                              <div className="batch-info">
+                                <div className="batch-meta">
+                                  <strong>Location:</strong> {batch.location}
+                                </div>
+                                <div className="batch-meta">
+                                  <span>Rec: {batch.receivedDate}</span> | <span>Exp: {batch.expiry} ({batch.daysUntilExpiry}d)</span>
+                                </div>
+                              </div>
+                              <div className={`stock-level stock-${batch.status}`}>{batch.stock}</div>
+                              <button
+                                className={`btn btn-${batch.status === 'critical' ? 'danger' : batch.status === 'warning' ? 'primary' : 'success'} btn-small`}
+                                onClick={() => openUpdateModal('farmer', product, batch)}
+                              >
+                                Update
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                      <div className={`stock-level stock-${product.status}`}>{product.stock}</div>
-                      <div>Reorder: {product.reorder}</div>
-                      <div>
-                        <button className={`btn btn-${product.status === 'critical' ? 'danger' : product.status === 'warning' ? 'primary' : 'success'} btn-small`}>
-                          Update
-                        </button>
-                      </div>
+                    ))
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '2rem', color: '#888' }}>
+                      No matching farmer products found.
                     </div>
-                  ))}
+                  )}
                 </div>
 
                 {/* Finished Products Column */}
@@ -679,22 +1056,31 @@ const EmployeeDashboard = () => {
                     </ul>
                   </div>
 
-                  {finishedProducts.map(product => (
-                    <div key={product.id} className="inventory-item">
-                      <div className="inventory-details">
-                        <h4>{product.name}</h4>
-                        <div className="inventory-location">Location: {product.location}</div>
-                        <div>Batch: {product.batch} | Manufactured: {product.manufactured} | Best Before: {product.bestBefore}</div>
-                        <div>Current Quantity: {product.quantity} units</div>
+                  {filteredFinishedProducts.length > 0 ? (
+                    filteredFinishedProducts.map(product => (
+                      <div key={product.id} className="inventory-item">
+                        <div className="inventory-details">
+                          <h4>{product.name}</h4>
+                          <div className="inventory-location">Location: {product.location}</div>
+                          <div>Batch: {product.batch} | Manufactured: {product.manufactured} | Best Before: {product.bestBefore}</div>
+                          <div>Current Quantity: {product.quantity} units</div>
+                        </div>
+                        <div className={`stock-level stock-${product.status}`}>{product.quantity} units</div>
+                        <div>
+                          <button
+                            className={`btn btn-${product.status === 'unit-low' ? 'danger' : product.status === 'warning' ? 'primary' : 'success'} btn-small`}
+                            onClick={() => openUpdateModal('finished', product)}
+                          >
+                            Update
+                          </button>
+                        </div>
                       </div>
-                      <div className={`stock-level stock-${product.status}`}>{product.quantity} units</div>
-                      <div>
-                        <button className={`btn btn-${product.status === 'unit-low' ? 'danger' : product.status === 'warning' ? 'primary' : 'success'} btn-small`}>
-                          Details
-                        </button>
-                      </div>
+                    ))
+                  ) : (
+                    <div style={{ textAlign: 'center', padding: '2rem', color: '#888' }}>
+                      No matching finished products found.
                     </div>
-                  ))}
+                  )}
                 </div>
               </div>
             </div>
@@ -707,51 +1093,104 @@ const EmployeeDashboard = () => {
             <div className="dashboard-card" style={{ gridColumn: '1 / -1' }}>
               <div className="card-header">
                 <div className="card-title">
-                  <div className="card-icon">🌾</div>
+                  <div className="card-icon"></div>
                   <h2>Pending Supplier Applications</h2>
                 </div>
               </div>
 
-              {supplierApplications.map(app => (
-                <div key={app.id} className="application-item">
-                  <div className="farmer-name">{app.farmerName}</div>
-                  <p><strong>Product:</strong> {app.product}</p>
-                  <p><strong>Quantity:</strong> {app.quantity} | <strong>Price:</strong> {app.price}</p>
-                  <p><strong>Harvest Date:</strong> {app.harvestDate} | <strong>Quality Grade:</strong> {app.qualityGrade}</p>
-                  <p><strong>License:</strong> {app.license} | <strong>Submitted:</strong> {app.submitted}</p>
-                  <p><strong>Transport:</strong> {app.transport} | <strong>Date:</strong> {app.date}</p>
+              {/* Application Search & Filters */}
+              <div className="inventory-search">
+                <div className="search-box">
+                  <input
+                    type="text"
+                    className="search-input"
+                    placeholder="Search by farmer name or product..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                  <button className="btn-search">Search</button>
+                </div>
+                <div className="inventory-filters">
+                  <select
+                    className="filter-select"
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value)}
+                  >
+                    <option value="">All Categories</option>
+                    <option value="raw">Raw Materials</option>
+                    <option value="processed">Processed Products</option>
+                  </select>
+                  <select
+                    className="filter-select"
+                    value={statusFilter}
+                    onChange={(e) => setStatusFilter(e.target.value)}
+                  >
+                    <option value="">Quality Level</option>
+                    <option value="in-stock">Grade A</option>
+                    <option value="low-stock">Grade B</option>
+                    <option value="out-of-stock">Grade C</option>
+                  </select>
+                  <select
+                    className="filter-select"
+                    value={sortFilter}
+                    onChange={(e) => setSortFilter(e.target.value)}
+                  >
+                    <option value="">Sort By</option>
+                    <option value="newest">Newest First</option>
+                    <option value="name-asc">Farmer: A-Z</option>
+                    <option value="price-low">Price: Low to High</option>
+                    <option value="price-high">Price: High to Low</option>
+                    <option value="stock-high">Quantity: High-Low</option>
+                  </select>
+                </div>
+              </div>
 
-                  <div className="submitted-images">
-                    <p><strong>Submitted Images:</strong></p>
-                    <div className="image-gallery">
-                      {app.images.map((img, idx) => (
-                        <img
-                          key={idx}
-                          src={`https://via.placeholder.com/150x150?text=${img}`}
-                          alt={`Product Image ${idx + 1}`}
-                          className="product-thumbnail"
-                        />
-                      ))}
+              {filteredApplications.length > 0 ? (
+                filteredApplications.map(app => (
+                  <div key={app.id} className="application-item">
+                    <div className="farmer-name">{app.farmerName}</div>
+                    <p><strong>Product:</strong> {app.product}</p>
+                    <p><strong>Quantity:</strong> {app.quantity} | <strong>Price:</strong> {app.price}</p>
+                    <p><strong>Harvest Date:</strong> {app.harvestDate} | <strong>Quality Grade:</strong> {app.qualityGrade}</p>
+                    <p><strong>License:</strong> {app.license} | <strong>Submitted:</strong> {app.submitted}</p>
+                    <p><strong>Transport:</strong> {app.transport} | <strong>Date:</strong> {app.date}</p>
+
+                    <div className="submitted-images">
+                      <p><strong>Submitted Images:</strong></p>
+                      <div className="image-gallery">
+                        {app.images.map((img, idx) => (
+                          <img
+                            key={idx}
+                            src={`https://via.placeholder.com/150x150?text=${img}`}
+                            alt={`Product Image ${idx + 1}`}
+                            className="product-thumbnail"
+                          />
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="application-actions">
+                      <button
+                        className="btn btn-success btn-small"
+                        onClick={() => approveApplication(app.farmerName)}
+                      >
+                        Approve & Schedule
+                      </button>
+                      <button
+                        className="btn btn-danger btn-small"
+                        onClick={() => rejectApplication(app.farmerName)}
+                      >
+                        Reject
+                      </button>
+                      <button className="btn btn-secondary btn-small">View Details</button>
                     </div>
                   </div>
-
-                  <div className="application-actions">
-                    <button
-                      className="btn btn-success btn-small"
-                      onClick={() => approveApplication(app.farmerName)}
-                    >
-                      Approve & Schedule
-                    </button>
-                    <button
-                      className="btn btn-danger btn-small"
-                      onClick={() => rejectApplication(app.farmerName)}
-                    >
-                      Reject
-                    </button>
-                    <button className="btn btn-secondary btn-small">View Details</button>
-                  </div>
+                ))
+              ) : (
+                <div style={{ textAlign: 'center', padding: '3rem', color: '#888' }}>
+                  No pending supplier applications match your criteria.
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
@@ -759,32 +1198,84 @@ const EmployeeDashboard = () => {
         {/* Order Management Tab */}
         <div className={`tab-content ${activeTab === 'orders' ? 'active' : ''}`}>
           <div className="dashboard-grid">
+            {/* Processing Orders List */}
             <div className="dashboard-card" style={{ gridColumn: '1 / -1' }}>
               <div className="card-header">
                 <div className="card-title">
-                  <div className="card-icon">📋</div>
+                  <div className="card-icon"></div>
                   <h2>Processing Orders</h2>
                 </div>
               </div>
 
-              {orders.map(order => (
-                <div key={order.id} className="inventory-item">
-                  <div className="inventory-details">
-                    <h4>Order #{order.id} - {order.customer}</h4>
-                    <div>{order.items}</div>
-                    <div>Total: LKR {order.total.toFixed(2)} | Payment: {order.payment}</div>
+              {orders.filter(o => o.status !== 'Completed').length > 0 ? (
+                orders.filter(o => o.status !== 'Completed').map(order => (
+                  <div key={order.id} className="inventory-item">
+                    <div className="inventory-details">
+                      <h4>Order #{order.id} - {order.customer}</h4>
+                      <div>{order.items}</div>
+                      <div>Total: LKR {order.total.toFixed(2)} | Payment: {order.payment}</div>
+                    </div>
+                    <div className={`stock-level stock-${order.status === 'Ready' ? 'good' : 'low'}`} style={{
+                      background: order.status === 'Packing' ? '#fff3cd' : order.status === 'Delivering' ? '#e3f2fd' : '',
+                      color: order.status === 'Packing' ? '#856404' : order.status === 'Delivering' ? '#0d47a1' : ''
+                    }}>
+                      {order.status}
+                    </div>
+                    <div>{order.date}</div>
+                    <div>
+                      <button
+                        className={`btn btn-${order.status === 'Ready' ? 'primary' : 'secondary'} btn-small`}
+                        onClick={() => handleProcessOrder(order.id)}
+                      >
+                        {order.status === 'Ready' ? 'Process Fulfillment' : 'Update Status'}
+                      </button>
+                    </div>
                   </div>
-                  <div className={`stock-level stock-${order.status === 'Ready' ? 'good' : 'low'}`}>
-                    {order.status}
-                  </div>
-                  <div>{order.date}</div>
-                  <div>
-                    <button className={`btn btn-${order.status === 'Ready' ? 'primary' : 'secondary'} btn-small`}>
-                      {order.status === 'Ready' ? 'Process' : 'On Hold'}
-                    </button>
-                  </div>
+                ))
+              ) : (
+                <div style={{ textAlign: 'center', padding: '2rem', color: '#888' }}>
+                  No active orders to process.
                 </div>
-              ))}
+              )}
+            </div>
+
+            {/* Completed Orders History */}
+            <div className="dashboard-card" style={{ gridColumn: '1 / -1', marginTop: '2rem' }}>
+              <div className="card-header" style={{ borderBottom: '2px solid #e0e0e0' }}>
+                <div className="card-title">
+                  <div className="card-icon"></div>
+                  <h2>Order History (Completed)</h2>
+                </div>
+              </div>
+
+              <div className="deliveries-table">
+                <div className="deliveries-header">
+                  <div className="delivery-col">Order ID</div>
+                  <div className="delivery-col">Customer</div>
+                  <div className="delivery-col">Items</div>
+                  <div className="delivery-col">Total</div>
+                  <div className="delivery-col">Date</div>
+                  <div className="delivery-col">Status</div>
+                </div>
+                {orders.filter(o => o.status === 'Completed').length > 0 ? (
+                  orders.filter(o => o.status === 'Completed').map(order => (
+                    <div key={order.id} className="delivery-row">
+                      <div className="delivery-col"><strong>{order.id}</strong></div>
+                      <div className="delivery-col">{order.customer}</div>
+                      <div className="delivery-col" style={{ fontSize: '0.85rem' }}>{order.items}</div>
+                      <div className="delivery-col">LKR {order.total.toFixed(2)}</div>
+                      <div className="delivery-col">{order.date}</div>
+                      <div className="delivery-col">
+                        <span className="status-badge status-confirmed">Fulfilled</span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '3rem', color: '#888', gridColumn: '1 / -1' }}>
+                    No completed orders found in history.
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -842,6 +1333,7 @@ const EmployeeDashboard = () => {
                         <td>
                           <span className={`status-badge status-${delivery.status}`}>
                             {delivery.status === 'pending' && 'Pending Review'}
+                            {delivery.status === 'pending-confirmation' && 'Pending Date Confirmation'}
                             {delivery.status === 'confirmed' && 'Confirmed'}
                             {delivery.status === 'completed' && 'Completed'}
                             {delivery.status === 'cancelled' && 'Cancelled'}
@@ -855,6 +1347,26 @@ const EmployeeDashboard = () => {
                             >
                               Review
                             </button>
+                          )}
+                          {delivery.status === 'pending-confirmation' && (
+                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                              <button
+                                className="btn-action btn-confirm"
+                                onClick={() => {
+                                  setDeliveries(prev => prev.map(d => d.id === delivery.id ? { ...d, status: 'confirmed', scheduleDate: d.scheduleDate } : d))
+                                  showNotification('Schedule accepted!')
+                                }}
+                              >
+                                Accept
+                              </button>
+                              <button
+                                className="btn-action btn-reschedule"
+                                style={{ background: '#ff9800' }}
+                                onClick={() => reviewDelivery(delivery.id)}
+                              >
+                                Date Reschedule
+                              </button>
+                            </div>
                           )}
                           {delivery.status === 'confirmed' && (
                             <>
@@ -1126,6 +1638,206 @@ const EmployeeDashboard = () => {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Stock Update Modal */}
+      {isUpdateStockOpen && updatingItem && (
+        <div className="modal" style={{ display: 'block' }}>
+          <div className="modal-content" style={{ maxWidth: '400px' }}>
+            <div className="modal-header">
+              <h2 className="modal-title">Update Stock Level</h2>
+              <button className="close" onClick={() => setIsUpdateStockOpen(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <div style={{ marginBottom: '1.5rem', textAlign: 'center' }}>
+                <h3 style={{ color: '#2e7d32' }}>{updatingItem.productName}</h3>
+                <p style={{ color: '#666' }}>Current Stock: <strong>{updatingItem.currentQty} {updatingItem.unit}</strong></p>
+                {updatingItem.batchId && <small>Batch ID: {updatingItem.batchId}</small>}
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '1rem' }}>
+                <label>Enter Amount to Adjust ({updatingItem.unit}):</label>
+                <input
+                  type="number"
+                  className="search-input"
+                  style={{ borderRadius: '8px', padding: '0.8rem' }}
+                  placeholder="e.g. 10"
+                  value={updateAmount}
+                  onChange={(e) => setUpdateAmount(e.target.value)}
+                  min="1"
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <button
+                  className="btn btn-success"
+                  style={{ background: '#2e7d32' }}
+                  onClick={() => handleStockUpdate('add')}
+                >
+                  ➕ Add Stock
+                </button>
+                <button
+                  className="btn btn-danger"
+                  style={{ background: '#dc3545' }}
+                  onClick={() => handleStockUpdate('reduce')}
+                >
+                  ➖ Reduce Stock
+                </button>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-cancel" onClick={() => setIsUpdateStockOpen(false)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Packing Slip & Order details Modal */}
+      {isPackingSlipOpen && selectedOrder && (
+        <div className="modal" style={{ display: 'block' }}>
+          <div className="modal-content" style={{ maxWidth: '700px' }}>
+            <div className="modal-header">
+              <h2 className="modal-title">📦 Order Packing Slip</h2>
+              <button className="close" onClick={() => setIsPackingSlipOpen(false)}>×</button>
+            </div>
+            <div className="modal-body" id="printable-label">
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '2rem', borderBottom: '2px solid #eee', paddingBottom: '1rem' }}>
+                <div>
+                  <h3 style={{ color: '#2e7d32', margin: 0 }}>LAKLIGHT FOODS</h3>
+                  <p style={{ margin: 0, fontSize: '0.85rem' }}>Operations & Fulfillment</p>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <h4 style={{ margin: 0 }}>Order #{selectedOrder.id}</h4>
+                  <p style={{ margin: 0, color: '#666' }}>{selectedOrder.date}</p>
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginBottom: '2rem' }}>
+                <div>
+                  <h4 style={{ color: '#666', borderBottom: '1px solid #ddd', paddingBottom: '0.5rem' }}>Shipping Address</h4>
+                  <p style={{ margin: '0.5rem 0', fontWeight: 'bold' }}>{selectedOrder.customer}</p>
+                  <p style={{ margin: '0' }}>{selectedOrder.address}</p>
+                  <p style={{ margin: '0.5rem 0' }}>Phone: {selectedOrder.phone}</p>
+                </div>
+                <div style={{ background: '#f9f9f9', padding: '1rem', borderRadius: '8px' }}>
+                  <h4 style={{ color: '#666', margin: '0 0 0.5rem 0' }}>Fulfillment Status</h4>
+                  <select
+                    className="filter-select"
+                    style={{ width: '100%', padding: '0.8rem', borderRadius: '8px' }}
+                    value={selectedOrder.status}
+                    onChange={(e) => updateOrderStatus(selectedOrder.id, e.target.value)}
+                  >
+                    <option value="Ready">Ready to Process</option>
+                    <option value="Packing">📦 Packing in Progress</option>
+                    <option value="Delivering">🚚 Out for Delivery</option>
+                    <option value="Completed">✅ Fully Fulfilled</option>
+                    <option value="Hold">⚠️ On Hold</option>
+                  </select>
+                </div>
+              </div>
+
+              <h4 style={{ color: '#666' }}>Order Items</h4>
+              <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: '2rem' }}>
+                <thead>
+                  <tr style={{ background: '#f5f5f5', textAlign: 'left' }}>
+                    <th style={{ padding: '0.8rem' }}>Description</th>
+                    <th style={{ padding: '0.8rem' }}>Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td style={{ padding: '1rem', borderBottom: '1px solid #eee' }}>{selectedOrder.items}</td>
+                    <td style={{ padding: '1rem', borderBottom: '1px solid #eee', fontWeight: 'bold' }}>LKR {selectedOrder.total.toFixed(2)}</td>
+                  </tr>
+                </tbody>
+              </table>
+
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <button
+                  className="btn btn-primary"
+                  style={{ flex: 1, background: '#1976d2' }}
+                  onClick={() => window.print()}
+                >
+                  🖨️ Print Packing Label
+                </button>
+                <button
+                  className="btn btn-save"
+                  style={{ flex: 1 }}
+                  onClick={() => setIsPackingSlipOpen(false)}
+                >
+                  Keep Working
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Approve Application Modal */}
+      {isApproveModalOpen && selectedApp && (
+        <div className="modal" style={{ display: 'block' }}>
+          <div className="modal-content" style={{ maxWidth: '500px' }}>
+            <div className="modal-header">
+              <h2 className="modal-title">Approve & Schedule</h2>
+              <button className="close" onClick={() => setIsApproveModalOpen(false)}>×</button>
+            </div>
+            <div className="modal-body">
+              <div style={{ marginBottom: '1.5rem' }}>
+                <h3 style={{ color: '#2e7d32' }}>{selectedApp.farmerName}</h3>
+                <p>Product: <strong>{selectedApp.product}</strong> ({selectedApp.quantity})</p>
+              </div>
+
+              <div style={{ background: '#fff3cd', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', borderLeft: '4px solid #ffc107' }}>
+                <p style={{ margin: 0 }}><strong>Farmer's Proposed Date:</strong> {selectedApp.date}</p>
+              </div>
+
+              <div className="form-group">
+                <label>Confirmed Schedule Date:</label>
+                <input
+                  type="date"
+                  className="search-input"
+                  style={{ borderRadius: '8px', padding: '0.8rem', width: '100%' }}
+                  value={customScheduleDate}
+                  onChange={(e) => setCustomScheduleDate(e.target.value)}
+                  required
+                />
+                <small style={{ color: '#666' }}>You can adjust the date if needed before confirming.</small>
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-cancel" onClick={() => setIsApproveModalOpen(false)}>
+                Cancel
+              </button>
+              <button className="btn btn-save" onClick={confirmApproveWithDate}>
+                Approve & Schedule
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Notification Toast */}
+      {successMessage && (
+        <div className="success-toast" style={{
+          position: 'fixed',
+          bottom: '2rem',
+          right: '2rem',
+          background: '#2e7d32',
+          color: 'white',
+          padding: '1rem 2rem',
+          borderRadius: '12px',
+          boxShadow: '0 8px 16px rgba(0,0,0,0.2)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '1rem',
+          zIndex: 9999,
+          animation: 'slideUp 0.3s ease-out'
+        }}>
+          <span style={{ fontSize: '1.5rem' }}>✅</span>
+          <strong>{successMessage}</strong>
         </div>
       )}
 

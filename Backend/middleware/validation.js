@@ -4,9 +4,9 @@ const { body, param, query, validationResult } = require('express-validator');
 exports.validate = (req, res, next) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ 
+    return res.status(400).json({
       success: false,
-      errors: errors.array() 
+      errors: errors.array()
     });
   }
   next();
@@ -18,7 +18,7 @@ exports.registerValidation = [
   body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
   body('phone').notEmpty().withMessage('Phone number is required'),
   body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
-  body('userType').isIn(['customer', 'farmer', 'employee', 'administrator']).withMessage('Invalid user type')
+  body('userType').isIn(['customer', 'farmer', 'employee', 'admin']).withMessage('Invalid user type')
 ];
 
 // Login validation

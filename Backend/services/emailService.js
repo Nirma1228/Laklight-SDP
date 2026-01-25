@@ -1,14 +1,23 @@
 const nodemailer = require('nodemailer');
+require('dotenv').config();
+
+// Debug logs for initialization
+console.log('📧 Email Service Initializing...');
+console.log('   Host:', process.env.EMAIL_HOST || 'smtp-relay.brevo.com');
+console.log('   User:', process.env.EMAIL_USER || 'Not set');
 
 // Brevo SMTP Configuration
 const transporter = nodemailer.createTransport({
   host: process.env.EMAIL_HOST || 'smtp-relay.brevo.com',
   port: parseInt(process.env.EMAIL_PORT) || 587,
-  secure: false, // true for 465, false for other ports
+  secure: process.env.EMAIL_PORT === '465',
   auth: {
-    user: process.env.EMAIL_USER || 'a0bfd6001@smtp-brevo.com',
+    user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASSWORD
-  }
+  },
+  // Add timeouts to prevent hanging
+  connectionTimeout: 10000,
+  greetingTimeout: 10000
 });
 
 // Generate 6-digit OTP
@@ -18,9 +27,13 @@ const generateOTP = () => {
 
 // Send OTP Email
 const sendOTPEmail = async (email, fullName, otp) => {
+  console.log(`✉️ Attempting to send OTP to: ${email}...`);
   try {
+    const fromAddress = process.env.EMAIL_FROM || process.env.EMAIL_USER;
+    const fromName = process.env.EMAIL_FROM_NAME || 'Laklight Food Products';
+
     const mailOptions = {
-      from: `"${process.env.EMAIL_FROM_NAME || 'Laklight Food Products'}" <${process.env.EMAIL_USER || 'a0bfd6001@smtp-brevo.com'}>`,
+      from: `"${fromName}" <${fromAddress}>`,
       to: email,
       subject: '🔐 Email Verification - Laklight Food Products',
       html: `
@@ -181,10 +194,17 @@ const sendOTPEmail = async (email, fullName, otp) => {
     };
 
     const info = await transporter.sendMail(mailOptions);
-    console.log('OTP Email sent:', info.messageId);
+    console.log('✅ OTP Email sent successfully! Message ID:', info.messageId);
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('Error sending OTP email:', error);
+    console.error('❌ Error sending OTP email:');
+    console.error('   Code:', error.code);
+    console.error('   Message:', error.message);
+
+    if (error.code === 'EAUTH') {
+      console.error('   ⚠️ AUTHENTICATION FAILED: Check your EMAIL_PASSWORD in .env');
+    }
+
     throw error;
   }
 };

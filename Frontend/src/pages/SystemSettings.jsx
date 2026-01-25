@@ -36,12 +36,12 @@ function SystemSettings() {
   });
 
   const toggleSwitch = (key) => {
-    setToggles({...toggles, [key]: !toggles[key]});
+    setToggles({ ...toggles, [key]: !toggles[key] });
   };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setSettings({...settings, [name]: value});
+    setSettings({ ...settings, [name]: value });
   };
 
   const handleSave = (section) => {
@@ -51,53 +51,51 @@ function SystemSettings() {
   return (
     <div className="system-settings">
       <Header isLoggedIn={true} />
-      
-      <main className="main-content">
-        <div className="settings-header">
-          <h1>System Settings</h1>
-          <p>Configure and manage all aspects of the Laklight Food Products digital platform.</p>
-        </div>
 
+      <main className="main-content">
         <div className="settings-layout">
           {/* Settings Navigation */}
           <nav className="settings-nav">
-            <a 
-              href="#general" 
+            <div className="nav-header" style={{ padding: '0 1.5rem 1rem', borderBottom: '1px solid #eee', marginBottom: '1rem' }}>
+              <h2 style={{ fontSize: '1.2rem', color: '#2e7d32', margin: 0 }}>Settings</h2>
+            </div>
+            <a
+              href="#general"
               className={`settings-nav-item ${activeSection === 'general' ? 'active' : ''}`}
               onClick={(e) => { e.preventDefault(); setActiveSection('general'); }}
             >
               General Settings
             </a>
-            <a 
-              href="#ecommerce" 
+            <a
+              href="#ecommerce"
               className={`settings-nav-item ${activeSection === 'ecommerce' ? 'active' : ''}`}
               onClick={(e) => { e.preventDefault(); setActiveSection('ecommerce'); }}
             >
               E-commerce
             </a>
-            <a 
-              href="#inventory" 
+            <a
+              href="#inventory"
               className={`settings-nav-item ${activeSection === 'inventory' ? 'active' : ''}`}
               onClick={(e) => { e.preventDefault(); setActiveSection('inventory'); }}
             >
               Inventory Management
             </a>
-            <a 
-              href="#suppliers" 
+            <a
+              href="#suppliers"
               className={`settings-nav-item ${activeSection === 'suppliers' ? 'active' : ''}`}
               onClick={(e) => { e.preventDefault(); setActiveSection('suppliers'); }}
             >
               Supplier Management
             </a>
-            <a 
-              href="#payments" 
+            <a
+              href="#payments"
               className={`settings-nav-item ${activeSection === 'payments' ? 'active' : ''}`}
               onClick={(e) => { e.preventDefault(); setActiveSection('payments'); }}
             >
               Payment Settings
             </a>
-            <a 
-              href="#security" 
+            <a
+              href="#security"
               className={`settings-nav-item ${activeSection === 'security' ? 'active' : ''}`}
               onClick={(e) => { e.preventDefault(); setActiveSection('security'); }}
             >
@@ -120,17 +118,17 @@ function SystemSettings() {
                   <div className="form-row">
                     <div className="form-group">
                       <label>Company Name</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         name="companyName"
-                        value={settings.companyName} 
+                        value={settings.companyName}
                         onChange={handleInputChange}
                       />
                     </div>
                     <div className="form-group">
                       <label>Contact Email</label>
-                      <input 
-                        type="email" 
+                      <input
+                        type="email"
                         name="companyEmail"
                         value={settings.companyEmail}
                         onChange={handleInputChange}
@@ -140,8 +138,8 @@ function SystemSettings() {
                   <div className="form-row">
                     <div className="form-group">
                       <label>Phone Number</label>
-                      <input 
-                        type="tel" 
+                      <input
+                        type="tel"
                         name="companyPhone"
                         value={settings.companyPhone}
                         onChange={handleInputChange}
@@ -149,8 +147,8 @@ function SystemSettings() {
                     </div>
                     <div className="form-group">
                       <label>Website URL</label>
-                      <input 
-                        type="url" 
+                      <input
+                        type="url"
                         name="companyWebsite"
                         value={settings.companyWebsite}
                         onChange={handleInputChange}
@@ -202,7 +200,7 @@ function SystemSettings() {
                       <h4>Enable Online Store</h4>
                       <p>Allow customers to place orders through the website</p>
                     </div>
-                    <div 
+                    <div
                       className={`toggle-switch ${toggles.onlineStore ? 'active' : ''}`}
                       onClick={() => toggleSwitch('onlineStore')}
                     />
@@ -212,7 +210,7 @@ function SystemSettings() {
                       <h4>Wholesale Pricing</h4>
                       <p>Enable automatic discounts for bulk orders (12+ items)</p>
                     </div>
-                    <div 
+                    <div
                       className={`toggle-switch ${toggles.wholesalePricing ? 'active' : ''}`}
                       onClick={() => toggleSwitch('wholesalePricing')}
                     />
@@ -222,7 +220,7 @@ function SystemSettings() {
                       <h4>Guest Checkout</h4>
                       <p>Allow customers to checkout without creating an account</p>
                     </div>
-                    <div 
+                    <div
                       className={`toggle-switch ${toggles.guestCheckout ? 'active' : ''}`}
                       onClick={() => toggleSwitch('guestCheckout')}
                     />
@@ -234,8 +232,8 @@ function SystemSettings() {
                   <div className="form-row">
                     <div className="form-group">
                       <label>Wholesale Threshold (Items)</label>
-                      <input 
-                        type="number" 
+                      <input
+                        type="number"
                         name="wholesaleThreshold"
                         value={settings.wholesaleThreshold}
                         onChange={handleInputChange}
@@ -244,8 +242,8 @@ function SystemSettings() {
                     </div>
                     <div className="form-group">
                       <label>Wholesale Discount (%)</label>
-                      <input 
-                        type="number" 
+                      <input
+                        type="number"
                         name="wholesaleDiscount"
                         value={settings.wholesaleDiscount}
                         onChange={handleInputChange}
@@ -279,7 +277,7 @@ function SystemSettings() {
                       <h4>Low Stock Alerts</h4>
                       <p>Notify when product quantity falls below threshold</p>
                     </div>
-                    <div 
+                    <div
                       className={`toggle-switch ${toggles.lowStockAlerts ? 'active' : ''}`}
                       onClick={() => toggleSwitch('lowStockAlerts')}
                     />
@@ -289,7 +287,7 @@ function SystemSettings() {
                       <h4>Expiry Date Alerts</h4>
                       <p>Send notifications for products nearing expiry</p>
                     </div>
-                    <div 
+                    <div
                       className={`toggle-switch ${toggles.expiryDateAlerts ? 'active' : ''}`}
                       onClick={() => toggleSwitch('expiryDateAlerts')}
                     />
@@ -349,7 +347,7 @@ function SystemSettings() {
                       <h4>Cash on Delivery</h4>
                       <p>Accept cash payments upon delivery</p>
                     </div>
-                    <div 
+                    <div
                       className={`toggle-switch ${toggles.cashOnDelivery ? 'active' : ''}`}
                       onClick={() => toggleSwitch('cashOnDelivery')}
                     />
@@ -359,7 +357,7 @@ function SystemSettings() {
                       <h4>Online Banking</h4>
                       <p>Enable online banking payments</p>
                     </div>
-                    <div 
+                    <div
                       className={`toggle-switch ${toggles.onlineBanking ? 'active' : ''}`}
                       onClick={() => toggleSwitch('onlineBanking')}
                     />
@@ -369,7 +367,7 @@ function SystemSettings() {
                       <h4>Card Payments</h4>
                       <p>Accept Visa, MasterCard, and other card payments</p>
                     </div>
-                    <div 
+                    <div
                       className={`toggle-switch ${toggles.cardPayments ? 'active' : ''}`}
                       onClick={() => toggleSwitch('cardPayments')}
                     />

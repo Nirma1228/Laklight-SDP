@@ -34,6 +34,7 @@ function FarmerDashboard() {
 
   const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false)
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
+  const [isEditingProfile, setIsEditingProfile] = useState(false)
   const [selectedDelivery, setSelectedDelivery] = useState(null)
   const [newDeliveryDate, setNewDeliveryDate] = useState('')
   const [notifications, setNotifications] = useState([])
@@ -47,6 +48,12 @@ function FarmerDashboard() {
     licenseNumber: 'PENDING',
     memberSince: '',
     qualityRating: 'N/A'
+  })
+
+  const [editFormData, setEditFormData] = useState({
+    fullName: '',
+    phone: '',
+    address: ''
   })
 
   // Fetch farmer profile from backend
@@ -80,69 +87,156 @@ function FarmerDashboard() {
     }
   };
 
-  const [submissions, setSubmissions] = useState([
-    {
-      id: 1,
-      product: 'Fresh Mango',
-      grade: 'Grade A',
-      quantity: '100kg',
-      price: 'LKR 200.00/kg',
-      harvestDate: '2025-09-18',
-      status: 'selected',
-      date: '2025-09-15'
-    },
-    {
-      id: 2,
-      product: 'Strawberry',
-      grade: 'Grade A',
-      quantity: '50kg',
-      price: 'LKR 400.00/kg',
-      harvestDate: '2025-09-20',
-      status: 'under-review',
-      date: '2025-09-19'
-    },
-    {
-      id: 3,
-      product: 'Pineapple',
-      grade: 'Grade B',
-      quantity: '75kg',
-      price: 'LKR 180.00/kg',
-      harvestDate: '2025-09-10',
-      status: 'not-selected',
-      date: '2025-09-08',
-      rejectionReason: 'Quality does not meet Grade A standards. Product shows signs of early ripening and minor surface blemishes. Please ensure proper harvest timing for future submissions.'
+  const handleEditToggle = (e) => {
+    if (e) e.preventDefault();
+    if (!isEditingProfile) {
+      // Entering edit mode - initialize form data with current profile values
+      setEditFormData({
+        fullName: farmerProfile.fullName,
+        phone: farmerProfile.phone,
+        address: farmerProfile.address
+      })
     }
-  ])
+    setIsEditingProfile(!isEditingProfile)
+  }
 
-  const [deliveries, setDeliveries] = useState([
-    {
-      id: 'DEL-001',
-      product: 'Fresh Mango - Grade A',
-      quantity: '100kg',
-      proposedDate: 'Oct 22, 2025',
-      scheduleDate: '',
-      transportMethod: 'Company Truck Pickup',
-      status: 'pending'
-    },
-    {
-      id: 'DEL-002',
-      product: 'Strawberry - Grade A',
-      quantity: '50kg',
-      proposedDate: 'Oct 25, 2025',
-      scheduleDate: 'Oct 25, 2025',
-      transportMethod: 'Self Transport',
-      status: 'confirmed'
-    },
-    {
-      id: 'DEL-003',
-      product: 'Pineapple - Grade B',
-      quantity: '75kg',
-      proposedDate: 'Oct 20, 2025',
-      scheduleDate: 'Oct 20, 2025',
-      transportMethod: 'Company Truck Pickup',
-      status: 'completed'
+  const handleCloseProfileModal = () => {
+    setIsProfileModalOpen(false);
+    setIsEditingProfile(false); // Reset to view mode when closed
+  }
+
+  const handleEditChange = (e) => {
+    const { name, value } = e.target
+    setEditFormData(prev => ({
+      ...prev,
+      [name]: value
+    }))
+  }
+
+  const handleProfileUpdate = async (e) => {
+    e.preventDefault()
+    try {
+      const token = getAuthToken()
+      if (!token) return
+
+      const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          fullName: editFormData.fullName,
+          phone: editFormData.phone,
+          address: editFormData.address
+        })
+      })
+
+      if (response.ok) {
+        alert('Profile updated successfully!')
+        setIsEditingProfile(false)
+        fetchProfile() // Refresh profile data
+      } else {
+        const data = await response.json()
+        alert(data.message || 'Failed to update profile')
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error)
+      alert('Connection error. Please try again later.')
     }
-  ])
+  }
+
+  const [submissions, setSubmissions] = useState(() => {
+    const saved = localStorage.getItem('supplier_applications')
+    if (saved) {
+      const allApps = JSON.parse(saved)
+      // Map statuses for compatibility with farmer dashboard view
+      return allApps.map(app => ({
+        ...app,
+        grade: app.qualityGrade,
+        status: app.status // 'selected', 'not-selected', 'under-review'
+      }))
+    }
+    return [
+      {
+        id: 1,
+        product: 'Fresh Mango',
+        grade: 'Grade A',
+        quantity: '100kg',
+        price: 'LKR 200.00/kg',
+        harvestDate: '2025-09-18',
+        status: 'selected',
+        date: '2025-09-15'
+      },
+      {
+        id: 2,
+        product: 'Strawberry',
+        grade: 'Grade A',
+        quantity: '50kg',
+        price: 'LKR 400.00/kg',
+        harvestDate: '2025-09-20',
+        status: 'under-review',
+        date: '2025-09-19'
+      },
+      {
+        id: 3,
+        product: 'Pineapple',
+        grade: 'Grade B',
+        quantity: '75kg',
+        price: 'LKR 180.00/kg',
+        harvestDate: '2025-09-10',
+        status: 'not-selected',
+        date: '2025-09-08',
+        rejectionReason: 'Quality does not meet Grade A standards. Product shows signs of early ripening and minor surface blemishes. Please ensure proper harvest timing for future submissions.'
+      }
+    ]
+  })
+
+  const handleConfirmSubmission = (id) => {
+    const updated = submissions.map(s =>
+      s.id === id ? { ...s, status: 'confirmed' } : s
+    )
+    setSubmissions(updated)
+    // Synchronize back to the shared storage
+    localStorage.setItem('supplier_applications', JSON.stringify(updated))
+    alert('✅ Delivery date confirmed! Your product is now scheduled for pickup.')
+  }
+
+  const handleRescheduleSubmission = (id, currentProposed) => {
+    const newDate = window.prompt('Please enter your preferred reschedule date (YYYY-MM-DD):', currentProposed)
+    if (newDate) {
+      const updated = submissions.map(s =>
+        s.id === id ? { ...s, scheduleDate: newDate, status: 'under-review' } : s
+      )
+      setSubmissions(updated)
+      localStorage.setItem('supplier_applications', JSON.stringify(updated))
+      alert('📅 Reschedule request sent! The operations team will review your suggested date.')
+    }
+  }
+
+  const [deliveries, setDeliveries] = useState(() => {
+    const defaultDeliveries = [
+      { id: 'DEL-1001', product: 'Fresh Mango - Grade A', quantity: '100kg', proposedDate: '2025-10-22', scheduleDate: '', transport: 'Company Truck Pickup', status: 'pending' },
+      { id: 'DEL-1002', product: 'Strawberry - Grade A', quantity: '50kg', proposedDate: '2025-10-25', scheduleDate: '2025-10-25', transport: 'Self Transport', status: 'confirmed' },
+      { id: 'DEL-1010', product: 'Strawberry - Grade A', quantity: '50kg', proposedDate: '2025-10-25', scheduleDate: '2025-10-27', transport: 'Self Transport', status: 'pending-confirmation' },
+      { id: 'DEL-1020', product: 'Papaya - Grade A', quantity: '120kg', proposedDate: '2025-10-20', scheduleDate: '2025-10-22', transport: 'Self Transport', status: 'pending-confirmation' },
+      { id: 'DEL-1025', product: 'Pineapple - Grade B', quantity: '90kg', proposedDate: '2025-10-25', scheduleDate: '2025-10-26', transport: 'Company Truck Pickup', status: 'pending-confirmation' }
+    ]
+
+    const saved = localStorage.getItem('delivery_list')
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      const existingIds = new Set(parsed.map(d => d.id))
+      const newItems = defaultDeliveries.filter(d => !existingIds.has(d.id))
+      return [...parsed, ...newItems]
+    }
+    return defaultDeliveries
+  })
+
+  // Auto-save deliveries
+  useEffect(() => {
+    localStorage.setItem('delivery_list', JSON.stringify(deliveries))
+  }, [deliveries])
 
   // Check for notifications and fetch profile on mount
   useEffect(() => {
@@ -293,14 +387,14 @@ function FarmerDashboard() {
       <div className="header">
         <div className="nav-container">
           <Link to="/home" className="logo" style={{ textDecoration: 'none', color: 'white' }}>
-            <span>🌿</span>
+            <img src="/images/Logo.png" alt="Laklight Logo" style={{ width: '40px', height: '40px', marginRight: '10px', objectFit: 'contain' }} />
             Laklight Food Products
           </Link>
           <ul className="nav-menu">
             <li><Link to="/home">Dashboard</Link></li>
             <li><a href="#products">My Products</a></li>
             <li><a href="#deliveries">Deliveries</a></li>
-            <li><button className="nav-link-btn" onClick={() => setIsProfileModalOpen(true)}>Profile</button></li>
+            <li><button type="button" className="nav-link-btn" onClick={() => setIsProfileModalOpen(true)}>Profile</button></li>
           </ul>
           <div className="user-info">
             <span className="farm-welcome">Welcome, Farmer!</span>
@@ -570,6 +664,40 @@ function FarmerDashboard() {
                     <div className="submission-details">
                       <p>Quantity: {sub.quantity} | Price: {sub.price}</p>
                       <p>Harvest Date: {sub.harvestDate} | Submitted: {sub.date}</p>
+
+                      {sub.status === 'selected' && sub.scheduleDate && (
+                        <div className="schedule-info" style={{ marginTop: '1rem', padding: '1rem', background: '#f1f8e9', borderRadius: '8px', borderLeft: '4px solid #4caf50' }}>
+                          <p style={{ fontWeight: '600', color: '#2e7d32', marginBottom: '0.5rem' }}>
+                            🗓️ Confirmed Delivery Date: {sub.scheduleDate}
+                          </p>
+
+                          <div className="schedule-actions" style={{ display: 'flex', gap: '0.5rem' }}>
+                            <button
+                              className="btn btn-primary btn-small"
+                              onClick={() => handleConfirmSubmission(sub.id)}
+                            >
+                              Confirm Date
+                            </button>
+
+                            {/* Only show reschedule if the employee changed the date from the original suggestion */}
+                            {sub.scheduleDate !== (sub.originalProposedDate || sub.date) && (
+                              <button
+                                className="btn btn-secondary btn-small"
+                                style={{ background: '#ff9800' }}
+                                onClick={() => handleRescheduleSubmission(sub.id, sub.scheduleDate)}
+                              >
+                                Reschedule
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {sub.status === 'confirmed' && (
+                        <div style={{ marginTop: '1rem', color: '#2e7d32', fontWeight: 'bold' }}>
+                          ✅ Delivery Scheduled for {sub.scheduleDate}
+                        </div>
+                      )}
                     </div>
                     {sub.rejectionReason && (
                       <div className="rejection-reason">
@@ -580,73 +708,77 @@ function FarmerDashboard() {
                 ))}
               </div>
             </div>
+          </div>
 
-            {/* Delivery Schedule Management */}
-            <div className="dashboard-card deliveries-card">
-              <div className="delivery-schedule-header">
-                <div className="schedule-title-section">
+          {/* Delivery Schedule Management - Full Width Bottom */}
+          <div className="dashboard-card deliveries-card full-width-card">
+            <div className="delivery-schedule-header">
+              <div className="schedule-title-section">
 
-                  <h2 className="schedule-title">Delivery Schedule Management</h2>
-                </div>
+                <h2 className="schedule-title">Delivery Schedule Management</h2>
               </div>
+            </div>
 
-              <div className="deliveries-table">
-                <div className="deliveries-header">
-                  <div className="delivery-col">Delivery ID</div>
-                  <div className="delivery-col">Product</div>
-                  <div className="delivery-col">Quantity</div>
-                  <div className="delivery-col">Proposed Date</div>
-                  <div className="delivery-col">Schedule Date</div>
-                  <div className="delivery-col">Transport Method</div>
-                  <div className="delivery-col">Status</div>
-                  <div className="delivery-col">Schedule Delivery</div>
-                </div>
-                {deliveries.map(delivery => (
-                  <div key={delivery.id} className="delivery-row">
-                    <div className="delivery-col">
-                      <strong>{delivery.id}</strong>
-                    </div>
-                    <div className="delivery-col">{delivery.product}</div>
-                    <div className="delivery-col">{delivery.quantity}</div>
-                    <div className="delivery-col">{delivery.proposedDate}</div>
-                    <div className="delivery-col">
-                      {delivery.scheduleDate || '-'}
-                    </div>
-                    <div className="delivery-col">{delivery.transportMethod}</div>
-                    <div className="delivery-col">
-                      <span className={`delivery-badge badge-${delivery.status}`}>
-                        {delivery.status === 'pending' && 'Pending Review'}
-                        {delivery.status === 'confirmed' && 'Confirmed'}
-                        {delivery.status === 'completed' && 'Completed'}
-                        {delivery.status === 'reschedule-pending' && 'Waiting for Approval'}
-                      </span>
-                    </div>
-                    <div className="delivery-col delivery-actions">
-                      {delivery.status === 'pending' && null}
-                      {delivery.status === 'confirmed' && (
-                        <>
-                          <button
-                            className="btn-action btn-confirm"
-                            onClick={() => handleConfirmClick(delivery)}
-                          >
-                            Confirm
-                          </button>
-                          <button
-                            className="btn-action btn-reschedule"
-                            onClick={() => handleRescheduleClick(delivery)}
-                          >
-                            Reschedule Delivery
-                          </button>
-                        </>
-                      )}
-                      {delivery.status === 'reschedule-pending' && (
-                        <span className="pending-text">Waiting for Employee Approval</span>
-                      )}
-                      {delivery.status === 'completed' && null}
-                    </div>
+            <div className="deliveries-table">
+              <div className="deliveries-header">
+                <div className="delivery-col">Delivery ID</div>
+                <div className="delivery-col">Product</div>
+                <div className="delivery-col">Quantity</div>
+                <div className="delivery-col">Proposed Date</div>
+                <div className="delivery-col">Schedule Date</div>
+                <div className="delivery-col">Transport Method</div>
+                <div className="delivery-col">Status</div>
+                <div className="delivery-col">Schedule Delivery</div>
+              </div>
+              {deliveries.map(delivery => (
+                <div key={delivery.id} className="delivery-row">
+                  <div className="delivery-col">
+                    <strong>{delivery.id}</strong>
                   </div>
-                ))}
-              </div>
+                  <div className="delivery-col">{delivery.product}</div>
+                  <div className="delivery-col">{delivery.quantity}</div>
+                  <div className="delivery-col">{delivery.proposedDate}</div>
+                  <div className="delivery-col">
+                    {delivery.scheduleDate || '-'}
+                  </div>
+                  <div className="delivery-col">{delivery.transport || delivery.transportMethod}</div>
+                  <div className="delivery-col">
+                    <span className={`delivery-badge badge-${delivery.status}`}>
+                      {delivery.status === 'pending' && 'Pending Review'}
+                      {delivery.status === 'pending-confirmation' && 'Action Required: Confirm Date'}
+                      {delivery.status === 'confirmed' && 'Confirmed'}
+                      {delivery.status === 'completed' && 'Completed'}
+                      {delivery.status === 'reschedule-pending' && 'Waiting for Approval'}
+                    </span>
+                  </div>
+                  <div className="delivery-col delivery-actions">
+                    {delivery.status === 'pending' && null}
+                    {(delivery.status === 'confirmed' || delivery.status === 'pending-confirmation') && (
+                      <>
+                        <button
+                          className="btn-action btn-confirm"
+                          onClick={() => {
+                            setDeliveries(prev => prev.map(d => d.id === delivery.id ? { ...d, status: 'confirmed', scheduleDate: d.scheduleDate || d.proposedDate } : d))
+                            alert('✅ Delivery date confirmed!')
+                          }}
+                        >
+                          Confirm
+                        </button>
+                        <button
+                          className="btn-action btn-reschedule"
+                          onClick={() => handleRescheduleClick(delivery)}
+                        >
+                          Reschedule Delivery
+                        </button>
+                      </>
+                    )}
+                    {delivery.status === 'reschedule-pending' && (
+                      <span className="pending-text">Waiting for Employee Approval</span>
+                    )}
+                    {delivery.status === 'completed' && null}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -709,67 +841,140 @@ function FarmerDashboard() {
 
         {/* Profile Modal */}
         {isProfileModalOpen && (
-          <div className="modal-overlay" onClick={() => setIsProfileModalOpen(false)}>
+          <div className="modal-overlay" onClick={handleCloseProfileModal}>
             <div className="modal-content profile-modal" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
                 <h3>My Profile</h3>
                 <button
+                  type="button"
                   className="modal-close"
-                  onClick={() => setIsProfileModalOpen(false)}
+                  onClick={handleCloseProfileModal}
                 >
                   ×
                 </button>
               </div>
               <div className="modal-body">
-                <div className="profile-header-main">
-                  <div className="profile-avatar">👨‍🌾</div>
-                  <div className="profile-title-group">
-                    <h4>{farmerProfile.fullName}</h4>
-                    <p>{farmerProfile.farmName}</p>
-                    <span className="approval-status status-approved" style={{ margin: '0.5rem 0' }}>✓ Verified Farmer</span>
-                  </div>
-                </div>
+                {isEditingProfile ? (
+                  <form onSubmit={handleProfileUpdate} id="profile-edit-form">
+                    <div className="profile-details-grid">
+                      <div className="profile-detail-item full-width">
+                        <label>Full Name *</label>
+                        <input
+                          type="text"
+                          name="fullName"
+                          value={editFormData.fullName}
+                          onChange={handleEditChange}
+                          required
+                          className="edit-input"
+                        />
+                      </div>
+                      <div className="profile-detail-item">
+                        <label>Contact Number *</label>
+                        <input
+                          type="tel"
+                          name="phone"
+                          value={editFormData.phone}
+                          onChange={handleEditChange}
+                          required
+                          className="edit-input"
+                        />
+                      </div>
+                      <div className="profile-detail-item">
+                        <label>Email Address</label>
+                        <p>{farmerProfile.email}</p>
+                        <small>(Cannot be changed)</small>
+                      </div>
+                      <div className="profile-detail-item full-width">
+                        <label>Address *</label>
+                        <textarea
+                          name="address"
+                          value={editFormData.address}
+                          onChange={handleEditChange}
+                          required
+                          rows="3"
+                          className="edit-input"
+                        ></textarea>
+                      </div>
+                    </div>
+                  </form>
+                ) : (
+                  <>
+                    <div className="profile-header-main">
+                      <div className="profile-avatar">
+                        <img src="/images/Logo.png" alt="Laklight Logo" style={{ width: '80%', height: '80%', objectFit: 'contain' }} />
+                      </div>
+                      <div className="profile-title-group">
+                        <h4>{farmerProfile.fullName}</h4>
+                        <p>{farmerProfile.farmName}</p>
+                        <span className="approval-status status-approved" style={{ margin: '0.5rem 0' }}>✓ Verified Farmer</span>
+                      </div>
+                    </div>
 
-                <div className="profile-details-grid">
-                  <div className="profile-detail-item">
-                    <label>Farmer ID / License</label>
-                    <p>{farmerProfile.licenseNumber}</p>
-                  </div>
-                  <div className="profile-detail-item">
-                    <label>Contact Number</label>
-                    <p>{farmerProfile.phone}</p>
-                  </div>
-                  <div className="profile-detail-item">
-                    <label>Email Address</label>
-                    <p>{farmerProfile.email}</p>
-                  </div>
-                  <div className="profile-detail-item">
-                    <label>Member Since</label>
-                    <p>{farmerProfile.memberSince}</p>
-                  </div>
-                  <div className="profile-detail-item full-width">
-                    <label>Address</label>
-                    <p>{farmerProfile.address}</p>
-                  </div>
-                  <div className="profile-detail-item">
-                    <label>Quality Rating</label>
-                    <p>{farmerProfile.qualityRating}</p>
-                  </div>
-                </div>
+                    <div className="profile-details-grid">
+                      <div className="profile-detail-item">
+                        <label>Farmer ID / License</label>
+                        <p>{farmerProfile.licenseNumber}</p>
+                      </div>
+                      <div className="profile-detail-item">
+                        <label>Contact Number</label>
+                        <p>{farmerProfile.phone}</p>
+                      </div>
+                      <div className="profile-detail-item">
+                        <label>Email Address</label>
+                        <p>{farmerProfile.email}</p>
+                      </div>
+                      <div className="profile-detail-item">
+                        <label>Member Since</label>
+                        <p>{farmerProfile.memberSince}</p>
+                      </div>
+                      <div className="profile-detail-item full-width">
+                        <label>Address</label>
+                        <p>{farmerProfile.address}</p>
+                      </div>
+                      <div className="profile-detail-item">
+                        <label>Quality Rating</label>
+                        <p>{farmerProfile.qualityRating}</p>
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
               <div className="modal-footer">
-                <button
-                  className="btn btn-secondary"
-                  onClick={() => setIsProfileModalOpen(false)}
-                >
-                  Close
-                </button>
-                <button
-                  className="btn btn-primary"
-                  onClick={() => alert('Profile editing feature coming soon!')}
-                >
-                  Edit Profile
-                </button>
+                {isEditingProfile ? (
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={handleEditToggle}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      form="profile-edit-form"
+                      className="btn btn-primary"
+                    >
+                      Save Changes
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={() => setIsProfileModalOpen(false)}
+                    >
+                      Close
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={handleEditToggle}
+                    >
+                      Edit Profile
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>

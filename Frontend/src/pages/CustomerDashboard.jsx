@@ -24,9 +24,9 @@ const ProductCard = ({ productKey, product, onAddToCart }) => {
   return (
     <div className="product-card" data-key={productKey}>
       <div className="product-img" style={{ height: '200px', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <img 
-          src={product.image} 
-          alt={product.name} 
+        <img
+          src={product.image}
+          alt={product.name}
           style={{ height: '100%', width: 'auto', objectFit: 'contain', borderRadius: '8px' }}
         />
       </div>
@@ -42,17 +42,17 @@ const ProductCard = ({ productKey, product, onAddToCart }) => {
         <div className="product-actions">
           <div className="quantity-controls">
             <button className="quantity-btn" onClick={() => updateQuantity(-1)}>-</button>
-            <input 
-              type="number" 
-              className="quantity-input" 
+            <input
+              type="number"
+              className="quantity-input"
               value={quantity}
               onChange={(e) => setQuantity(Math.max(1, Math.min(99, parseInt(e.target.value) || 1)))}
-              min="1" 
+              min="1"
               max="99"
             />
             <button className="quantity-btn" onClick={() => updateQuantity(1)}>+</button>
           </div>
-          <button 
+          <button
             className={`btn btn-primary btn-small add-to-cart-btn${added ? ' added' : ''}`}
             onClick={handleAddToCart}
             disabled={product.availability === 'out-of-stock'}
@@ -75,7 +75,7 @@ const CustomerDashboard = () => {
   const [featuredSearch, setFeaturedSearch] = useState('')
   const [featuredCategory, setFeaturedCategory] = useState('')
   const [featuredSort, setFeaturedSort] = useState('')
-  
+
   const [profileData, setProfileData] = useState({
     firstName: 'Asoka',
     lastName: 'Perera',
@@ -100,56 +100,64 @@ const CustomerDashboard = () => {
   const [paymentMethod, setPaymentMethod] = useState('visa') // default to VISA
 
   const products = {
-    'lime': { 
-      name: 'Lime Mix', 
-      price: 150.00, 
-      image: '/images/Lime Mix.png', 
-      description: 'Refreshing lime cordial made from fresh lime extracts. Perfect for mixing with water or soda. 350ml bottle.', 
-      availability: 'in-stock', 
-      category: 'juice' 
+    'lime': {
+      name: 'Lime Mix',
+      price: 150.00,
+      image: '/images/Lime Mix.png',
+      description: 'Refreshing lime cordial made from fresh lime extracts. Perfect for mixing with water or soda. 350ml bottle.',
+      availability: 'in-stock',
+      category: 'juice'
     },
-    'woodapple': { 
-      name: 'Wood Apple Juice', 
-      price: 100.00, 
-      image: '/images/Wood Apple Juice.png', 
-      description: 'Traditional Sri Lankan wood apple juice rich in nutrients. Naturally sweet and tangy. 200ml liter bottle.', 
-      availability: 'in-stock', 
-      category: 'juice' 
+    'woodapple': {
+      name: 'Wood Apple Juice',
+      price: 100.00,
+      image: '/images/Wood Apple Juice.png',
+      description: 'Traditional Sri Lankan wood apple juice rich in nutrients. Naturally sweet and tangy. 200ml liter bottle.',
+      availability: 'in-stock',
+      category: 'juice'
     },
-    'mangojelly': { 
-      name: 'Mango Jelly', 
-      price: 200.00, 
-      image: '/images/Mango Jelly.png', 
-      description: 'Premium mango jelly made from fresh mangoes. Great for desserts and breakfast spreads. 100g pack.', 
-      availability: 'out-of-stock', 
-      category: 'jam' 
+    'mangojelly': {
+      name: 'Mango Jelly',
+      price: 200.00,
+      image: '/images/Mango Jelly.png',
+      description: 'Premium mango jelly made from fresh mangoes. Great for desserts and breakfast spreads. 100g pack.',
+      availability: 'out-of-stock',
+      category: 'jam'
     },
-    'custard': { 
-      name: 'Custard powder', 
-      price: 300.00, 
-      image: '/images/Custard powder.png', 
-      description: 'High-quality custard powder for delicious desserts. Rich vanilla flavor. Perfect for puddings and trifles. 100g pack.', 
-      availability: 'in-stock', 
-      category: 'preserves' 
+    'custard': {
+      name: 'Custard powder',
+      price: 300.00,
+      image: '/images/Custard powder.png',
+      description: 'High-quality custard powder for delicious desserts. Rich vanilla flavor. Perfect for puddings and trifles. 100g pack.',
+      availability: 'in-stock',
+      category: 'preserves'
     }
   }
 
-  const orders = [
-    {
-      id: 'O001',
-      items: '15x Fresh Mango Drink',
-      total: 3375.00,
-      discount: true,
-      status: 'processing'
-    },
-    {
-      id: 'O002',
-      items: '8x Mixed Jam Collection',
-      total: 2400.00,
-      discount: false,
-      status: 'completed'
+  const [orders, setOrders] = useState(() => {
+    const saved = localStorage.getItem('order_list')
+    if (saved) {
+      // For demo, we filter orders for "Asoka Perera" (Customer C001)
+      const allOrders = JSON.parse(saved)
+      return allOrders.filter(o => o.customer === 'Asoka Perera' || o.id === 'O001' || o.id === 'O002')
     }
-  ]
+    return [
+      {
+        id: 'O001',
+        items: '15x Fresh Mango Drink',
+        total: 3375.00,
+        discount: true,
+        status: 'processing'
+      },
+      {
+        id: 'O002',
+        items: '8x Mixed Jam Collection',
+        total: 2400.00,
+        discount: false,
+        status: 'completed'
+      }
+    ]
+  })
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -164,6 +172,20 @@ const CustomerDashboard = () => {
     localStorage.setItem('laklight_customer_cart_v1', JSON.stringify(cart))
   }, [cart])
 
+  // Poll for order status updates
+  useEffect(() => {
+    const checkOrders = () => {
+      const saved = localStorage.getItem('order_list')
+      if (saved) {
+        const allOrders = JSON.parse(saved)
+        const myOrders = allOrders.filter(o => o.customer === 'Asoka Perera' || o.id === 'O001' || o.id === 'O002')
+        setOrders(myOrders)
+      }
+    }
+    const interval = setInterval(checkOrders, 5000)
+    return () => clearInterval(interval)
+  }, [])
+
   const addToCart = (productKey, quantity = 1) => {
     const product = products[productKey]
     if (!product) return
@@ -171,8 +193,8 @@ const CustomerDashboard = () => {
     setCart(prevCart => {
       const existingItem = prevCart.find(item => item.key === productKey)
       if (existingItem) {
-        return prevCart.map(item => 
-          item.key === productKey 
+        return prevCart.map(item =>
+          item.key === productKey
             ? { ...item, quantity: item.quantity + quantity }
             : item
         )
@@ -209,9 +231,9 @@ const CustomerDashboard = () => {
   }
 
   const saveProfile = () => {
-    if (!profileData.firstName || !profileData.lastName || !profileData.email || 
-        !profileData.phone || !profileData.address || !profileData.city || 
-        !profileData.postalCode || !profileData.district) {
+    if (!profileData.firstName || !profileData.lastName || !profileData.email ||
+      !profileData.phone || !profileData.address || !profileData.city ||
+      !profileData.postalCode || !profileData.district) {
       alert('Please fill in all required fields marked with *')
       return
     }
@@ -238,18 +260,18 @@ const CustomerDashboard = () => {
   const { subtotal, totalItems, discount, total, qualifiesForDiscount } = calculateTotals()
 
   const filteredProducts = Object.entries(products).filter(([key, product]) => {
-    const matchesSearch = !featuredSearch || 
+    const matchesSearch = !featuredSearch ||
       product.name.toLowerCase().includes(featuredSearch.toLowerCase()) ||
       product.description.toLowerCase().includes(featuredSearch.toLowerCase())
-    
+
     const matchesCategory = !featuredCategory || product.category === featuredCategory
-    
+
     return matchesSearch && matchesCategory
   }).sort((a, b) => {
     const [keyA, productA] = a
     const [keyB, productB] = b
-    
-    switch(featuredSort) {
+
+    switch (featuredSort) {
       case 'price-low':
         return productA.price - productB.price
       case 'price-high':
@@ -320,13 +342,19 @@ const CustomerDashboard = () => {
                     <div>{order.items}</div>
                     <div>Total: LKR {order.total.toFixed(2)} {order.discount && '(10% discount applied)'}</div>
                   </div>
-                  {order.status === 'completed' ? (
-                    <a href="/feedback" className="order-status status-completed">Delivered</a>
-                  ) : (
-                    <span className={`order-status status-${order.status}`}>
-                      {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                    </span>
-                  )}
+                  <div className="order-actions-status">
+                    {order.status.toLowerCase() === 'completed' ? (
+                      <span className="order-status status-completed">✅ Delivered</span>
+                    ) : order.status.toLowerCase() === 'packing' ? (
+                      <span className="order-status" style={{ background: '#fff3cd', color: '#856404' }}>📦 Packing</span>
+                    ) : order.status.toLowerCase() === 'delivering' ? (
+                      <span className="order-status" style={{ background: '#e3f2fd', color: '#0d47a1' }}>🚚 Delivering</span>
+                    ) : (
+                      <span className={`order-status status-${order.status.toLowerCase()}`}>
+                        {order.status === 'Ready' ? 'Processing' : order.status}
+                      </span>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -356,17 +384,17 @@ const CustomerDashboard = () => {
           {/* Search and Filter */}
           <div className="search-container">
             <div className="search-box">
-              <input 
-                type="text" 
-                className="search-input" 
+              <input
+                type="text"
+                className="search-input"
                 placeholder="Search products by name or description..."
                 value={featuredSearch}
                 onChange={(e) => setFeaturedSearch(e.target.value)}
               />
             </div>
             <div className="filter-options">
-              <select 
-                className="filter-select" 
+              <select
+                className="filter-select"
                 value={featuredCategory}
                 onChange={(e) => setFeaturedCategory(e.target.value)}
               >
@@ -376,7 +404,7 @@ const CustomerDashboard = () => {
                 <option value="jam">Fruit Jam</option>
                 <option value="preserves">Preserves</option>
               </select>
-              <select 
+              <select
                 className="filter-select"
                 value={featuredSort}
                 onChange={(e) => setFeaturedSort(e.target.value)}
@@ -395,7 +423,7 @@ const CustomerDashboard = () => {
           ) : (
             <div className="products-grid">
               {filteredProducts.map(([key, product]) => (
-                <ProductCard 
+                <ProductCard
                   key={key}
                   productKey={key}
                   product={product}
@@ -448,8 +476,8 @@ const CustomerDashboard = () => {
                         <button className="quantity-btn" onClick={() => updateQuantity(item.key, -1)}>-</button>
                         <span style={{ padding: '0 1rem' }}>{item.quantity}</span>
                         <button className="quantity-btn" onClick={() => updateQuantity(item.key, 1)}>+</button>
-                        <button 
-                          className="btn btn-danger btn-small" 
+                        <button
+                          className="btn btn-danger btn-small"
                           style={{ marginLeft: '1rem' }}
                           onClick={() => removeFromCart(item.key)}
                         >
@@ -462,7 +490,7 @@ const CustomerDashboard = () => {
               </>
             )}
           </div>
-          
+
           {cart.length > 0 && (
             <div className="cart-summary">
               <div className="summary-row">
@@ -479,7 +507,7 @@ const CustomerDashboard = () => {
                 <span>Total:</span>
                 <span>LKR {total.toFixed(2)}</span>
               </div>
-              
+
               {qualifiesForDiscount ? (
                 <div className="wholesale-notice">
                   🎉 Congratulations! You've qualified for our 10% wholesale discount on bulk orders (12+ pieces)
@@ -489,10 +517,10 @@ const CustomerDashboard = () => {
                   💡 Add {12 - totalItems} more items to qualify for 10% wholesale discount
                 </div>
               )}
-              
+
               <div className="checkout-section">
-                <button 
-                  className="btn btn-primary checkout-btn" 
+                <button
+                  className="btn btn-primary checkout-btn"
                   style={{ width: '100%', marginBottom: '1rem' }}
                   onClick={() => {
                     if (cart.length === 0) {
@@ -504,8 +532,8 @@ const CustomerDashboard = () => {
                 >
                   Proceed to Checkout
                 </button>
-                <button 
-                  className="btn btn-secondary" 
+                <button
+                  className="btn btn-secondary"
                   style={{ width: '100%' }}
                   onClick={toggleCart}
                 >
@@ -533,40 +561,40 @@ const CustomerDashboard = () => {
                   <div className="form-row">
                     <div className="form-group">
                       <label>First Name *</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={profileData.firstName}
-                        onChange={(e) => setProfileData({...profileData, firstName: e.target.value})}
-                        required 
+                        onChange={(e) => setProfileData({ ...profileData, firstName: e.target.value })}
+                        required
                       />
                     </div>
                     <div className="form-group">
                       <label>Last Name *</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={profileData.lastName}
-                        onChange={(e) => setProfileData({...profileData, lastName: e.target.value})}
-                        required 
+                        onChange={(e) => setProfileData({ ...profileData, lastName: e.target.value })}
+                        required
                       />
                     </div>
                   </div>
                   <div className="form-row">
                     <div className="form-group">
                       <label>Email Address *</label>
-                      <input 
-                        type="email" 
+                      <input
+                        type="email"
                         value={profileData.email}
-                        onChange={(e) => setProfileData({...profileData, email: e.target.value})}
-                        required 
+                        onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
+                        required
                       />
                     </div>
                     <div className="form-group">
                       <label>Phone Number *</label>
-                      <input 
-                        type="tel" 
+                      <input
+                        type="tel"
                         value={profileData.phone}
-                        onChange={(e) => setProfileData({...profileData, phone: e.target.value})}
-                        required 
+                        onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
+                        required
                       />
                     </div>
                   </div>
@@ -577,38 +605,38 @@ const CustomerDashboard = () => {
                   <h3 className="section-title">Delivery Address</h3>
                   <div className="form-group">
                     <label>Street Address *</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={profileData.address}
-                      onChange={(e) => setProfileData({...profileData, address: e.target.value})}
-                      required 
+                      onChange={(e) => setProfileData({ ...profileData, address: e.target.value })}
+                      required
                     />
                   </div>
                   <div className="form-row">
                     <div className="form-group">
                       <label>City *</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={profileData.city}
-                        onChange={(e) => setProfileData({...profileData, city: e.target.value})}
-                        required 
+                        onChange={(e) => setProfileData({ ...profileData, city: e.target.value })}
+                        required
                       />
                     </div>
                     <div className="form-group">
                       <label>Postal Code *</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         value={profileData.postalCode}
-                        onChange={(e) => setProfileData({...profileData, postalCode: e.target.value})}
-                        required 
+                        onChange={(e) => setProfileData({ ...profileData, postalCode: e.target.value })}
+                        required
                       />
                     </div>
                   </div>
                   <div className="form-group">
                     <label>District *</label>
-                    <select 
+                    <select
                       value={profileData.district}
-                      onChange={(e) => setProfileData({...profileData, district: e.target.value})}
+                      onChange={(e) => setProfileData({ ...profileData, district: e.target.value })}
                       required
                     >
                       <option value="">Select District</option>
@@ -630,9 +658,9 @@ const CustomerDashboard = () => {
                   <h3 className="section-title">Account Preferences</h3>
                   <div className="form-group">
                     <label>Email Notifications</label>
-                    <select 
+                    <select
                       value={profileData.notifications}
-                      onChange={(e) => setProfileData({...profileData, notifications: e.target.value})}
+                      onChange={(e) => setProfileData({ ...profileData, notifications: e.target.value })}
                     >
                       <option value="all">All Notifications</option>
                       <option value="orders">Order Updates Only</option>
@@ -670,130 +698,130 @@ const CustomerDashboard = () => {
                 <div className="form-row">
                   <div className="form-group">
                     <label>First Name *</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       value={checkoutData.firstName}
-                      onChange={(e) => setCheckoutData({...checkoutData, firstName: e.target.value})}
+                      onChange={(e) => setCheckoutData({ ...checkoutData, firstName: e.target.value })}
                       placeholder="Enter first name"
-                        required 
-                      />
-                    </div>
-                  </div>
-                
-                  <div className="form-group">
-                    <label>Delivery Address *</label>
-                    <textarea 
-                      value={checkoutData.deliveryAddress}
-                      onChange={(e) => setCheckoutData({...checkoutData, deliveryAddress: e.target.value})}
-                      placeholder="Enter full delivery address"
-                      rows="3"
                       required
                     />
                   </div>
-                
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Contact Number *</label>
-                      <input 
-                        type="tel" 
-                        value={checkoutData.contactNumber}
-                        onChange={(e) => setCheckoutData({...checkoutData, contactNumber: e.target.value})}
-                        placeholder="07XXXXXXXX"
-                        pattern="[0-9]{10}"
-                        required 
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Postal Code *</label>
-                      <input 
-                        type="text" 
-                        value={checkoutData.postalCode}
-                        onChange={(e) => setCheckoutData({...checkoutData, postalCode: e.target.value})}
-                        placeholder="Enter postal code"
-                        pattern="[0-9]{5}"
-                        required 
-                      />
-                    </div>
-                  </div>
-                
+                </div>
+
+                <div className="form-group">
+                  <label>Delivery Address *</label>
+                  <textarea
+                    value={checkoutData.deliveryAddress}
+                    onChange={(e) => setCheckoutData({ ...checkoutData, deliveryAddress: e.target.value })}
+                    placeholder="Enter full delivery address"
+                    rows="3"
+                    required
+                  />
+                </div>
+
+                <div className="form-row">
                   <div className="form-group">
-                    <label>Order Notes (Optional)</label>
-                    <textarea 
-                      value={checkoutData.orderNotes}
-                      onChange={(e) => setCheckoutData({...checkoutData, orderNotes: e.target.value})}
-                      placeholder="Any special instructions for delivery?"
-                      rows="2"
+                    <label>Contact Number *</label>
+                    <input
+                      type="tel"
+                      value={checkoutData.contactNumber}
+                      onChange={(e) => setCheckoutData({ ...checkoutData, contactNumber: e.target.value })}
+                      placeholder="07XXXXXXXX"
+                      pattern="[0-9]{10}"
+                      required
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Postal Code *</label>
+                    <input
+                      type="text"
+                      value={checkoutData.postalCode}
+                      onChange={(e) => setCheckoutData({ ...checkoutData, postalCode: e.target.value })}
+                      placeholder="Enter postal code"
+                      pattern="[0-9]{5}"
+                      required
                     />
                   </div>
                 </div>
-                <div className="modal-footer">
-                  <button 
-                    type="button" 
-                    className="btn btn-secondary" 
-                    onClick={() => setIsCheckoutOpen(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button type="submit" className="btn btn-primary">
-                    Continue to Payment
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        )}
 
-        {/* Payment Modal */}
-        {isPaymentOpen && (
-          <div className="modal" style={{ display: 'block' }}>
-            <div className="modal-content" style={{ maxWidth: '500px' }}>
-              <div className="modal-header">
-                <h2 className="modal-title">Select Payment Method</h2>
-                <span className="close" onClick={() => setIsPaymentOpen(false)}>×</span>
-              </div>
-              <div className="modal-body">
-                <p>Total: <strong>LKR {total.toFixed(2)}</strong></p>
                 <div className="form-group">
-                  <label>Payment Method *</label>
-                  <select
-                    value={paymentMethod}
-                    onChange={e => setPaymentMethod(e.target.value)}
-                    required
-                  >
-                    <option value="visa">VISA</option>
-                    <option value="mastercard">MasterCard</option>
-                    <option value="cod">Cash on Delivery</option>
-                  </select>
+                  <label>Order Notes (Optional)</label>
+                  <textarea
+                    value={checkoutData.orderNotes}
+                    onChange={(e) => setCheckoutData({ ...checkoutData, orderNotes: e.target.value })}
+                    placeholder="Any special instructions for delivery?"
+                    rows="2"
+                  />
                 </div>
-                {['visa', 'mastercard'].includes(paymentMethod) ? (
-                  <>
-                    <p>Click below to pay securely with Stripe:</p>
-                    <StripeCheckoutButton amount={total} onSuccess={() => {
-                      setIsPaymentOpen(false);
-                      setCart([]);
-                      alert('Payment successful! Your order has been placed.');
-                    }} />
-                  </>
-                ) : (
-                  <>
-                    <p>You selected <strong>Cash on Delivery</strong>. Your order will be placed and you can pay upon delivery.</p>
-                    <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => {
-                      setIsPaymentOpen(false);
-                      setCart([]);
-                      alert('Order placed! Please pay cash upon delivery.');
-                    }}>
-                      Place Order (Cash on Delivery)
-                    </button>
-                  </>
-                )}
               </div>
+              <div className="modal-footer">
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={() => setIsCheckoutOpen(false)}
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary">
+                  Continue to Payment
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Modal */}
+      {isPaymentOpen && (
+        <div className="modal" style={{ display: 'block' }}>
+          <div className="modal-content" style={{ maxWidth: '500px' }}>
+            <div className="modal-header">
+              <h2 className="modal-title">Select Payment Method</h2>
+              <span className="close" onClick={() => setIsPaymentOpen(false)}>×</span>
+            </div>
+            <div className="modal-body">
+              <p>Total: <strong>LKR {total.toFixed(2)}</strong></p>
+              <div className="form-group">
+                <label>Payment Method *</label>
+                <select
+                  value={paymentMethod}
+                  onChange={e => setPaymentMethod(e.target.value)}
+                  required
+                >
+                  <option value="visa">VISA</option>
+                  <option value="mastercard">MasterCard</option>
+                  <option value="cod">Cash on Delivery</option>
+                </select>
+              </div>
+              {['visa', 'mastercard'].includes(paymentMethod) ? (
+                <>
+                  <p>Click below to pay securely with Stripe:</p>
+                  <StripeCheckoutButton amount={total} onSuccess={() => {
+                    setIsPaymentOpen(false);
+                    setCart([]);
+                    alert('Payment successful! Your order has been placed.');
+                  }} />
+                </>
+              ) : (
+                <>
+                  <p>You selected <strong>Cash on Delivery</strong>. Your order will be placed and you can pay upon delivery.</p>
+                  <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => {
+                    setIsPaymentOpen(false);
+                    setCart([]);
+                    alert('Order placed! Please pay cash upon delivery.');
+                  }}>
+                    Place Order (Cash on Delivery)
+                  </button>
+                </>
+              )}
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        <Footer />
-      </div>
-    )
-  }
+      <Footer />
+    </div>
+  )
+}
 
 export default CustomerDashboard

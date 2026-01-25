@@ -7,50 +7,46 @@
   padding: 2rem;
   max-width: 1400px;
   margin: 0 auto;
-  padding-top: 120px;
+  padding-top: 100px;
+  /* Reduced top padding */
 }
 
+/* Remove old header styles if not needed */
 .settings-header {
-  background: white;
-  padding: 2rem;
-  border-radius: 15px;
-  box-shadow: 0 2px 20px rgba(0,0,0,0.08);
-  margin-bottom: 2rem;
-}
-
-.settings-header h1 {
-  color: #2e7d32;
-  margin-bottom: 0.5rem;
-}
-
-.settings-header p {
-  color: #666;
+  display: none;
 }
 
 .settings-layout {
   display: grid;
-  grid-template-columns: 300px 1fr;
+  grid-template-columns: 280px 1fr;
+  /* Slightly narrower sidebar */
   gap: 2rem;
+  align-items: start;
+  /* Align items to top */
 }
 
 .settings-nav {
   background: white;
-  border-radius: 15px;
-  box-shadow: 0 2px 20px rgba(0,0,0,0.08);
-  padding: 1.5rem 0;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  /* Softer shadow */
+  padding: 1rem 0;
   height: fit-content;
   position: sticky;
-  top: 120px;
+  top: 100px;
+  /* Align with padding-top */
+  border: 1px solid #f0f0f0;
 }
 
 .settings-nav-item {
   display: block;
-  padding: 1rem 1.5rem;
-  color: #666;
+  padding: 0.8rem 1.5rem;
+  color: #555;
   text-decoration: none;
   border-left: 3px solid transparent;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   cursor: pointer;
+  font-size: 0.95rem;
 }
 
 .settings-nav-item:hover {
@@ -60,16 +56,19 @@
 
 .settings-nav-item.active {
   background: #e8f5e9;
-  color: #2e7d32;
-  border-left-color: #4caf50;
+  color: #1b5e20;
+  border-left-color: #2e7d32;
   font-weight: 600;
 }
 
 .settings-content {
   background: white;
-  border-radius: 15px;
-  box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
   overflow: hidden;
+  border: 1px solid #f0f0f0;
+  min-height: 600px;
+  /* Ensure visual balance */
 }
 
 .settings-section {
@@ -265,7 +264,7 @@
   .settings-layout {
     grid-template-columns: 1fr;
   }
-  
+
   .settings-nav {
     position: static;
   }
@@ -275,7 +274,7 @@
   .form-row {
     grid-template-columns: 1fr;
   }
-  
+
   .main-content {
     padding: 1rem;
     padding-top: 120px;

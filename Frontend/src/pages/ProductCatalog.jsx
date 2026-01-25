@@ -8,9 +8,7 @@ function ProductCatalog() {
     { id: 1, name: 'Lime Mix', category: 'beverages', price: 150, unit: 'bottle', stock: 150, description: 'Refreshing lime cordial 350ml', availability: 'in-stock', image: '/images/Lime Mix.png' },
     { id: 2, name: 'Wood Apple Juice', category: 'beverages', price: 100, unit: 'bottle', stock: 200, description: 'Traditional wood apple nectar 200ml', availability: 'in-stock', image: '/images/Wood Apple Juice.png' },
     { id: 3, name: 'Mango Jelly', category: 'desserts', price: 200, unit: 'pack', stock: 45, description: 'Premium mango jelly 100g', availability: 'low-stock', image: '/images/Mango Jelly.png' },
-    { id: 4, name: 'Custard Powder', category: 'desserts', price: 300, unit: 'pack', stock: 100, description: 'Mango flavored custard powder 100g', availability: 'in-stock', image: '/images/Custard powder.png' },
-    { id: 5, name: 'Fresh Tomatoes', category: 'vegetables', price: 350, unit: 'kg', stock: 80, description: 'Fresh organic tomatoes', availability: 'in-stock' },
-    { id: 6, name: 'Honey', category: 'other', price: 1200, unit: 'kg', stock: 20, description: 'Pure organic honey', availability: 'low-stock' }
+    { id: 4, name: 'Custard Powder', category: 'desserts', price: 300, unit: 'pack', stock: 100, description: 'Mango flavored custard powder 100g', availability: 'in-stock', image: '/images/Custard powder.png' }
   ])
 
   const [showModal, setShowModal] = useState(false)
@@ -80,7 +78,7 @@ function ProductCatalog() {
       <div className="header">
         <div className="nav-container">
           <div className="logo">
-            <img src="/images/Logo.png" alt="Laklight" style={{height: '40px', marginRight: '10px'}} />
+            <img src="/images/Logo.png" alt="Laklight" style={{ height: '40px', marginRight: '10px' }} />
             Laklight Food Products
           </div>
           <div className="user-info">
@@ -96,7 +94,7 @@ function ProductCatalog() {
         {/* Page Header */}
         <div className="page-header">
           <div>
-            <h1 className="page-title">📋 Product Catalog Management</h1>
+            <h1 className="page-title">Product Catalog Management</h1>
             <p className="page-description">Manage your product inventory and pricing</p>
           </div>
           <div className="quick-actions">
@@ -130,9 +128,9 @@ function ProductCatalog() {
           <div className="filter-row">
             <div className="form-group">
               <label>Search Products</label>
-              <input 
-                type="text" 
-                placeholder="Search by name..." 
+              <input
+                type="text"
+                placeholder="Search by name..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -164,7 +162,7 @@ function ProductCatalog() {
             <div key={product.id} className="product-card">
               <div className="product-image">
                 {product.image ? (
-                  <img src={product.image} alt={product.name} style={{width: '100%', height: '100%', objectFit: 'contain'}} />
+                  <img src={product.image} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
                 ) : (
                   product.name.charAt(0)
                 )}
@@ -205,7 +203,7 @@ function ProductCatalog() {
 
       {/* Modal */}
       {showModal && (
-        <div className="modal" style={{display: 'flex'}}>
+        <div className="modal" style={{ display: 'flex' }}>
           <div className="modal-content">
             <div className="modal-header">
               <h2 className="modal-title">{editingProduct ? 'Edit Product' : 'Add New Product'}</h2>
@@ -215,19 +213,19 @@ function ProductCatalog() {
               <div className="form-row">
                 <div className="form-group">
                   <label>Product Name *</label>
-                  <input 
-                    type="text" 
-                    required 
+                  <input
+                    type="text"
+                    required
                     value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   />
                 </div>
                 <div className="form-group">
                   <label>Category *</label>
-                  <select 
+                  <select
                     required
                     value={formData.category}
-                    onChange={(e) => setFormData({...formData, category: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                   >
                     <option value="">Select category</option>
                     <option value="vegetables">Vegetables</option>
@@ -239,18 +237,18 @@ function ProductCatalog() {
               <div className="form-row">
                 <div className="form-group">
                   <label>Price (Rs.) *</label>
-                  <input 
-                    type="number" 
-                    required 
+                  <input
+                    type="number"
+                    required
                     value={formData.price}
-                    onChange={(e) => setFormData({...formData, price: Number(e.target.value)})}
+                    onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) })}
                   />
                 </div>
                 <div className="form-group">
                   <label>Unit *</label>
-                  <select 
+                  <select
                     value={formData.unit}
-                    onChange={(e) => setFormData({...formData, unit: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                   >
                     <option value="kg">kg</option>
                     <option value="L">Liters</option>
@@ -262,18 +260,18 @@ function ProductCatalog() {
               <div className="form-row">
                 <div className="form-group">
                   <label>Stock Quantity *</label>
-                  <input 
-                    type="number" 
-                    required 
+                  <input
+                    type="number"
+                    required
                     value={formData.stock}
-                    onChange={(e) => setFormData({...formData, stock: Number(e.target.value)})}
+                    onChange={(e) => setFormData({ ...formData, stock: Number(e.target.value) })}
                   />
                 </div>
                 <div className="form-group">
                   <label>Availability *</label>
-                  <select 
+                  <select
                     value={formData.availability}
-                    onChange={(e) => setFormData({...formData, availability: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, availability: e.target.value })}
                   >
                     <option value="in-stock">In Stock</option>
                     <option value="low-stock">Low Stock</option>
@@ -284,9 +282,9 @@ function ProductCatalog() {
               <div className="form-row full-width">
                 <div className="form-group">
                   <label>Description</label>
-                  <textarea 
+                  <textarea
                     value={formData.description}
-                    onChange={(e) => setFormData({...formData, description: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     rows="3"
                   />
                 </div>

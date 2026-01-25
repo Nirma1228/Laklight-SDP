@@ -54,7 +54,7 @@ function Register() {
 
     try {
       // Determine endpoint based on user type
-      const endpoint = formData.userType === 'farmer' 
+      const endpoint = formData.userType === 'farmer'
         ? 'http://localhost:5000/api/auth/farmer-register'
         : 'http://localhost:5000/api/auth/register'
 
@@ -75,15 +75,36 @@ function Register() {
 
       const data = await response.json()
 
+      console.log('Registration Response:', data); // Debug log
+
       if (!response.ok) {
-        throw new Error(data.message || 'Registration failed')
+        let errorMsg = data.message || 'Registration failed';
+
+        // Handle Express-Validator errors array
+        if (data.errors && Array.isArray(data.errors)) {
+          const validationMessages = data.errors.map(e => e.msg).join(', ');
+          errorMsg = `Validation failed: ${validationMessages}`;
+        }
+
+        // Handle specific error detail
+        if (data.error) {
+          errorMsg += ` (${data.error})`;
+        }
+
+        throw new Error(errorMsg);
       }
 
       // If OTP verification is required
       if (data.requiresVerification) {
         setRegisteredEmail(formData.email)
         setStep(2) // Move to OTP verification step
-        alert('OTP sent to your email! Please check your inbox.')
+
+        if (data.debugOtp) {
+          alert(`DEV MODE: Your OTP is ${data.debugOtp}\n\n(It was also sent to your email)`)
+          console.log('Debug OTP:', data.debugOtp)
+        } else {
+          alert('OTP sent to your email! Please check your inbox.')
+        }
       }
     } catch (err) {
       setError(err.message || 'Registration failed. Please try again.')
@@ -132,7 +153,7 @@ function Register() {
       alert('Email verified successfully! Registration complete.')
 
       // Redirect based on user type
-      switch(data.user.userType) {
+      switch (data.user.userType) {
         case 'customer':
           navigate('/customer/dashboard')
           break
@@ -190,7 +211,7 @@ function Register() {
   return (
     <div className="register-page">
       <Link to="/" className="back-home">← Back to Home</Link>
-      
+
       <div className="main-content">
         <div className="register-container">
           <div className="register-header">
@@ -202,7 +223,7 @@ function Register() {
           {step === 1 ? (
             <form onSubmit={handleSubmit} className="register-form">
               {error && <div className="error-message">{error}</div>}
-              
+
               <div className="form-group">
                 <label htmlFor="userType">I am a:</label>
                 <select id="userType" name="userType" value={formData.userType} onChange={handleChange} required>
@@ -263,7 +284,7 @@ function Register() {
           ) : (
             <form onSubmit={handleVerifyOTP} className="register-form">
               {error && <div className="error-message">{error}</div>}
-              
+
               <div className="otp-info">
                 <p>We've sent a 6-digit verification code to:</p>
                 <strong>{registeredEmail}</strong>
@@ -271,16 +292,16 @@ function Register() {
 
               <div className="form-group">
                 <label htmlFor="otp">Enter OTP Code</label>
-                <input 
-                  type="text" 
-                  id="otp" 
-                  name="otp" 
-                  value={otp} 
+                <input
+                  type="text"
+                  id="otp"
+                  name="otp"
+                  value={otp}
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
                   placeholder="000000"
                   maxLength="6"
                   className="otp-input"
-                  required 
+                  required
                 />
               </div>
 
@@ -290,9 +311,9 @@ function Register() {
 
               <div className="resend-otp">
                 <p>Didn't receive the code?</p>
-                <button 
-                  type="button" 
-                  onClick={handleResendOTP} 
+                <button
+                  type="button"
+                  onClick={handleResendOTP}
                   disabled={resendLoading}
                   className="resend-btn"
                 >

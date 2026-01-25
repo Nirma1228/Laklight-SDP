@@ -22,7 +22,7 @@ function Header({ isLoggedIn = false }) {
               <Link to="/register" className="btn btn-primary">Register</Link>
             </>
           ) : (
-            <Link to="/logout" className="btn btn-secondary">Logout</Link>
+            <Link to="/" className="btn btn-secondary">Logout</Link>
           )}
         </div>
       </nav>
