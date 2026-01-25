@@ -5,89 +5,138 @@ import './FarmerDashboard.css'
 // Utility: get today's date in YYYY-MM-DD
 const getToday = () => new Date().toISOString().slice(0, 10);
 
+const API_BASE_URL = 'http://localhost:5000/api';
+
+const getAuthToken = () => {
+  return localStorage.getItem('token') || sessionStorage.getItem('token');
+};
+
 function FarmerDashboard() {
   const navigate = useNavigate()
-  
-  const [products, setProducts] = useState([{ 
-    id: 1, 
-    name: '', 
-    category: '', 
+
+  const [products, setProducts] = useState([{
+    id: 1,
+    name: '',
+    category: '',
     variety: '',
-    quantity: '', 
-    unit: 'kg', 
-    customPrice: '', 
+    quantity: '',
+    unit: 'kg',
+    customPrice: '',
     harvestDate: '',
     grade: '',
-    transport: '', 
+    transport: '',
     deliveryDate: '',
     storage: '',
     images: null,
     notes: ''
   }])
-  
-  
+
+
   const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false)
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
   const [selectedDelivery, setSelectedDelivery] = useState(null)
   const [newDeliveryDate, setNewDeliveryDate] = useState('')
   const [notifications, setNotifications] = useState([])
-  
+
+  const [farmerProfile, setFarmerProfile] = useState({
+    fullName: 'Loading...',
+    farmName: 'Laklight Supplier',
+    email: '',
+    phone: '',
+    address: '',
+    licenseNumber: 'PENDING',
+    memberSince: '',
+    qualityRating: 'N/A'
+  })
+
+  // Fetch farmer profile from backend
+  const fetchProfile = async () => {
+    try {
+      const token = getAuthToken();
+      if (!token) return;
+
+      const response = await fetch(`${API_BASE_URL}/auth/profile`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const user = data.user;
+        setFarmerProfile({
+          fullName: user.full_name,
+          farmName: user.farmName || 'Laklight Supplier', // Backend might not have farmName yet, using fallback
+          email: user.email,
+          phone: user.phone,
+          address: user.address,
+          licenseNumber: user.licenseNumber || 'VERIFIED-001',
+          memberSince: new Date(user.join_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+          qualityRating: '4.8/5.0' // Placeholder as rating logic might be separate
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
+  };
+
   const [submissions, setSubmissions] = useState([
-    { 
-      id: 1, 
-      product: 'Fresh Mango', 
+    {
+      id: 1,
+      product: 'Fresh Mango',
       grade: 'Grade A',
-      quantity: '100kg', 
+      quantity: '100kg',
       price: 'LKR 200.00/kg',
       harvestDate: '2025-09-18',
-      status: 'selected', 
+      status: 'selected',
       date: '2025-09-15'
     },
-    { 
-      id: 2, 
-      product: 'Strawberry', 
+    {
+      id: 2,
+      product: 'Strawberry',
       grade: 'Grade A',
-      quantity: '50kg', 
+      quantity: '50kg',
       price: 'LKR 400.00/kg',
       harvestDate: '2025-09-20',
-      status: 'under-review', 
+      status: 'under-review',
       date: '2025-09-19'
     },
-    { 
-      id: 3, 
-      product: 'Pineapple', 
+    {
+      id: 3,
+      product: 'Pineapple',
       grade: 'Grade B',
-      quantity: '75kg', 
+      quantity: '75kg',
       price: 'LKR 180.00/kg',
       harvestDate: '2025-09-10',
-      status: 'not-selected', 
+      status: 'not-selected',
       date: '2025-09-08',
       rejectionReason: 'Quality does not meet Grade A standards. Product shows signs of early ripening and minor surface blemishes. Please ensure proper harvest timing for future submissions.'
     }
   ])
 
   const [deliveries, setDeliveries] = useState([
-    { 
-      id: 'DEL-001', 
-      product: 'Fresh Mango - Grade A', 
-      quantity: '100kg', 
+    {
+      id: 'DEL-001',
+      product: 'Fresh Mango - Grade A',
+      quantity: '100kg',
       proposedDate: 'Oct 22, 2025',
       scheduleDate: '',
       transportMethod: 'Company Truck Pickup',
       status: 'pending'
     },
-    { 
-      id: 'DEL-002', 
-      product: 'Strawberry - Grade A', 
-      quantity: '50kg', 
+    {
+      id: 'DEL-002',
+      product: 'Strawberry - Grade A',
+      quantity: '50kg',
       proposedDate: 'Oct 25, 2025',
       scheduleDate: 'Oct 25, 2025',
       transportMethod: 'Self Transport',
       status: 'confirmed'
     },
-    { 
-      id: 'DEL-003', 
-      product: 'Pineapple - Grade B', 
-      quantity: '75kg', 
+    {
+      id: 'DEL-003',
+      product: 'Pineapple - Grade B',
+      quantity: '75kg',
       proposedDate: 'Oct 20, 2025',
       scheduleDate: 'Oct 20, 2025',
       transportMethod: 'Company Truck Pickup',
@@ -95,8 +144,10 @@ function FarmerDashboard() {
     }
   ])
 
-  // Check for notifications on mount
+  // Check for notifications and fetch profile on mount
   useEffect(() => {
+    fetchProfile();
+
     const newNotifs = submissions
       .filter(sub => sub.status === 'selected' || sub.status === 'not-selected')
       .map(sub => {
@@ -123,21 +174,31 @@ function FarmerDashboard() {
   const handleRescheduleSubmit = async (e) => {
     e.preventDefault();
     if (!selectedDelivery || !newDeliveryDate) return;
+
+    // Optimistically update the UI locally
+    setDeliveries(prev => prev.map(d =>
+      d.id === selectedDelivery.id
+        ? { ...d, proposedDate: newDeliveryDate, status: 'reschedule-pending' }
+        : d
+    ));
+
     try {
       const res = await fetch('/api/deliveries/reschedule', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ deliveryId: selectedDelivery.id, newDate: newDeliveryDate, confirmDate: getToday() })
       });
+
       if (res.ok) {
-        alert('Delivery rescheduled!')
-        // Optionally refresh deliveries list here
+        alert('Delivery reschedule request sent to employee for approval!');
       } else {
-        alert('Failed to reschedule delivery.')
+        // Simple error handling, in a real app you might revert the local state
+        alert('Failed to send reschedule request to server.');
       }
     } catch (err) {
-      alert('Error rescheduling delivery.')
+      alert('Error connecting to server.');
     }
+
     setIsRescheduleModalOpen(false)
     setSelectedDelivery(null)
     setNewDeliveryDate('')
@@ -170,7 +231,7 @@ function FarmerDashboard() {
   }
 
   const updateProduct = (id, field, value) => {
-    setProducts(products.map(p => 
+    setProducts(products.map(p =>
       p.id === id ? { ...p, [field]: value } : p
     ))
   }
@@ -217,8 +278,8 @@ function FarmerDashboard() {
           {notifications.map((notif, idx) => (
             <div key={idx} className={`notification notification-${notif.type}`}>
               {notif.message}
-              <button 
-                className="notification-close" 
+              <button
+                className="notification-close"
                 onClick={() => removeNotification(idx)}
                 aria-label="Close notification"
               >
@@ -231,7 +292,7 @@ function FarmerDashboard() {
       {/* Header */}
       <div className="header">
         <div className="nav-container">
-          <Link to="/home" className="logo" style={{textDecoration: 'none', color: 'white'}}>
+          <Link to="/home" className="logo" style={{ textDecoration: 'none', color: 'white' }}>
             <span>🌿</span>
             Laklight Food Products
           </Link>
@@ -239,7 +300,7 @@ function FarmerDashboard() {
             <li><Link to="/home">Dashboard</Link></li>
             <li><a href="#products">My Products</a></li>
             <li><a href="#deliveries">Deliveries</a></li>
-            <li><a href="#profile">Profile</a></li>
+            <li><button className="nav-link-btn" onClick={() => setIsProfileModalOpen(true)}>Profile</button></li>
           </ul>
           <div className="user-info">
             <span className="farm-welcome">Welcome, Farmer!</span>
@@ -281,7 +342,7 @@ function FarmerDashboard() {
           {/* Submit Products Section */}
           <div className="dashboard-card full-width">
             <div className="card-header">
-              
+
               <div>
                 <h2 className="card-title">Submit Product Information</h2>
                 <p className="card-subtitle">Add details about the products you want to sell</p>
@@ -304,7 +365,7 @@ function FarmerDashboard() {
                     <div className="form-row">
                       <div className="form-group">
                         <label>Product Type: *</label>
-                        <select 
+                        <select
                           required
                           value={product.category}
                           onChange={(e) => updateProduct(product.id, 'category', e.target.value)}
@@ -320,9 +381,9 @@ function FarmerDashboard() {
 
                       <div className="form-group">
                         <label>Product Name: *</label>
-                        <input 
-                          type="text" 
-                          required 
+                        <input
+                          type="text"
+                          required
                           value={product.name}
                           onChange={(e) => updateProduct(product.id, 'name', e.target.value)}
                           placeholder="e.g., Tomatoes"
@@ -333,8 +394,8 @@ function FarmerDashboard() {
                     <div className="form-row">
                       <div className="form-group">
                         <label>Variety (Optional):</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           value={product.variety || ''}
                           onChange={(e) => updateProduct(product.id, 'variety', e.target.value)}
                           placeholder="e.g., Cherry"
@@ -344,14 +405,14 @@ function FarmerDashboard() {
                       <div className="form-group">
                         <label>Quantity: *</label>
                         <div className="input-with-unit">
-                          <input 
-                            type="number" 
-                            required 
+                          <input
+                            type="number"
+                            required
                             value={product.quantity}
                             onChange={(e) => updateProduct(product.id, 'quantity', e.target.value)}
                             placeholder="Amount"
                           />
-                          <select 
+                          <select
                             value={product.unit}
                             onChange={(e) => updateProduct(product.id, 'unit', e.target.value)}
                             className="unit-select"
@@ -367,8 +428,8 @@ function FarmerDashboard() {
                     <div className="form-row">
                       <div className="form-group">
                         <label>Price per Unit (LKR): *</label>
-                        <input 
-                          type="number" 
+                        <input
+                          type="number"
                           required
                           value={product.customPrice}
                           onChange={(e) => updateProduct(product.id, 'customPrice', e.target.value)}
@@ -378,8 +439,8 @@ function FarmerDashboard() {
 
                       <div className="form-group">
                         <label>Harvest Date: *</label>
-                        <input 
-                          type="date" 
+                        <input
+                          type="date"
                           required
                           value={product.harvestDate || ''}
                           onChange={(e) => updateProduct(product.id, 'harvestDate', e.target.value)}
@@ -390,7 +451,7 @@ function FarmerDashboard() {
                     <div className="form-row">
                       <div className="form-group">
                         <label>Quality Grade: *</label>
-                        <select 
+                        <select
                           required
                           value={product.grade || ''}
                           onChange={(e) => updateProduct(product.id, 'grade', e.target.value)}
@@ -404,7 +465,7 @@ function FarmerDashboard() {
 
                       <div className="form-group">
                         <label>Transport Method: *</label>
-                        <select 
+                        <select
                           required
                           value={product.transport}
                           onChange={(e) => updateProduct(product.id, 'transport', e.target.value)}
@@ -419,8 +480,8 @@ function FarmerDashboard() {
                     <div className="form-row">
                       <div className="form-group">
                         <label>Preferred Transport Date: *</label>
-                        <input 
-                          type="date" 
+                        <input
+                          type="date"
                           required
                           value={product.deliveryDate}
                           onChange={(e) => updateProduct(product.id, 'deliveryDate', e.target.value)}
@@ -430,8 +491,8 @@ function FarmerDashboard() {
 
                       <div className="form-group">
                         <label>Storage Location: *</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           required
                           value={product.storage || ''}
                           onChange={(e) => updateProduct(product.id, 'storage', e.target.value)}
@@ -443,13 +504,13 @@ function FarmerDashboard() {
                     <div className="form-group full-width">
                       <label>Product Images (Max 5 images):</label>
                       <div className="file-upload-area">
-                        <input 
-                          type="file" 
+                        <input
+                          type="file"
                           id={`images-${product.id}`}
                           accept="image/*"
                           multiple
                           onChange={(e) => updateProduct(product.id, 'images', e.target.files)}
-                          style={{display: 'none'}}
+                          style={{ display: 'none' }}
                         />
                         <label htmlFor={`images-${product.id}`} className="file-upload-label">
                           <div className="upload-icon">📷</div>
@@ -461,7 +522,7 @@ function FarmerDashboard() {
 
                     <div className="form-group full-width">
                       <label>Additional Notes:</label>
-                      <textarea 
+                      <textarea
                         value={product.notes || ''}
                         onChange={(e) => updateProduct(product.id, 'notes', e.target.value)}
                         placeholder="Any special information about this product..."
@@ -488,7 +549,7 @@ function FarmerDashboard() {
             {/* Product Submissions */}
             <div className="dashboard-card submissions-card">
               <div className="card-header">
-               
+
                 <h2 className="card-title">My Product Submissions</h2>
               </div>
               <div className="submissions-list">
@@ -524,11 +585,11 @@ function FarmerDashboard() {
             <div className="dashboard-card deliveries-card">
               <div className="delivery-schedule-header">
                 <div className="schedule-title-section">
-                  
+
                   <h2 className="schedule-title">Delivery Schedule Management</h2>
                 </div>
               </div>
-              
+
               <div className="deliveries-table">
                 <div className="deliveries-header">
                   <div className="delivery-col">Delivery ID</div>
@@ -557,25 +618,29 @@ function FarmerDashboard() {
                         {delivery.status === 'pending' && 'Pending Review'}
                         {delivery.status === 'confirmed' && 'Confirmed'}
                         {delivery.status === 'completed' && 'Completed'}
+                        {delivery.status === 'reschedule-pending' && 'Waiting for Approval'}
                       </span>
                     </div>
                     <div className="delivery-col delivery-actions">
                       {delivery.status === 'pending' && null}
                       {delivery.status === 'confirmed' && (
                         <>
-                          <button 
+                          <button
                             className="btn-action btn-confirm"
                             onClick={() => handleConfirmClick(delivery)}
                           >
                             Confirm
                           </button>
-                          <button 
+                          <button
                             className="btn-action btn-reschedule"
                             onClick={() => handleRescheduleClick(delivery)}
                           >
                             Reschedule Delivery
                           </button>
                         </>
+                      )}
+                      {delivery.status === 'reschedule-pending' && (
+                        <span className="pending-text">Waiting for Employee Approval</span>
                       )}
                       {delivery.status === 'completed' && null}
                     </div>
@@ -595,8 +660,8 @@ function FarmerDashboard() {
             <div className="modal-content" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header">
                 <h3>Reschedule Delivery</h3>
-                <button 
-                  className="modal-close" 
+                <button
+                  className="modal-close"
                   onClick={() => setIsRescheduleModalOpen(false)}
                 >
                   ×
@@ -612,8 +677,8 @@ function FarmerDashboard() {
                   </div>
                   <div className="form-group">
                     <label htmlFor="newDeliveryDate">Select New Delivery Date *</label>
-                    <input 
-                      type="date" 
+                    <input
+                      type="date"
                       id="newDeliveryDate"
                       value={newDeliveryDate}
                       onChange={(e) => setNewDeliveryDate(e.target.value)}
@@ -626,8 +691,8 @@ function FarmerDashboard() {
                   </p>
                 </div>
                 <div className="modal-footer">
-                  <button 
-                    type="button" 
+                  <button
+                    type="button"
                     className="btn btn-secondary"
                     onClick={() => setIsRescheduleModalOpen(false)}
                   >
@@ -638,6 +703,74 @@ function FarmerDashboard() {
                   </button>
                 </div>
               </form>
+            </div>
+          </div>
+        )}
+
+        {/* Profile Modal */}
+        {isProfileModalOpen && (
+          <div className="modal-overlay" onClick={() => setIsProfileModalOpen(false)}>
+            <div className="modal-content profile-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>My Profile</h3>
+                <button
+                  className="modal-close"
+                  onClick={() => setIsProfileModalOpen(false)}
+                >
+                  ×
+                </button>
+              </div>
+              <div className="modal-body">
+                <div className="profile-header-main">
+                  <div className="profile-avatar">👨‍🌾</div>
+                  <div className="profile-title-group">
+                    <h4>{farmerProfile.fullName}</h4>
+                    <p>{farmerProfile.farmName}</p>
+                    <span className="approval-status status-approved" style={{ margin: '0.5rem 0' }}>✓ Verified Farmer</span>
+                  </div>
+                </div>
+
+                <div className="profile-details-grid">
+                  <div className="profile-detail-item">
+                    <label>Farmer ID / License</label>
+                    <p>{farmerProfile.licenseNumber}</p>
+                  </div>
+                  <div className="profile-detail-item">
+                    <label>Contact Number</label>
+                    <p>{farmerProfile.phone}</p>
+                  </div>
+                  <div className="profile-detail-item">
+                    <label>Email Address</label>
+                    <p>{farmerProfile.email}</p>
+                  </div>
+                  <div className="profile-detail-item">
+                    <label>Member Since</label>
+                    <p>{farmerProfile.memberSince}</p>
+                  </div>
+                  <div className="profile-detail-item full-width">
+                    <label>Address</label>
+                    <p>{farmerProfile.address}</p>
+                  </div>
+                  <div className="profile-detail-item">
+                    <label>Quality Rating</label>
+                    <p>{farmerProfile.qualityRating}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => setIsProfileModalOpen(false)}
+                >
+                  Close
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => alert('Profile editing feature coming soon!')}
+                >
+                  Edit Profile
+                </button>
+              </div>
             </div>
           </div>
         )}
