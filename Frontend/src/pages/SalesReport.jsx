@@ -12,6 +12,14 @@ function SalesReport() {
     customerType: 'all'
   })
 
+  const adminLinks = [
+    { label: 'Admin Home', path: '/admin-dashboard' },
+    { label: 'User Management', path: '/admin/users' },
+    { label: 'Inventory', path: '/admin/inventory' },
+    { label: 'Orders', path: '/admin/orders' },
+    { label: 'Reports', path: '/admin/reports' }
+  ];
+
   const sales = [
     { id: 'ORD-001', customer: 'Asoka Perera', date: 'Oct 15, 2025', products: 'Mango Cordial', quantity: '15x', subtotal: 'LKR 3,750', discount: '10% Wholesale', total: 'LKR 3,375', payment: 'completed', type: 'wholesale' },
     { id: 'ORD-002', customer: 'Nimal Silva', date: 'Oct 16, 2025', products: 'Strawberry Jam', quantity: '8x', subtotal: 'LKR 2,400', discount: '-', total: 'LKR 2,400', payment: 'completed', type: 'regular' },
@@ -41,7 +49,7 @@ function SalesReport() {
 
   return (
     <div>
-      <Header isLoggedIn={true} />
+      <Header isLoggedIn={true} customLinks={adminLinks} />
       <div className="container">
         <div className="page-header">
           <h1>Sales Report</h1>
@@ -110,7 +118,7 @@ function SalesReport() {
             <button className="btn-action btn-export" onClick={() => handleExport('PDF')}>Export to PDF</button>
             <button className="btn-action" onClick={() => navigate('/admin/generate-reports')}>Back to Reports</button>
           </div>
-          
+
           <div className="table-container">
             <table>
               <thead>

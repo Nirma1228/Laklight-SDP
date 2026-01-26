@@ -5,6 +5,15 @@ import './SystemSettings.css';
 
 function SystemSettings() {
   const [activeSection, setActiveSection] = useState('general');
+  const adminLinks = [
+    { label: 'Admin Home', path: '/admin-dashboard' },
+    { label: 'User Management', path: '/admin/users' },
+    { label: 'Inventory', path: '/admin/inventory' },
+    { label: 'Orders', path: '/admin/orders' },
+    { label: 'Reports', path: '/admin/reports' },
+    { label: 'Settings', path: '/admin/settings' }
+  ];
+
   const [settings, setSettings] = useState({
     companyName: 'Laklight Food Products',
     companyEmail: 'info@laklights.lk',
@@ -50,7 +59,7 @@ function SystemSettings() {
 
   return (
     <div className="system-settings">
-      <Header isLoggedIn={true} />
+      <Header isLoggedIn={true} customLinks={adminLinks} />
 
       <main className="main-content">
         <div className="settings-layout">

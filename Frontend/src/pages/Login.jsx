@@ -64,6 +64,7 @@ function Login() {
         const userType = data.user.userType;
         switch (userType) {
           case 'administrator':
+          case 'admin':
             navigate('/admin/dashboard');
             break;
           case 'customer':

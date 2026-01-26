@@ -34,29 +34,13 @@ exports.register = async (req, res) => {
       [email, otp, fullName, phone, passwordHash, userType || 'customer', address || null, expiresAt]
     );
 
-    // Send OTP email (Soft Fail)
-    let emailSent = false;
-    try {
-      await sendOTPEmail(email, fullName, otp);
-      emailSent = true;
-    } catch (emailErr) {
-      console.error('⚠️ Registration email failed (Soft Fail):', emailErr.message);
-      // Continue anyway since we have debugOtp
-    }
-
-    // DEVELOPMENT ONLY: Log OTP to console for testing
-    console.log('='.repeat(50));
-    console.log('📧 OTP SENT FOR TESTING');
-    console.log('Email:', email);
-    console.log('OTP Code:', otp);
-    console.log('Expires in: 10 minutes');
-    console.log('='.repeat(50));
+    // Send OTP email (Hard Fail for security)
+    await sendOTPEmail(email, fullName, otp);
 
     res.status(200).json({
       message: 'OTP sent to your email. Please verify to complete registration.',
       email: email,
-      requiresVerification: true,
-      debugOtp: otp // TEMPORARY: Expose OTP for debugging
+      requiresVerification: true
     });
   } catch (error) {
     console.error('Registration error:', error);
@@ -93,29 +77,14 @@ exports.farmerRegister = async (req, res) => {
       [email, otp, fullName, phone, passwordHash, 'farmer', address || null, expiresAt]
     );
 
-    // Send OTP email (Soft Fail)
-    let emailSent = false;
-    try {
-      await sendOTPEmail(email, fullName, otp);
-      emailSent = true;
-    } catch (emailErr) {
-      console.error('⚠️ Farmer registration email failed (Soft Fail):', emailErr.message);
-    }
-
-    // DEVELOPMENT ONLY: Log OTP to console
-    console.log('='.repeat(50));
-    console.log('📧 FARMER OTP SENT FOR TESTING');
-    console.log('Email:', email);
-    console.log('OTP Code:', otp);
-    console.log('Expires in: 10 minutes');
-    console.log('='.repeat(50));
+    // Send OTP email (Hard Fail for security)
+    await sendOTPEmail(email, fullName, otp);
+    let emailSent = true;
 
     res.status(200).json({
-      message: emailSent ? 'OTP sent to your email.' : 'OTP generated (Email failed, check popup).',
+      message: 'OTP sent to your email. Please verify to complete registration.',
       email: email,
-      requiresVerification: true,
-      debugOtp: otp, // TEMPORARY: Expose OTP for debugging
-      emailSent: emailSent
+      requiresVerification: true
     });
   } catch (error) {
     console.error('Farmer registration error:', error);

@@ -10,11 +10,13 @@ console.log('Password length:', process.env.EMAIL_PASSWORD ? process.env.EMAIL_P
 const transporter = nodemailer.createTransport({
     host: process.env.EMAIL_HOST || 'smtp-relay.brevo.com',
     port: parseInt(process.env.EMAIL_PORT) || 587,
-    secure: false,
+    secure: parseInt(process.env.EMAIL_PORT) === 465,
     auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASSWORD
-    }
+    },
+    connectionTimeout: 30000,
+    greetingTimeout: 30000
 });
 
 async function test() {
@@ -24,9 +26,11 @@ async function test() {
         console.log('✅ Transporter verified!');
 
         console.log('\n📧 Sending test mail...');
+        const recipient = process.argv[2] || 'amradikari67@gmail.com';
+        console.log(`Sending to: ${recipient}`);
         const info = await transporter.sendMail({
-            from: `"${process.env.EMAIL_FROM_NAME || 'Laklight Test'}" <${process.env.EMAIL_USER}>`,
-            to: process.env.EMAIL_USER, // Send to self
+            from: `"${process.env.EMAIL_FROM_NAME || 'Laklight Test'}" <${process.env.EMAIL_FROM_ADDRESS || process.env.EMAIL_USER}>`,
+            to: recipient,
             subject: 'Laklight SMTP Test',
             text: 'If you see this, SMTP is working with .env credentials.'
         });

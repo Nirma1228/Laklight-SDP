@@ -1,40 +1,77 @@
+html {
+  scroll-behavior: smooth;
+}
+
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
+:root {
+  --primary-green: #2e7d32;
+  --light-green: #4caf50;
+  --accent-orange: #ff9800;
+  --bg-gray: #f8f9fa;
+  --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   line-height: 1.6;
   color: #333;
   overflow-x: hidden;
+  background-color: var(--bg-gray);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
   min-height: 100vh;
 }
 
+/* Base Responsive Container */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 0 1rem;
+  }
+}
+
 /* Global button styles */
 .btn {
-  padding: 0.7rem 1.5rem;
+  padding: 0.75rem 1.8rem;
   border: none;
-  border-radius: 25px;
+  border-radius: 50px;
   cursor: pointer;
-  font-weight: 500;
+  font-weight: 600;
   text-decoration: none;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  transition: all 0.3s ease;
+  transition: var(--transition);
+  font-size: 0.95rem;
+}
+
+.btn:active {
+  transform: scale(0.96);
 }
 
 .btn-primary {
-  background: #ff9800;
+  background: linear-gradient(135deg, var(--accent-orange), #f57c00);
   color: white;
+  box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3);
 }
 
 .btn-primary:hover {
-  background: #f57c00;
+  box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
   transform: translateY(-2px);
 }
 
@@ -46,20 +83,110 @@ body {
 
 .btn-secondary:hover {
   background: white;
-  color: #2e7d32;
+  color: var(--primary-green);
 }
 
 .btn-large {
-  padding: 1rem 2rem;
+  padding: 1rem 2.5rem;
   font-size: 1.1rem;
+}
+
+/* Touch targets optimization */
+@media (pointer: coarse) {
+
+  button,
+  .btn,
+  a {
+    min-height: 44px;
+  }
+}
+
+/* Image optimization */
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Table scroll indicator for mobile */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 1rem;
+}
+
+/* Global Select & Input Responsiveness */
+select,
+input[type="text"],
+input[type="number"],
+input[type="email"],
+input[type="password"],
+input[type="tel"],
+textarea {
+  font-family: inherit;
+  font-size: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  border: 1.5px solid #e0e0e0;
+  transition: var(--transition);
+  width: 100%;
+  background-color: white;
+}
+
+select:focus,
+input:focus,
+textarea:focus {
+  outline: none;
+  border-color: var(--light-green);
+  box-shadow: 0 0 0 4px rgba(76, 175, 80, 0.1);
+}
+
+/* Custom dropdown arrow for cleaner look */
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1.2rem;
+  padding-right: 3rem;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+
+  select,
+  input,
+  textarea {
+    font-size: 16px;
+    /* Prevents iOS auto-zoom */
+    padding: 0.85rem 1rem;
+  }
+
+  .form-row,
+  .filter-row,
+  .filter-options {
+    grid-template-columns: 1fr !important;
+    flex-direction: column !important;
+    display: flex !important;
+    gap: 1.25rem !important;
+  }
+
+  .form-group,
+  .filter-select,
+  .search-box {
+    width: 100% !important;
+    min-width: 0 !important;
+    flex: 1 0 100% !important;
+  }
 }
 
 /* Animation */
 @keyframes fadeInUp {
   from {
     opacity: 0;
-    transform: translateY(30px);
+    transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -67,5 +194,5 @@ body {
 }
 
 .animate-fadeInUp {
-  animation: fadeInUp 0.6s ease forwards;
+  animation: fadeInUp 0.5s ease-out forwards;
 }

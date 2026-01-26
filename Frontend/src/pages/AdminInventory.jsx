@@ -1,10 +1,42 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
+import Header from '../components/Header'
+import { config } from '../config'
 import './AdminInventory.css'
 
 function AdminInventory() {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('fruits')
+  const [adminName, setAdminName] = useState(localStorage.getItem('userName') || 'Administrator');
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        if (!token) return;
+        const res = await fetch(`${config.API_BASE_URL}/auth/profile`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.user) {
+            setAdminName(data.user.full_name);
+            localStorage.setItem('userName', data.user.full_name);
+          }
+        }
+      } catch (err) { console.error(err); }
+    };
+    fetchProfile();
+  }, []);
+
+  const adminLinks = [
+    { label: 'Admin Home', path: '/admin-dashboard' },
+    { label: 'User Management', path: '/admin/users' },
+    { label: 'Inventory', path: '/admin/inventory' },
+    { label: 'Orders', path: '/admin/orders' },
+    { label: 'Suppliers', path: '/admin/suppliers' },
+    { label: 'Reports', path: '/admin/reports' }
+  ];
 
   const [fruitInventory] = useState([
     { id: 1, name: 'Fresh Strawberry - Grade A', type: 'fruit', stock: 15, unit: 'kg', location: 'A-C1-R2', expiryDate: '2024-02-15', status: 'good', batch: 'BATCH-001' },
@@ -40,20 +72,7 @@ function AdminInventory() {
 
   return (
     <div className="admin-inventory">
-      {/* Header */}
-      <div className="header">
-        <div className="nav-container">
-          <div className="logo">
-            <span>🌿</span>
-            Laklight Food Products
-          </div>
-          <div className="user-info">
-            <span className="admin-badge">ADMIN</span>
-            <span>Administrator</span>
-            <button className="btn btn-secondary" onClick={() => navigate('/admin-dashboard')}>Dashboard</button>
-          </div>
-        </div>
-      </div>
+      <Header isLoggedIn={true} customLinks={adminLinks} />
 
       {/* Main Content */}
       <div className="main-content">

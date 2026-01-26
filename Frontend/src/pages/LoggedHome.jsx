@@ -48,7 +48,7 @@ function LoggedHome() {
       <header className="header">
         <nav className="nav-container">
           <div className="logo">
-            <img src="/Logo.png" alt="Laklight" />
+            <img src="/images/Logo.png" alt="Laklight" />
             Laklight Food Products
           </div>
           <div className="user-info">

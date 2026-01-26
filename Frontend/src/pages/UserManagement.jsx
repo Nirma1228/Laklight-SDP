@@ -1,9 +1,41 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, Link } from 'react-router-dom'
+import Header from '../components/Header'
+import { config } from '../config'
 import './UserManagement.css'
 
 function UserManagement() {
   const navigate = useNavigate()
+  const [adminName, setAdminName] = useState(localStorage.getItem('userName') || 'Administrator');
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        if (!token) return;
+        const res = await fetch(`${config.API_BASE_URL}/auth/profile`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await response.json();
+          if (data.user) {
+            setAdminName(data.user.full_name);
+            localStorage.setItem('userName', data.user.full_name);
+          }
+        }
+      } catch (err) { console.error(err); }
+    };
+    fetchProfile();
+  }, []);
+
+  const adminLinks = [
+    { label: 'Admin Home', path: '/admin-dashboard' },
+    { label: 'User Management', path: '/admin/users' },
+    { label: 'Inventory', path: '/admin/inventory' },
+    { label: 'Orders', path: '/admin/orders' },
+    { label: 'Suppliers', path: '/admin/suppliers' },
+    { label: 'Reports', path: '/admin/reports' }
+  ];
   const [users, setUsers] = useState([
     { id: 1, name: 'Hirun Perera', email: 'Hirun@laklight.com', role: 'admin', status: 'active', phone: '0771234567', joinDate: '2023-01-15' },
     { id: 2, name: 'Sarah Fdo', email: 'sarah@laklight.com', role: 'employee', status: 'active', phone: '0772345678', joinDate: '2023-02-20' },
@@ -74,20 +106,7 @@ function UserManagement() {
 
   return (
     <div className="user-management">
-      {/* Header */}
-      <div className="header">
-        <div className="nav-container">
-          <div className="logo">
-            <span>🌿</span>
-            Laklight Food Products
-          </div>
-          <div className="user-info">
-            <span className="admin-badge">ADMIN</span>
-            <span>Administrator</span>
-            <button className="btn btn-secondary" onClick={() => navigate('/admin-dashboard')}>Dashboard</button>
-          </div>
-        </div>
-      </div>
+      <Header isLoggedIn={true} customLinks={adminLinks} />
 
       {/* Main Content */}
       <div className="main-content">

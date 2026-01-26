@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import Header from '../components/Header'
 import { config } from '../config'
 import './FarmerDashboard.css'
 
@@ -462,6 +463,21 @@ function FarmerDashboard() {
     setNotifications(prev => prev.filter((_, i) => i !== index));
   };
 
+  const scrollToSection = (id) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const offset = 90;
+    const bodyRect = document.body.getBoundingClientRect().top;
+    const elementRect = el.getBoundingClientRect().top;
+    const elementPosition = elementRect - bodyRect;
+    const offsetPosition = elementPosition - offset;
+
+    window.scrollTo({
+      top: offsetPosition,
+      behavior: 'smooth'
+    });
+  };
+
   return (
     <div className="farmer-dashboard">
       {/* Notifications */}
@@ -481,37 +497,19 @@ function FarmerDashboard() {
           ))}
         </div>
       )}
-      {/* Header */}
-      <div className="header">
-        <div className="nav-container">
-          <Link to="/home" className="logo" style={{ textDecoration: 'none', color: 'white' }}>
-            <img src="/images/Logo.png" alt="Laklight Logo" style={{ width: '40px', height: '40px', marginRight: '10px', objectFit: 'contain' }} />
-            Laklight Food Products
-          </Link>
-          <ul className="nav-menu">
-            <li><Link to="/home">Dashboard</Link></li>
-            <li><a href="#products">My Products</a></li>
-            <li><a href="#deliveries">Deliveries</a></li>
-            <li><button type="button" className="nav-link-btn" onClick={() => setIsProfileModalOpen(true)}>Profile</button></li>
-          </ul>
-          <div className="user-info">
-            <span className="farm-welcome">Welcome, Farmer!</span>
-            <button
-              onClick={() => {
-                localStorage.clear();
-                sessionStorage.clear();
-                navigate('/');
-              }}
-              className="btn btn-secondary"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-      </div>
+
+      <Header
+        isLoggedIn={true}
+        customLinks={[
+          { label: 'Dashboard', onClick: () => scrollToSection('dashboard') },
+          { label: 'My Products', onClick: () => scrollToSection('products-submissions-title') },
+          { label: 'Deliveries', onClick: () => scrollToSection('deliveries-management-title') },
+          { label: 'Profile', onClick: () => setIsProfileModalOpen(true) }
+        ]}
+      />
 
       {/* Dashboard Content */}
-      <div className="dashboard">
+      <div className="dashboard" id="dashboard">
         <div className="welcome-section">
           <h1 className="welcome-title">Farmer Dashboard</h1>
           <p className="welcome-description">Welcome to your supplier portal. Submit your fruit products and track your applications with Laklights Food Products.</p>
@@ -754,10 +752,10 @@ function FarmerDashboard() {
           {/* Right Column */}
           <div className="right-column">
             {/* Product Submissions */}
-            <div className="dashboard-card submissions-card">
+            <div className="dashboard-card submissions-card" id="products-submissions">
               <div className="card-header">
 
-                <h2 className="card-title">My Product Submissions</h2>
+                <h2 className="card-title" id="products-submissions-title">My Product Submissions</h2>
               </div>
               <div className="submissions-list">
                 {submissions.map(sub => (
@@ -824,11 +822,11 @@ function FarmerDashboard() {
           </div>
 
           {/* Delivery Schedule Management - Full Width Bottom */}
-          <div className="dashboard-card deliveries-card full-width-card">
+          <div className="dashboard-card deliveries-card full-width-card" id="deliveries-management">
             <div className="delivery-schedule-header">
               <div className="schedule-title-section">
 
-                <h2 className="schedule-title">Delivery Schedule Management</h2>
+                <h2 className="schedule-title" id="deliveries-management-title">Delivery Schedule Management</h2>
               </div>
             </div>
 

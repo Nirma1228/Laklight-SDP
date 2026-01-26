@@ -98,12 +98,7 @@ function Register() {
         setRegisteredEmail(formData.email)
         setStep(2) // Move to OTP verification step
 
-        if (data.debugOtp) {
-          alert(`DEV MODE: Your OTP is ${data.debugOtp}\n\n(It was also sent to your email)`)
-
-        } else {
-          alert('OTP sent to your email! Please check your inbox.')
-        }
+        alert('OTP sent to your email! Please check your inbox.')
       }
     } catch (err) {
       setError(err.message || 'Registration failed. Please try again.')
@@ -146,6 +141,8 @@ function Register() {
       if (data.token) {
         localStorage.setItem('token', data.token)
         localStorage.setItem('user', JSON.stringify(data.user))
+        localStorage.setItem('userName', data.user.name)
+        localStorage.setItem('userType', data.user.userType)
       }
 
       // Show success message

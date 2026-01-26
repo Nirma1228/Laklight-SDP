@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
+import Header from '../components/Header'
 import { config } from '../config'
 import Footer from '../components/Footer'
 import './AdminDashboard.css'
@@ -11,6 +12,7 @@ function AdminDashboard() {
   const [recentOrders, setRecentOrders] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [adminName, setAdminName] = useState(localStorage.getItem('userName') || 'Administrator');
 
   // Get token from localStorage
   const getAuthToken = () => {
@@ -19,6 +21,27 @@ function AdminDashboard() {
 
   // API base URL
 
+
+  // Fetch Profile data to show correct name
+  useEffect(() => {
+    const fetchAdminProfile = async () => {
+      try {
+        const token = getAuthToken();
+        if (!token) return;
+        const response = await fetch(`${config.API_BASE_URL}/auth/profile`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.user) {
+            setAdminName(data.user.full_name);
+            localStorage.setItem('userName', data.user.full_name);
+          }
+        }
+      } catch (err) { console.error('Admin profile fetch error:', err); }
+    };
+    fetchAdminProfile();
+  }, []);
 
   // Fetch dashboard data from backend
   useEffect(() => {
@@ -31,7 +54,7 @@ function AdminDashboard() {
           return
         }
 
-        const response = await fetch(`${API_BASE_URL}/admin/analytics/dashboard`, {
+        const response = await fetch(`${config.API_BASE_URL}/admin/analytics/dashboard`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -94,27 +117,16 @@ function AdminDashboard() {
 
   return (
     <div className="admin-dashboard-container">
-      {/* Header */}
-      <header className="header">
-        <nav className="nav-container">
-          <Link to="/" className="logo">
-            <img src="/images/Logo.png" alt="Laklight" />
-            Laklight Food Products
-          </Link>
-          <ul className="nav-menu">
-            <li><Link to="/admin/users">User Management</Link></li>
-            <li><Link to="/admin/inventory">Inventory</Link></li>
-            <li><Link to="/admin/orders">Orders</Link></li>
-            <li><Link to="/admin/suppliers">Suppliers</Link></li>
-            <li><Link to="/admin/reports">Reports</Link></li>
-          </ul>
-          <div className="user-info">
-            <span className="admin-badge">ADMIN</span>
-            <span>Administrator</span>
-            <button onClick={handleLogout} className="logout-btn-header">Logout</button>
-          </div>
-        </nav>
-      </header>
+      <Header
+        isLoggedIn={true}
+        customLinks={[
+          { label: 'User Management', path: '/admin/users' },
+          { label: 'Inventory', path: '/admin/inventory' },
+          { label: 'Orders', path: '/admin/orders' },
+          { label: 'Suppliers', path: '/admin/suppliers' },
+          { label: 'Reports', path: '/admin/reports' }
+        ]}
+      />
 
       {/* Main Content */}
       <main className="admin-dashboard-content">

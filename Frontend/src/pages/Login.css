@@ -229,12 +229,47 @@
 }
 
 @media (max-width: 768px) {
+  .login-page {
+    padding: 1.5rem;
+    justify-content: flex-start;
+    padding-top: 5rem;
+  }
+
   .login-container {
     grid-template-columns: 1fr;
-    max-width: 400px;
+    max-width: 100%;
+    min-height: auto;
+    border-radius: 30px;
   }
 
   .login-left {
     display: none;
+  }
+
+  .login-right {
+    padding: 3rem 1.5rem;
+  }
+
+  .back-home {
+    top: 1.5rem;
+    left: 1.5rem;
+    font-size: 0.95rem;
+    color: #2e7d32;
+    background: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  }
+}
+
+@media (max-width: 480px) {
+  .login-header h2 {
+    font-size: 1.75rem;
+  }
+
+  .form-options {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1.25rem;
   }
 }

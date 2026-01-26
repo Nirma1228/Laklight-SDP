@@ -1387,3 +1387,120 @@ textarea.edit-input {
 .nav-link-btn:hover {
   color: #c8e6c9;
 }
+
+/* Full Mobile Responsiveness */
+@media (max-width: 1200px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .right-column {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 2rem;
+  }
+}
+
+@media (max-width: 992px) {
+  .nav-menu {
+    gap: 1rem;
+  }
+
+  .logo {
+    font-size: 1.4rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard {
+    padding: 100px 1rem 1rem;
+    margin: 0;
+  }
+
+  /* Anchor link offset for fixed header */
+  #products-submissions,
+  #products-submissions-title,
+  #deliveries-management,
+  #deliveries-management-title {
+    scroll-margin-top: 100px;
+  }
+
+  .welcome-section {
+    padding: 1.5rem;
+  }
+
+  .welcome-title {
+    font-size: 1.6rem;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 0.8rem;
+  }
+
+  .stat-item {
+    padding: 1rem;
+  }
+
+  .stat-number {
+    font-size: 1.8rem;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .input-with-unit {
+    flex-direction: column;
+  }
+
+  .transport-selection {
+    grid-template-columns: 1fr;
+  }
+
+  .price-options {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .btn-submit-all {
+    width: 100%;
+  }
+
+  .submission-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .right-column {
+    grid-template-columns: 1fr;
+  }
+
+  .notifications-section {
+    width: 95%;
+  }
+
+  .profile-details-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .price-options {
+    grid-template-columns: 1fr;
+  }
+
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

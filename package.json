@@ -1,0 +1,14 @@
+{
+    "name": "laklight-sdp-root",
+    "version": "1.0.0",
+    "description": "Root package for Laklight SDP project",
+    "scripts": {
+        "install-all": "npm install && cd Backend && npm install && cd ../Frontend && npm install",
+        "backend": "cd Backend && npm run dev",
+        "frontend": "cd Frontend && npm run dev",
+        "dev": "npx concurrently \"npm run backend\" \"npm run frontend\""
+    },
+    "devDependencies": {
+        "concurrently": "^8.2.2"
+    }
+}

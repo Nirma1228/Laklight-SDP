@@ -1,6 +1,8 @@
 import { useState, useEffect, useMemo } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import Header from '../components/Header'
 import Footer from '../components/Footer'
+import { config } from '../config'
 import './EmployeeDashboard.css'
 
 const EmployeeDashboard = () => {
@@ -30,10 +32,11 @@ const EmployeeDashboard = () => {
   const [successMessage, setSuccessMessage] = useState('')
 
   const [profileData, setProfileData] = useState({
-    firstName: 'Nimal',
-    lastName: 'Fernando',
-    email: 'nimal.fernando@laklights.com',
-    phone: '+94 77 345 6789',
+    firstName: '',
+    lastName: '',
+    fullName: '',
+    email: '',
+    phone: '',
     employeeId: 'EMP-001',
     department: 'Operations',
     position: 'Inventory Manager',
@@ -44,6 +47,52 @@ const EmployeeDashboard = () => {
     notifications: 'all',
     language: 'en'
   })
+
+  // Load user data from localStorage and Database
+  useEffect(() => {
+    // 1. Initial load from localStorage for fast UI
+    const userName = localStorage.getItem('userName');
+    if (userName) {
+      setProfileData(prev => ({
+        ...prev,
+        fullName: userName,
+        firstName: userName.split(' ')[0],
+        lastName: userName.split(' ').slice(1).join(' ')
+      }));
+    }
+
+    // 2. Fetch fresh data from Database
+    const fetchRealProfile = async () => {
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        if (!token) return;
+
+        const response = await fetch(`${config.API_BASE_URL}/auth/profile`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.user) {
+            setProfileData(prev => ({
+              ...prev,
+              fullName: data.user.full_name,
+              firstName: data.user.full_name.split(' ')[0],
+              lastName: data.user.full_name.split(' ').slice(1).join(' '),
+              email: data.user.email,
+              phone: data.user.phone,
+              address: data.user.address
+            }));
+            localStorage.setItem('userName', data.user.full_name);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching real-time profile:', error);
+      }
+    };
+
+    fetchRealProfile();
+  }, []);
 
   const [farmerProducts, setFarmerProducts] = useState([
     {
@@ -421,6 +470,61 @@ const EmployeeDashboard = () => {
         payment: 'Completed',
         status: 'Ready',
         date: 'Sept 22, 2025'
+      },
+      {
+        id: 'O005',
+        customer: 'Nimali Siriwardena',
+        address: '89 Kandy Road, Kiribathgoda',
+        phone: '+94 77 123 4455',
+        items: '5x Mango Jelly, 2x Wood Apple Juice',
+        total: 1200.00,
+        payment: 'Completed',
+        status: 'Completed',
+        date: 'Sept 15, 2025'
+      },
+      {
+        id: 'O006',
+        customer: 'Kamal Gunaratne',
+        address: '12 Temple Road, Negombo',
+        phone: '+94 71 888 2233',
+        items: '12x Lime Mix (Wholesale)',
+        total: 1620.00,
+        payment: 'Completed',
+        status: 'Completed',
+        date: 'Sept 16, 2025'
+      },
+      {
+        id: 'O007',
+        customer: 'Sunethra Jayawardena',
+        address: '45/1 Flower Road, Colombo 07',
+        phone: '+94 76 555 9900',
+        items: '10x Passion Fruit Juice',
+        total: 2500.00,
+        payment: 'Completed',
+        status: 'Completed',
+        date: 'Sept 17, 2025'
+      },
+      {
+        id: 'O008',
+        customer: 'Priyantha Perera',
+        address: '67 Circular Road, Kurunegala',
+        phone: '+94 70 333 4444',
+        items: '20x Mixed Fruit Jam',
+        total: 4800.00,
+        payment: 'Completed',
+        status: 'Completed',
+        date: 'Sept 18, 2025'
+      },
+      {
+        id: 'O009',
+        customer: 'Dilini Silva',
+        address: 'B2 Galle Face Terrace, Colombo 03',
+        phone: '+94 72 111 2222',
+        items: '3x Ginger Beer Extract, 5x Lime Mix',
+        total: 1850.00,
+        payment: 'Completed',
+        status: 'Completed',
+        date: 'Sept 19, 2025'
       }
     ]
   })
@@ -481,6 +585,31 @@ const EmployeeDashboard = () => {
 
   const showTab = (tabName) => {
     setActiveTab(tabName)
+    // Automated scroll to section when tab is changed
+    setTimeout(() => {
+      let sectionId = '';
+      switch (tabName) {
+        case 'inventory': sectionId = 'current-inventory'; break;
+        case 'suppliers': sectionId = 'supplier-applications'; break;
+        case 'orders': sectionId = 'order-management'; break;
+        case 'deliveries': sectionId = 'delivery-schedule'; break;
+        default: sectionId = '';
+      }
+
+      if (sectionId) {
+        const element = document.getElementById(sectionId);
+        if (element) {
+          const headerOffset = 100;
+          const elementPosition = element.getBoundingClientRect().top;
+          const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+          });
+        }
+      }
+    }, 100);
   }
 
   const approveApplication = (farmName) => {
@@ -759,30 +888,16 @@ const EmployeeDashboard = () => {
 
   return (
     <div className="employee-dashboard">
-      {/* Header */}
-      <header className="header">
-        <nav className="nav-container">
-          <Link to="/home" style={{ textDecoration: 'none', color: 'white' }}>
-            <div className="logo">
-              <img src="/images/Logo.png" alt="Laklights Food Products" className="logo-img" />
-              Laklights Food Products
-            </div>
-          </Link>
-          <ul className="nav-menu">
-            <li><Link to="/home">Dashboard</Link></li>
-            <li><a href="#inventory">Inventory</a></li>
-            <li><a href="#suppliers">Suppliers</a></li>
-            <li><a href="#orders">Orders</a></li>
-          </ul>
-          <div className="user-info">
-            <span>Employee: {profileData.firstName} {profileData.lastName}</span>
-            <button className="btn btn-primary" onClick={() => setIsEditProfileOpen(true)}>
-              Edit Profile
-            </button>
-            <Link to="/" className="btn btn-secondary">Logout</Link>
-          </div>
-        </nav>
-      </header>
+      <Header
+        isLoggedIn={true}
+        customLinks={[
+          { label: 'Inventory Management', onClick: () => showTab('inventory') },
+          { label: 'Supplier Applications', onClick: () => showTab('suppliers') },
+          { label: 'Order Management', onClick: () => showTab('orders') },
+          { label: 'Delivery Schedule', onClick: () => showTab('deliveries') },
+          { label: 'Profile', onClick: () => setIsEditProfileOpen(true) }
+        ]}
+      />
 
       {/* Dashboard Content */}
       <main className="dashboard">
@@ -919,7 +1034,7 @@ const EmployeeDashboard = () => {
           )}
 
           <div className="dashboard-grid">
-            <div className="dashboard-card" style={{ gridColumn: '1 / -1' }}>
+            <div id="current-inventory" className="dashboard-card" style={{ gridColumn: '1 / -1' }}>
               <div className="card-header">
                 <div className="card-title">
                   <div className="card-icon"></div>
@@ -1090,7 +1205,7 @@ const EmployeeDashboard = () => {
         {/* Supplier Applications Tab */}
         <div className={`tab-content ${activeTab === 'suppliers' ? 'active' : ''}`}>
           <div className="dashboard-grid">
-            <div className="dashboard-card" style={{ gridColumn: '1 / -1' }}>
+            <div id="supplier-applications" className="dashboard-card" style={{ gridColumn: '1 / -1' }}>
               <div className="card-header">
                 <div className="card-title">
                   <div className="card-icon"></div>
@@ -1199,7 +1314,7 @@ const EmployeeDashboard = () => {
         <div className={`tab-content ${activeTab === 'orders' ? 'active' : ''}`}>
           <div className="dashboard-grid">
             {/* Processing Orders List */}
-            <div className="dashboard-card" style={{ gridColumn: '1 / -1' }}>
+            <div id="order-management" className="dashboard-card" style={{ gridColumn: '1 / -1' }}>
               <div className="card-header">
                 <div className="card-title">
                   <div className="card-icon"></div>
@@ -1283,7 +1398,7 @@ const EmployeeDashboard = () => {
         {/* Delivery Schedule Tab */}
         <div className={`tab-content ${activeTab === 'deliveries' ? 'active' : ''}`}>
           <div className="dashboard-grid">
-            <div className="dashboard-card" style={{ gridColumn: '1 / -1' }}>
+            <div id="delivery-schedule" className="dashboard-card" style={{ gridColumn: '1 / -1' }}>
               <div className="card-header">
                 <div className="card-title">
                   <div className="card-icon">🚚</div>
@@ -1341,15 +1456,17 @@ const EmployeeDashboard = () => {
                         </td>
                         <td>
                           {delivery.status === 'pending' && (
-                            <button
-                              className="btn-action"
-                              onClick={() => reviewDelivery(delivery.id)}
-                            >
-                              Review
-                            </button>
+                            <div className="action-btn-group">
+                              <button
+                                className="btn-action btn-confirm"
+                                onClick={() => reviewDelivery(delivery.id)}
+                              >
+                                Review
+                              </button>
+                            </div>
                           )}
                           {delivery.status === 'pending-confirmation' && (
-                            <div style={{ display: 'flex', gap: '0.5rem' }}>
+                            <div className="action-btn-group">
                               <button
                                 className="btn-action btn-confirm"
                                 onClick={() => {
@@ -1361,7 +1478,6 @@ const EmployeeDashboard = () => {
                               </button>
                               <button
                                 className="btn-action btn-reschedule"
-                                style={{ background: '#ff9800' }}
                                 onClick={() => reviewDelivery(delivery.id)}
                               >
                                 Date Reschedule
@@ -1369,30 +1485,30 @@ const EmployeeDashboard = () => {
                             </div>
                           )}
                           {delivery.status === 'confirmed' && (
-                            <>
+                            <div className="action-btn-group">
                               <button
-                                className="btn-action"
-                                style={{ background: '#4caf50', color: 'white' }}
+                                className="btn-action btn-confirm"
                                 onClick={() => acceptDate(delivery.id)}
                               >
                                 Accept Date
                               </button>
                               <button
-                                className="btn-action"
-                                style={{ background: '#ff9800', color: 'white', marginLeft: '0.5rem' }}
+                                className="btn-action btn-reschedule"
                                 onClick={() => rescheduleDelivery(delivery.id)}
                               >
                                 Reschedule
                               </button>
-                            </>
+                            </div>
                           )}
                           {delivery.status === 'completed' && (
-                            <button
-                              className="btn-action btn-secondary"
-                              onClick={() => viewEmployeeDeliveryDetails(delivery.id)}
-                            >
-                              View
-                            </button>
+                            <div className="action-btn-group">
+                              <button
+                                className="btn-action btn-secondary"
+                                onClick={() => viewEmployeeDeliveryDetails(delivery.id)}
+                              >
+                                View
+                              </button>
+                            </div>
                           )}
                         </td>
                       </tr>

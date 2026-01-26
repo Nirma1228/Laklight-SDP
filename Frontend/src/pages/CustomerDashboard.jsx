@@ -1,7 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import Header from '../components/Header'
 import Footer from '../components/Footer'
+import { config } from '../config'
 import StripeCheckoutButton from '../components/StripeCheckoutButton'
+import CardPaymentForm from '../components/CardPaymentForm'
 import './CustomerDashboard.css'
 
 // Product Card Component
@@ -72,22 +75,69 @@ const CustomerDashboard = () => {
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false)
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
   const [isPaymentOpen, setIsPaymentOpen] = useState(false)
+  const [showCardForm, setShowCardForm] = useState(false)
   const [featuredSearch, setFeaturedSearch] = useState('')
   const [featuredCategory, setFeaturedCategory] = useState('')
   const [featuredSort, setFeaturedSort] = useState('')
 
   const [profileData, setProfileData] = useState({
-    firstName: 'Asoka',
-    lastName: 'Perera',
-    email: 'asoka.perera@email.com',
-    phone: '+94 71 234 5678',
-    address: '123 Main Street',
-    city: 'Colombo',
-    postalCode: '00100',
-    district: 'colombo',
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: '',
+    postalCode: '',
+    district: '',
     notifications: 'all',
     language: 'en'
   })
+
+  // Load user data from localStorage and Database
+  useEffect(() => {
+    // 1. Initial load from localStorage
+    const userName = localStorage.getItem('userName');
+    if (userName) {
+      const parts = userName.split(' ');
+      setProfileData(prev => ({
+        ...prev,
+        firstName: parts[0],
+        lastName: parts.slice(1).join(' ')
+      }));
+    }
+
+    // 2. Fetch fresh data from Database
+    const fetchRealProfile = async () => {
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        if (!token) return;
+
+        const response = await fetch(`${config.API_BASE_URL}/auth/profile`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.user) {
+            const fullName = data.user.full_name;
+            setProfileData(prev => ({
+              ...prev,
+              firstName: fullName.split(' ')[0],
+              lastName: fullName.split(' ').slice(1).join(' '),
+              email: data.user.email,
+              phone: data.user.phone,
+              address: data.user.address
+            }));
+            localStorage.setItem('userName', fullName);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching real-time profile:', error);
+      }
+    };
+
+    fetchRealProfile();
+  }, []);
 
   const [checkoutData, setCheckoutData] = useState({
     firstName: '',
@@ -287,37 +337,21 @@ const CustomerDashboard = () => {
 
   return (
     <div className="customer-dashboard">
-      {/* Header */}
-      <header className="header">
-        <nav className="nav-container">
-          <Link to="/home" style={{ textDecoration: 'none', color: 'white' }}>
-            <div className="logo">
-              <img src="/images/Logo.png" alt="Laklights Food Products" className="logo-img" />
-              Laklights Food Products
-            </div>
-          </Link>
-          <ul className="nav-menu">
-            <li><Link to="/home">Dashboard</Link></li>
-            <li><a href="#products">Products</a></li>
-            <li><a href="#orders">My Orders</a></li>
-            <li><button className="nav-link-btn" style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, fontWeight: 'bold', fontSize: '1rem' }} onClick={() => setIsEditProfileOpen(true)}>Profile</button></li>
-          </ul>
-          <div className="user-info">
-            <div className="cart-icon" onClick={toggleCart}>
-              <span className="cart-icon-symbol">🛒</span>
-              <span className="cart-label">My Cart</span>
-              {totalItems > 0 && <span id="cart-count">{totalItems}</span>}
-            </div>
-            <span className="welcome-text">Welcome, {profileData.firstName} {profileData.lastName}</span>
-            <div className="header-buttons">
-              <button className="btn btn-primary" onClick={() => setIsEditProfileOpen(true)}>
-                Edit Profile
-              </button>
-              <Link to="/" className="btn btn-secondary">Logout</Link>
-            </div>
-          </div>
-        </nav>
-      </header>
+      <Header
+        isLoggedIn={true}
+        customLinks={[
+          { label: 'Dashboard', path: '/home' },
+          { label: 'Products', onClick: () => document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' }) },
+          { label: 'My Orders', onClick: () => document.getElementById('recent-orders')?.scrollIntoView({ behavior: 'smooth' }) },
+          { label: 'Profile', onClick: () => setIsEditProfileOpen(true) }
+        ]}
+      >
+        <div className="cart-icon" onClick={toggleCart}>
+          <span className="cart-icon-symbol">🛒</span>
+          <span className="cart-label">My Cart</span>
+          {totalItems > 0 && <span id="cart-count">{totalItems}</span>}
+        </div>
+      </Header>
 
       {/* Dashboard Content */}
       <main className="dashboard">
@@ -325,6 +359,14 @@ const CustomerDashboard = () => {
         <section className="welcome-section">
           <h1 className="welcome-title">Customer Dashboard</h1>
           <p>Welcome to your Laklights Food Products account. Browse our premium cordials, jams, and sauces with automatic wholesale discounts for bulk orders.</p>
+          <div className="welcome-buttons">
+            <button
+              className="btn btn-secondary welcome-btn-secondary"
+              onClick={() => document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              View Catalog
+            </button>
+          </div>
         </section>
 
         {/* Dashboard Grid */}
@@ -358,7 +400,12 @@ const CustomerDashboard = () => {
                 </div>
               ))}
             </div>
-            <a href="#orders" className="btn btn-primary">View All Orders</a>
+            <button
+              onClick={() => document.getElementById('recent-orders')?.scrollIntoView({ behavior: 'smooth' })}
+              className="btn btn-primary"
+            >
+              View All Orders
+            </button>
           </div>
 
           {/* Account Summary */}
@@ -776,43 +823,57 @@ const CustomerDashboard = () => {
         <div className="modal" style={{ display: 'block' }}>
           <div className="modal-content" style={{ maxWidth: '500px' }}>
             <div className="modal-header">
-              <h2 className="modal-title">Select Payment Method</h2>
-              <span className="close" onClick={() => setIsPaymentOpen(false)}>×</span>
+              <h2 className="modal-title">{showCardForm ? 'Enter Card Details' : 'Select Payment Method'}</h2>
+              <span className="close" onClick={() => { setIsPaymentOpen(false); setShowCardForm(false); }}>×</span>
             </div>
             <div className="modal-body">
-              <p>Total: <strong>LKR {total.toFixed(2)}</strong></p>
-              <div className="form-group">
-                <label>Payment Method *</label>
-                <select
-                  value={paymentMethod}
-                  onChange={e => setPaymentMethod(e.target.value)}
-                  required
-                >
-                  <option value="visa">VISA</option>
-                  <option value="mastercard">MasterCard</option>
-                  <option value="cod">Cash on Delivery</option>
-                </select>
-              </div>
-              {['visa', 'mastercard'].includes(paymentMethod) ? (
+              {!showCardForm ? (
                 <>
-                  <p>Click below to pay securely with Stripe:</p>
-                  <StripeCheckoutButton amount={total} onSuccess={() => {
-                    setIsPaymentOpen(false);
-                    setCart([]);
-                    alert('Payment successful! Your order has been placed.');
-                  }} />
+                  <p>Total: <strong>LKR {total.toFixed(2)}</strong></p>
+                  <div className="form-group">
+                    <label>Payment Method *</label>
+                    <select
+                      value={paymentMethod}
+                      onChange={e => setPaymentMethod(e.target.value)}
+                      required
+                    >
+                      <option value="visa">VISA</option>
+                      <option value="mastercard">MasterCard</option>
+                      <option value="cod">Cash on Delivery</option>
+                    </select>
+                  </div>
+                  {['visa', 'mastercard'].includes(paymentMethod) ? (
+                    <button
+                      className="btn btn-primary"
+                      style={{ width: '100%' }}
+                      onClick={() => setShowCardForm(true)}
+                    >
+                      Pay Securely Online
+                    </button>
+                  ) : (
+                    <>
+                      <p>You selected <strong>Cash on Delivery</strong>. Your order will be placed and you can pay upon delivery.</p>
+                      <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => {
+                        setIsPaymentOpen(false);
+                        setCart([]);
+                        alert('Order placed! Please pay cash upon delivery.');
+                      }}>
+                        Place Order (Cash on Delivery)
+                      </button>
+                    </>
+                  )}
                 </>
               ) : (
-                <>
-                  <p>You selected <strong>Cash on Delivery</strong>. Your order will be placed and you can pay upon delivery.</p>
-                  <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => {
+                <CardPaymentForm
+                  amount={total}
+                  onSuccess={() => {
                     setIsPaymentOpen(false);
+                    setShowCardForm(false);
                     setCart([]);
-                    alert('Order placed! Please pay cash upon delivery.');
-                  }}>
-                    Place Order (Cash on Delivery)
-                  </button>
-                </>
+                    alert('Payment successful! Your order has been placed.');
+                  }}
+                  onCancel={() => setShowCardForm(false)}
+                />
               )}
             </div>
           </div>
