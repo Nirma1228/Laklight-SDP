@@ -1,295 +1,120 @@
 const db = require('../config/database');
-const upload = require('../config/multer');
 
-// FR09: Submit product for review
+const getId = async (table, col, val) => {
+  const [rows] = await db.query(`SELECT id FROM ${table} WHERE ${col} = ?`, [val]);
+  return rows.length > 0 ? rows[0].id : null;
+};
+
 // FR09: Submit product for review
 exports.submitProduct = async (req, res) => {
   try {
     const farmerId = req.user.userId;
     const {
-      productName,
-      category,
-      variety,
-      quantity,
-      unit,
-      grade,
-      customPrice,
-      harvestDate,
-      transport,
-      deliveryDate,
-      storageInstructions,
-      notes,
-      images
+      productName, variety, category, quantity, unit,
+      grade, customPrice, harvestDate, transport,
+      storageInstructions, notes
     } = req.body;
 
-    // Insert submission
+    const catId = await getId('product_categories', 'category_name', category);
+    const unitId = await getId('measurement_units', 'unit_name', unit);
+    const gradeId = await getId('quality_grades', 'grade_name', grade);
+    const transId = await getId('transport_methods', 'method_name', transport);
+    const statusId = await getId('submission_statuses', 'status_name', 'under-review');
+
+    if (!catId || !unitId || !gradeId || !statusId) {
+      return res.status(400).json({ message: 'Invalid reference data (Category, Unit, Grade, or Status)' });
+    }
+
     const [result] = await db.query(
       `INSERT INTO farmer_submissions 
-       (farmer_id, product_name, category, variety, quantity, unit, grade, custom_price, 
-        harvest_date, transport, delivery_date, storage_instructions, notes, status, images)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        farmerId,
-        productName,
-        category,
-        variety || null,
-        quantity,
-        unit,
-        grade || null,
-        customPrice || null,
-        harvestDate,
-        transport || null,
-        deliveryDate || null,
-        storageInstructions || null, // Storage instruction (optional)
-        notes || null,
-        'under-review',
-        JSON.stringify(images || []) // Store images as JSON string if passed
-      ]
+       (farmer_id, product_name, variety, category_id, quantity, unit_id, grade_id, custom_price, harvest_date, transport_method_id, storage_instructions, notes, status_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [farmerId, productName, variety, catId, quantity, unitId, gradeId, customPrice, harvestDate, transId, storageInstructions, notes, statusId]
     );
 
-    const submissionId = result.insertId;
-
-    // Auto-create delivery record if deliveryDate is provided
-    if (deliveryDate) {
-      const deliveryNumber = `DEL-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-      await db.query(
-        `INSERT INTO deliveries 
-         (delivery_number, submission_id, farmer_id, product_name, quantity, proposed_date, transport_method, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [
-          deliveryNumber,
-          submissionId,
-          farmerId,
-          productName,
-          `${quantity} ${unit}`,
-          deliveryDate,
-          transport || 'Self Transport',
-          'pending'
-        ]
-      );
-    }
-
-    res.status(201).json({
-      success: true,
-      message: 'Product submission sent for review',
-      submissionId: result.insertId
-    });
+    res.status(201).json({ success: true, message: 'Submission received', submissionId: result.insertId });
   } catch (error) {
-    console.error('Submit product error:', error);
-    res.status(500).json({ message: 'Failed to submit product', error: error.message });
+    res.status(500).json({ message: 'Submission failed', error: error.message });
   }
 };
 
-// FR10: Get farmer's submissions with status tracking
+// FR10: Get farmer's submissions
 exports.getMySubmissions = async (req, res) => {
   try {
-    const farmerId = req.user.userId;
+    const [submissions] = await db.query(`
+      SELECT fs.*, ss.status_name as status, pc.category_name as category, mu.unit_name as unit, qg.grade_name as grade
+      FROM farmer_submissions fs
+      JOIN submission_statuses ss ON fs.status_id = ss.id
+      JOIN product_categories pc ON fs.category_id = pc.id
+      JOIN measurement_units mu ON fs.unit_id = mu.id
+      JOIN quality_grades qg ON fs.grade_id = qg.id
+      WHERE fs.farmer_id = ? 
+      ORDER BY fs.submission_date DESC`, [req.user.userId]);
 
-    const [submissions] = await db.query(
-      `SELECT * FROM farmer_submissions 
-       WHERE farmer_id = ? 
-       ORDER BY submission_date DESC`,
-      [farmerId]
-    );
-
-    // Group by status for easier tracking
-    const statusSummary = {
-      selected: submissions.filter(s => s.status === 'selected').length,
-      underReview: submissions.filter(s => s.status === 'under-review').length,
-      notSelected: submissions.filter(s => s.status === 'not-selected').length,
-      total: submissions.length
-    };
-
-    res.json({
-      success: true,
-      summary: statusSummary,
-      submissions
-    });
+    res.json({ success: true, submissions });
   } catch (error) {
-    console.error('Get submissions error:', error);
-    res.status(500).json({ message: 'Failed to fetch submissions', error: error.message });
-  }
-};
-
-// FR10: Track specific submission status
-exports.getSubmissionStatus = async (req, res) => {
-  try {
-    const submissionId = req.params.id;
-    const farmerId = req.user.userId;
-
-    const [submissions] = await db.query(
-      'SELECT * FROM farmer_submissions WHERE id = ? AND farmer_id = ?',
-      [submissionId, farmerId]
-    );
-
-    if (submissions.length === 0) {
-      return res.status(404).json({ message: 'Submission not found' });
-    }
-
-    res.json({
-      success: true,
-      submission: submissions[0]
-    });
-  } catch (error) {
-    console.error('Get submission status error:', error);
-    res.status(500).json({ message: 'Failed to fetch submission status', error: error.message });
-  }
-};
-
-// Update submission
-exports.updateSubmission = async (req, res) => {
-  try {
-    const submissionId = req.params.id;
-    const farmerId = req.user.userId;
-    const updateData = req.body;
-
-    // Check if submission can be edited
-    const [submissions] = await db.query(
-      'SELECT * FROM farmer_submissions WHERE id = ? AND farmer_id = ?',
-      [submissionId, farmerId]
-    );
-
-    if (submissions.length === 0) {
-      return res.status(404).json({ message: 'Submission not found' });
-    }
-
-    const submission = submissions[0];
-
-    // Can only edit submissions that are under review
-    if (submission.status !== 'under-review') {
-      return res.status(400).json({
-        message: `Cannot edit submission with status: ${submission.status}`
-      });
-    }
-
-    // Build update query dynamically
-    const fields = [];
-    const values = [];
-
-    Object.keys(updateData).forEach(key => {
-      if (updateData[key] !== undefined) {
-        fields.push(`${key} = ?`);
-        values.push(updateData[key]);
-      }
-    });
-
-    if (fields.length === 0) {
-      return res.status(400).json({ message: 'No fields to update' });
-    }
-
-    values.push(submissionId);
-
-    await db.query(
-      `UPDATE farmer_submissions SET ${fields.join(', ')} WHERE id = ?`,
-      values
-    );
-
-    res.json({
-      success: true,
-      message: 'Submission updated successfully'
-    });
-  } catch (error) {
-    console.error('Update submission error:', error);
-    res.status(500).json({ message: 'Failed to update submission', error: error.message });
-  }
-};
-
-// Delete submission
-exports.deleteSubmission = async (req, res) => {
-  try {
-    const submissionId = req.params.id;
-    const farmerId = req.user.userId;
-
-    // Check if submission can be deleted
-    const [submissions] = await db.query(
-      'SELECT * FROM farmer_submissions WHERE id = ? AND farmer_id = ?',
-      [submissionId, farmerId]
-    );
-
-    if (submissions.length === 0) {
-      return res.status(404).json({ message: 'Submission not found' });
-    }
-
-    const submission = submissions[0];
-
-    // Can only delete submissions that are under review
-    if (submission.status !== 'under-review') {
-      return res.status(400).json({
-        message: `Cannot delete submission with status: ${submission.status}`
-      });
-    }
-
-    await db.query('DELETE FROM farmer_submissions WHERE id = ?', [submissionId]);
-
-    res.json({
-      success: true,
-      message: 'Submission deleted successfully'
-    });
-  } catch (error) {
-    console.error('Delete submission error:', error);
-    res.status(500).json({ message: 'Failed to delete submission', error: error.message });
+    res.status(500).json({ message: 'Fetch failed', error: error.message });
   }
 };
 
 // Get delivery schedules
 exports.getDeliveries = async (req, res) => {
   try {
-    const farmerId = req.user.userId;
+    const [deliveries] = await db.query(`
+      SELECT d.*, ds.status_name as status, fs.product_name, tm.method_name as transport
+      FROM deliveries d
+      JOIN delivery_statuses ds ON d.status_id = ds.id
+      JOIN farmer_submissions fs ON d.submission_id = fs.id
+      LEFT JOIN transport_methods tm ON d.transport_method_id = tm.id
+      WHERE fs.farmer_id = ?
+      ORDER BY d.scheduled_date DESC`, [req.user.userId]);
 
-    const [deliveries] = await db.query(
-      `SELECT d.*, fs.product_name, fs.quantity as submission_quantity
-       FROM deliveries d
-       JOIN farmer_submissions fs ON d.submission_id = fs.id
-       WHERE d.farmer_id = ?
-       ORDER BY d.proposed_date DESC`,
-      [farmerId]
-    );
-
-    res.json({
-      success: true,
-      count: deliveries.length,
-      deliveries
-    });
+    res.json({ success: true, deliveries });
   } catch (error) {
-    console.error('Get deliveries error:', error);
-    res.status(500).json({ message: 'Failed to fetch deliveries', error: error.message });
+    res.status(500).json({ message: 'Fetch failed', error: error.message });
   }
 };
 
-// Update delivery information
+// Update delivery (Reschedule/Confirm)
 exports.updateDelivery = async (req, res) => {
   try {
-    const deliveryId = req.params.id;
-    const farmerId = req.user.userId;
-    const { proposedDate, transportMethod } = req.body;
+    const { rescheduleDate, status } = req.body;
+    const statusId = status ? await getId('delivery_statuses', 'status_name', status) : null;
 
-    const [deliveries] = await db.query(
-      'SELECT * FROM deliveries WHERE id = ? AND farmer_id = ?',
-      [deliveryId, farmerId]
-    );
+    const updates = [];
+    const params = [];
+    if (rescheduleDate) { updates.push('proposed_reschedule_date = ?'); params.push(rescheduleDate); }
+    if (statusId) { updates.push('status_id = ?'); params.push(statusId); }
 
-    if (deliveries.length === 0) {
-      return res.status(404).json({ message: 'Delivery not found' });
-    }
+    if (updates.length === 0) return res.status(400).json({ message: 'Nothing to update' });
 
-    // Can only update pending deliveries
-    if (deliveries[0].status !== 'pending') {
-      return res.status(400).json({
-        message: `Cannot update delivery with status: ${deliveries[0].status}`
-      });
-    }
+    params.push(req.params.id);
+    await db.query(`UPDATE deliveries SET ${updates.join(', ')} WHERE id = ?`, params);
 
-    await db.query(
-      'UPDATE deliveries SET proposed_date = ?, transport_method = ? WHERE id = ?',
-      [proposedDate || deliveries[0].proposed_date, transportMethod || deliveries[0].transport_method, deliveryId]
-    );
-
-    res.json({
-      success: true,
-      message: 'Delivery information updated successfully'
-    });
+    res.json({ success: true, message: 'Delivery updated' });
   } catch (error) {
-    console.error('Update delivery error:', error);
-    res.status(500).json({ message: 'Failed to update delivery', error: error.message });
+    res.status(500).json({ message: 'Update failed', error: error.message });
   }
+};
+exports.getSubmissionStatus = async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT fs.*, ss.status_name as status FROM farmer_submissions fs JOIN submission_statuses ss ON fs.status_id = ss.id WHERE fs.id = ? AND fs.farmer_id = ?', [req.params.id, req.user.userId]);
+    if (rows.length === 0) return res.status(404).json({ message: 'Not found' });
+    res.json({ success: true, submission: rows[0] });
+  } catch (error) { res.status(500).json({ message: 'Fetch failed', error: error.message }); }
+};
+
+exports.updateSubmission = async (req, res) => {
+  try {
+    const { quantity, customPrice } = req.body;
+    await db.query('UPDATE farmer_submissions SET quantity = ?, custom_price = ? WHERE id = ? AND farmer_id = ?', [quantity, customPrice, req.params.id, req.user.userId]);
+    res.json({ success: true, message: 'Updated' });
+  } catch (error) { res.status(500).json({ message: 'Update failed', error: error.message }); }
+};
+
+exports.deleteSubmission = async (req, res) => {
+  try {
+    await db.query('DELETE FROM farmer_submissions WHERE id = ? AND farmer_id = ?', [req.params.id, req.user.userId]);
+    res.json({ success: true, message: 'Deleted' });
+  } catch (error) { res.status(500).json({ message: 'Delete failed', error: error.message }); }
 };

@@ -1,0 +1,15 @@
+📧 Email Service Initializing...
+   Host: smtp-relay.brevo.com
+   User: a0bfd6001@smtp-brevo.com
+[2026-01-26 15:11:38] DEBUG Creating transport: nodemailer (6.10.1; +https://nodemailer.com/; SMTP/6.10.1[client:6.10.1])
+Uncaught Exception: Error: Route.get() requires a callback function but got a [object Undefined]
+    at Route.<computed> [as get] (C:\Users\Nirma Nethmini\Documents\GitHub\Laklight-SDP\Backend\node_modules\express\lib\router\route.js:216:15)
+    at proto.<computed> [as get] (C:\Users\Nirma Nethmini\Documents\GitHub\Laklight-SDP\Backend\node_modules\express\lib\router\index.js:521:19)
+    at Object.<anonymous> (C:\Users\Nirma Nethmini\Documents\GitHub\Laklight-SDP\Backend\routes\productRoutes.js:10:8)
+    at Module._compile (node:internal/modules/cjs/loader:1554:14)
+    at Object..js (node:internal/modules/cjs/loader:1706:10)
+    at Module.load (node:internal/modules/cjs/loader:1289:32)
+    at Function._load (node:internal/modules/cjs/loader:1108:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:322:14)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:220:24)
+    at Module.require (node:internal/modules/cjs/loader:1311:12)

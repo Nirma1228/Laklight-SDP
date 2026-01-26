@@ -1,7 +1,6 @@
 -- =============================================================
--- LAKLIGHT FOOD PRODUCTS - ULTIMATE MASTER DATABASE SCHEMA
--- Version 3.0 (Business Process Optimized)
--- Designed for: MySQL / MariaDB
+-- LAKLIGHT FOOD PRODUCTS - 3NF NORMALIZED MASTER SCHEMA (v4.0)
+-- Optimized for: Performance, Data Integrity, and UI Functionality
 -- =============================================================
 
 DROP DATABASE IF EXISTS laklight_food_products;
@@ -9,7 +8,51 @@ CREATE DATABASE laklight_food_products CHARACTER SET utf8mb4 COLLATE utf8mb4_uni
 USE laklight_food_products;
 
 -- ============================================
--- 1. IDENTITY & AUTHENTICATION (Process: Registration & Login)
+-- 1. REFERENCE TABLES (3NF - Eliminating ENUMs/Redundancy)
+-- ============================================
+
+CREATE TABLE user_roles (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    role_name VARCHAR(50) UNIQUE NOT NULL -- 'customer', 'farmer', 'employee', 'admin'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE account_statuses (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    status_name VARCHAR(50) UNIQUE NOT NULL -- 'active', 'inactive', 'pending', 'suspended'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE product_categories (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    category_name VARCHAR(50) UNIQUE NOT NULL -- 'beverages', 'desserts', 'vegetables', 'fruits', 'grains'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE measurement_units (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    unit_name VARCHAR(20) UNIQUE NOT NULL -- 'kg', 'g', 'bottle', 'pack', 'unit', 'piece'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE order_statuses (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    status_name VARCHAR(50) UNIQUE NOT NULL -- 'Pending', 'Processing', 'Ready', 'Shipped', 'Delivered', 'Cancelled'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE payment_statuses (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    status_name VARCHAR(50) UNIQUE NOT NULL -- 'unpaid', 'paid', 'failed', 'refunded'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE submission_statuses (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    status_name VARCHAR(50) UNIQUE NOT NULL -- 'under-review', 'selected', 'not-selected'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE delivery_statuses (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    status_name VARCHAR(100) UNIQUE NOT NULL -- 'under-review', 'confirmed', 'Action Required', 'completed'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================
+-- 2. IDENTITY & SECURITY
 -- ============================================
 
 CREATE TABLE users (
@@ -18,90 +61,96 @@ CREATE TABLE users (
     email VARCHAR(255) NOT NULL UNIQUE,
     phone VARCHAR(20),
     password_hash VARCHAR(255) NOT NULL,
-    user_type ENUM('customer', 'farmer', 'employee', 'admin') NOT NULL,
+    role_id INT NOT NULL,
+    status_id INT NOT NULL,
     address TEXT,
-    status ENUM('active', 'inactive', 'pending', 'suspended') DEFAULT 'active',
-    join_date DATETIME DEFAULT CURRENT_TIMESTAMP,
+    profile_image VARCHAR(255),
     last_login DATETIME NULL,
+    join_date DATETIME DEFAULT CURRENT_TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_auth (email, status)
+    FOREIGN KEY (role_id) REFERENCES user_roles(id),
+    FOREIGN KEY (status_id) REFERENCES account_statuses(id),
+    INDEX idx_user_lookup (email, role_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE otp_verifications (
     id INT PRIMARY KEY AUTO_INCREMENT,
     email VARCHAR(255) NOT NULL,
     otp VARCHAR(6) NOT NULL,
-    full_name VARCHAR(255),
-    phone VARCHAR(20),
-    password_hash VARCHAR(255),
-    user_type VARCHAR(50),
-    address TEXT,
+    flow_type ENUM('registration', 'password_reset') DEFAULT 'registration',
+    user_data_json JSON, -- Stores temp registration data (fullName, role_id, etc.)
     expires_at TIMESTAMP NOT NULL,
     verified BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_otp_auth (email, otp, flow_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================
--- 2. DUAL-STREAM INVENTORY (Process: Farmer Supply & Factory Output)
+-- 3. PRODUCT CATALOG SOFTWARE
 -- ============================================
 
--- Catalog definitions (The generic products seen by customers)
 CREATE TABLE products (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL,
-    category ENUM('beverages', 'desserts', 'vegetables', 'fruits', 'other') NOT NULL,
+    category_id INT NOT NULL,
     description TEXT,
     price DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
-    unit ENUM('units', 'kg', 'bottle', 'pack') NOT NULL,
+    unit_id INT NOT NULL,
+    stock_quantity INT DEFAULT 0,
+    is_available BOOLEAN DEFAULT TRUE,
     image_url VARCHAR(255),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- PART 1: FARMER PRODUCTS (Incoming Raw Material)
--- Low Stock: < 25kg | Expiry Alert: 5 Days Before
-CREATE TABLE inventory_raw (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    product_name VARCHAR(100) NOT NULL, -- e.g., 'Fresh Strawberry'
-    grade ENUM('Grade A', 'Grade B', 'Grade C'),
-    quantity_kg DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
-    received_date DATE,
-    expiry_date DATE,
-    storage_location VARCHAR(100), -- e.g., 'SEC-FR-01'
-    status ENUM('good', 'low-stock', 'expiring', 'expired') DEFAULT 'good',
+    is_featured BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    INDEX idx_raw_stock (quantity_kg),
-    INDEX idx_raw_expiry (expiry_date)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- PART 2: FINISHED PRODUCTS (Processed & For Sale)
--- Low Stock: < 50 units | Expiry Alert: 90 Days Before
-CREATE TABLE inventory_finished (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    product_id INT NOT NULL, -- Link to catalog 'products' table
-    batch_number VARCHAR(50) UNIQUE NOT NULL,
-    manufactured_date DATE,
-    expiry_date DATE,
-    quantity_units INT NOT NULL DEFAULT 0,
-    storage_location VARCHAR(100),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
-    INDEX idx_fin_stock (quantity_units),
-    INDEX idx_fin_expiry (expiry_date)
+    FOREIGN KEY (category_id) REFERENCES product_categories(id),
+    FOREIGN KEY (unit_id) REFERENCES measurement_units(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================
--- 3. SALES & E-COMMERCE (Process: Cart, Discount & Checkout)
+-- 4. INVENTORY CONTROL (3NF Splitting Raw vs Finished)
+-- ============================================
+
+-- Reference for Raw Material types (to avoid redundant strings)
+CREATE TABLE raw_material_types (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    material_name VARCHAR(100) UNIQUE NOT NULL,
+    category_id INT NOT NULL,
+    FOREIGN KEY (category_id) REFERENCES product_categories(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE inventory_raw (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    material_type_id INT NOT NULL,
+    grade ENUM('Grade A', 'Grade B', 'Grade C'),
+    quantity_kg DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    received_date DATE NOT NULL,
+    expiry_date DATE NOT NULL,
+    storage_location VARCHAR(100),
+    FOREIGN KEY (material_type_id) REFERENCES raw_material_types(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE inventory_finished (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    product_id INT NOT NULL,
+    batch_number VARCHAR(50) UNIQUE NOT NULL,
+    manufactured_date DATE NOT NULL,
+    expiry_date DATE NOT NULL,
+    quantity_units INT NOT NULL DEFAULT 0,
+    storage_location VARCHAR(100),
+    FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================
+-- 5. SALES & ORDER FULFILLMENT
 -- ============================================
 
 CREATE TABLE cart (
     id INT PRIMARY KEY AUTO_INCREMENT,
     user_id INT NOT NULL,
     product_id INT NOT NULL,
-    quantity INT NOT NULL DEFAULT 1, -- Rule: > 12 triggers discount logic in app
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    quantity INT NOT NULL DEFAULT 1,
+    added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
     UNIQUE KEY unique_cart_item (user_id, product_id)
@@ -114,15 +163,14 @@ CREATE TABLE orders (
     total_amount DECIMAL(10, 2) NOT NULL,
     discount_amount DECIMAL(10, 2) DEFAULT 0.00,
     net_amount DECIMAL(10, 2) NOT NULL,
-    payment_status ENUM('unpaid', 'paid', 'failed') DEFAULT 'unpaid',
-    order_status ENUM('Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled') DEFAULT 'Pending',
+    payment_status_id INT NOT NULL,
+    order_status_id INT NOT NULL,
     payment_method VARCHAR(50) NOT NULL,
     delivery_address TEXT NOT NULL,
     order_date DATETIME DEFAULT CURRENT_TIMESTAMP,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_order_flow (order_status, payment_status)
+    FOREIGN KEY (payment_status_id) REFERENCES payment_statuses(id),
+    FOREIGN KEY (order_status_id) REFERENCES order_statuses(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE order_items (
@@ -141,52 +189,71 @@ CREATE TABLE payments (
     order_id INT NOT NULL UNIQUE,
     transaction_id VARCHAR(100) UNIQUE,
     amount DECIMAL(10, 2) NOT NULL,
-    payment_status ENUM('Success', 'Failed', 'Pending') DEFAULT 'Pending',
+    status_id INT NOT NULL,
+    payment_method VARCHAR(50),
     payment_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
+    FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
+    FOREIGN KEY (status_id) REFERENCES payment_statuses(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================
--- 4. SUPPLY CHAIN (Process: Farmer Submissions & Delivery)
+-- 6. FARMER RELATIONS
 -- ============================================
+
+CREATE TABLE farmer_profiles (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    farmer_id INT NOT NULL UNIQUE,
+    farm_name VARCHAR(100) NOT NULL,
+    location VARCHAR(255) NOT NULL,
+    rating DECIMAL(3, 2) DEFAULT 5.00,
+    is_verified BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (farmer_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE farmer_submissions (
     id INT PRIMARY KEY AUTO_INCREMENT,
     farmer_id INT NOT NULL,
     product_name VARCHAR(100) NOT NULL,
-    category ENUM('fruits', 'vegetables', 'other') NOT NULL,
-    variety VARCHAR(100),
+    category_id INT NOT NULL,
     quantity DECIMAL(10, 2) NOT NULL,
-    unit VARCHAR(10) NOT NULL,
+    unit_id INT NOT NULL,
     grade ENUM('Grade A', 'Grade B', 'Grade C'),
     custom_price DECIMAL(10, 2),
     harvest_date DATE,
-    images JSON, -- Storage for image URLs
-    notes TEXT,
-    status ENUM('under-review', 'selected', 'not-selected') DEFAULT 'under-review',
+    status_id INT NOT NULL,
+    rejection_reason TEXT,
     submission_date DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (farmer_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_sub_status (status)
+    FOREIGN KEY (category_id) REFERENCES product_categories(id),
+    FOREIGN KEY (unit_id) REFERENCES measurement_units(id),
+    FOREIGN KEY (status_id) REFERENCES submission_statuses(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE deliveries (
     id INT PRIMARY KEY AUTO_INCREMENT,
     submission_id INT NOT NULL,
-    farmer_id INT NOT NULL,
     delivery_number VARCHAR(50) UNIQUE NOT NULL,
-    product_name VARCHAR(100) NOT NULL,
-    delivery_date DATE, -- The actual scheduled/final date
-    rescheduled_date DATE, -- Temporarily holds employee's suggestion
+    final_delivery_date DATE,
+    proposed_reschedule_date DATE,
     transport_method VARCHAR(50),
-    status ENUM('under-review', 'confirmed', 'Action Required: Confirm Date', 'completed') DEFAULT 'under-review',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status_id INT NOT NULL,
     FOREIGN KEY (submission_id) REFERENCES farmer_submissions(id) ON DELETE CASCADE,
-    FOREIGN KEY (farmer_id) REFERENCES users(id) ON DELETE CASCADE
+    FOREIGN KEY (status_id) REFERENCES delivery_statuses(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================
--- 5. FEEDBACK & NOTIFICATIONS (Process: Engagement & Alerts)
+-- 7. ENGAGEMENT & SYSTEM
 -- ============================================
+
+CREATE TABLE notifications (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    user_id INT NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    message TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE feedback (
     id INT PRIMARY KEY AUTO_INCREMENT,
@@ -199,34 +266,51 @@ CREATE TABLE feedback (
     FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-CREATE TABLE notifications (
+CREATE TABLE system_settings (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    user_id INT NOT NULL, -- Target recipient
-    title VARCHAR(255) NOT NULL,
-    message TEXT NOT NULL,
-    type ENUM('ORDER', 'FARMER_SUBMISSION', 'LOW_STOCK', 'EXPIRY_ALERT', 'GENERAL') DEFAULT 'GENERAL',
-    is_read BOOLEAN DEFAULT FALSE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    INDEX idx_notice (user_id, is_read)
+    setting_key VARCHAR(100) UNIQUE NOT NULL,
+    setting_value TEXT,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================
--- 6. SYSTEM SEED DATA (For Immediate Testing)
+-- 8. REFERENCE DATA & SEEDING
 -- ============================================
 
--- Dummy Admin (pw: laklight123)
--- Hash placeholder: $2a$10$W65S0H7.rMofYvWzO/wRyeVl6X8p58Zf3e8f8f8f8f8f8f8f8f8f
-INSERT INTO users (full_name, email, phone, password_hash, user_type, status) VALUES 
-('System Admin', 'admin@laklight.com', '0112345678', '$2a$10$89W1h/I3A2J1o7B9G/3.O.gUvVlU.vN0P0E1I0E0E0E0E0E0E0E0E', 'admin', 'active'),
-('Factory Staff', 'staff@laklight.com', '0119876543', '$2a$10$89W1h/I3A2J1o7B9G/3.O.gUvVlU.vN0P0E1I0E0E0E0E0E0E0E0E', 'employee', 'active');
+-- User Roles
+INSERT INTO user_roles (role_name) VALUES ('customer'), ('farmer'), ('employee'), ('admin');
 
--- Initial Catalog
-INSERT INTO products (name, category, description, price, unit) VALUES
-('Lime Mix (350ml)', 'beverages', 'Premium lime cordial', 150.00, 'bottle'),
-('Wood Apple Juice', 'beverages', 'Traditional nectar', 100.00, 'bottle'),
-('Mango Jelly (100g)', 'desserts', 'Organic mango preserve', 200.00, 'pack');
+-- Account Statuses
+INSERT INTO account_statuses (status_name) VALUES ('active'), ('inactive'), ('pending'), ('suspended');
 
--- Finish
-SELECT '🚀 ULTIMATE MASTER SCHEMA GENERATED SUCCESSFULLY!' as Status;
-SHOW TABLES;
+-- Categories
+INSERT INTO product_categories (category_name) VALUES ('beverages'), ('desserts'), ('vegetables'), ('fruits'), ('other');
+
+-- Units
+INSERT INTO measurement_units (unit_name) VALUES ('kg'), ('g'), ('bottle'), ('pack'), ('unit'), ('piece');
+
+-- Order Statuses
+INSERT INTO order_statuses (status_name) VALUES ('Pending'), ('Processing'), ('Ready'), ('Shipped'), ('Delivered'), ('Cancelled');
+
+-- Payment Statuses
+INSERT INTO payment_statuses (status_name) VALUES ('unpaid'), ('paid'), ('failed'), ('refunded');
+
+-- Submission Statuses
+INSERT INTO submission_statuses (status_name) VALUES ('under-review'), ('selected'), ('not-selected');
+
+-- Delivery Statuses
+INSERT INTO delivery_statuses (status_name) VALUES ('under-review'), ('confirmed'), ('Action Required: Confirm Date'), ('completed');
+
+-- Raw Material Types
+INSERT INTO raw_material_types (material_name, category_id) VALUES 
+('Lime', 4), ('Wood Apple', 4), ('Carrot', 3), ('Leeks', 3);
+
+-- Default Admin
+INSERT INTO users (full_name, email, phone, password_hash, role_id, status_id) VALUES 
+('System Administrator', 'admin@laklight.com', '0112345678', '$2a$10$89W1h/I3A2J1o7B9G/3.O.gUvVlU.vN0P0E1I0E0E0E0E0E0E0E0E', 4, 1);
+
+-- Sample Product
+INSERT INTO products (name, category_id, description, price, unit_id, stock_quantity, is_available) VALUES
+('Premium Lime Mix', 1, 'Refreshing natural lime juice', 150.00, 3, 100, TRUE);
+
+SELECT '🚀 3NF MASTER SCHEMA (v4.0) READY FOR DEPLOYMENT!' as status;

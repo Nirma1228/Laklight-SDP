@@ -1,240 +1,168 @@
 const db = require('../config/database');
 
+// Helpers for Name to ID mapping
+const getCategoryId = async (name) => {
+  const [rows] = await db.query('SELECT id FROM product_categories WHERE category_name = ?', [name]);
+  return rows.length > 0 ? rows[0].id : null;
+};
+
+const getUnitId = async (name) => {
+  const [rows] = await db.query('SELECT id FROM measurement_units WHERE unit_name = ?', [name]);
+  return rows.length > 0 ? rows[0].id : null;
+};
+
 // FR04: Browse product catalog
 exports.getAllProducts = async (req, res) => {
   try {
-    const [products] = await db.query(
-      'SELECT * FROM products WHERE availability != ? ORDER BY category, name',
-      ['out-of-stock']
-    );
+    const [products] = await db.query(`
+      SELECT p.*, c.category_name as category, u.unit_name as unit 
+      FROM products p
+      JOIN product_categories c ON p.category_id = c.id
+      JOIN measurement_units u ON p.unit_id = u.id
+      WHERE p.is_available = TRUE 
+      ORDER BY c.category_name, p.name
+    `);
 
-    res.json({ 
-      success: true,
-      count: products.length,
-      products 
-    });
+    res.json({ success: true, count: products.length, products });
   } catch (error) {
-    console.error('Get products error:', error);
     res.status(500).json({ message: 'Failed to fetch products', error: error.message });
   }
 };
 
-// FR04: Get single product details
+// FR04: Get single product
 exports.getProductById = async (req, res) => {
   try {
-    const productId = req.params.id;
+    const [products] = await db.query(`
+      SELECT p.*, c.category_name as category, u.unit_name as unit 
+      FROM products p
+      JOIN product_categories c ON p.category_id = c.id
+      JOIN measurement_units u ON p.unit_id = u.id
+      WHERE p.id = ?`, [req.params.id]);
 
-    const [products] = await db.query('SELECT * FROM products WHERE id = ?', [productId]);
-
-    if (products.length === 0) {
-      return res.status(404).json({ message: 'Product not found' });
-    }
-
-    res.json({ 
-      success: true,
-      product: products[0] 
-    });
+    if (products.length === 0) return res.status(404).json({ message: 'Product not found' });
+    res.json({ success: true, product: products[0] });
   } catch (error) {
-    console.error('Get product error:', error);
-    res.status(500).json({ message: 'Failed to fetch product', error: error.message });
+    res.status(500).json({ message: 'Fetch failed', error: error.message });
   }
 };
 
-// FR03: Search products
+// FR03: Search
 exports.searchProducts = async (req, res) => {
   try {
     const { query } = req.query;
+    const [products] = await db.query(`
+      SELECT p.*, c.category_name as category, u.unit_name as unit 
+      FROM products p
+      JOIN product_categories c ON p.category_id = c.id
+      JOIN measurement_units u ON p.unit_id = u.id
+      WHERE (p.name LIKE ? OR p.description LIKE ?) AND p.is_available = TRUE`,
+      [`%${query}%`, `%${query}%`]);
 
-    if (!query) {
-      return res.status(400).json({ message: 'Search query is required' });
-    }
-
-    const [products] = await db.query(
-      `SELECT * FROM products 
-       WHERE (name LIKE ? OR description LIKE ?) 
-       AND availability != ?
-       ORDER BY name`,
-      [`%${query}%`, `%${query}%`, 'out-of-stock']
-    );
-
-    res.json({ 
-      success: true,
-      count: products.length,
-      products 
-    });
+    res.json({ success: true, count: products.length, products });
   } catch (error) {
-    console.error('Search products error:', error);
     res.status(500).json({ message: 'Search failed', error: error.message });
   }
 };
 
-// FR03: Filter products by category and availability
-exports.filterProducts = async (req, res) => {
+// FR22: Add (Admin)
+exports.addProduct = async (req, res) => {
   try {
-    const { category, availability, minPrice, maxPrice } = req.query;
+    const { name, category, description, price, unit, stock, is_featured } = req.body;
+    const categoryId = await getCategoryId(category);
+    const unitId = await getUnitId(unit);
 
-    let query = 'SELECT * FROM products WHERE 1=1';
+    if (!categoryId || !unitId) return res.status(400).json({ message: 'Invalid category or unit' });
+
+    const [result] = await db.query(
+      'INSERT INTO products (name, category_id, description, price, unit_id, stock_quantity, is_featured) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [name, categoryId, description, price, unitId, stock || 0, is_featured || false]
+    );
+
+    res.status(201).json({ success: true, productId: result.insertId });
+  } catch (error) {
+    res.status(500).json({ message: 'Add failed', error: error.message });
+  }
+};
+
+// FR22: Update (Admin)
+exports.updateProduct = async (req, res) => {
+  try {
+    const { name, category, description, price, unit, stock, availability, is_featured } = req.body;
+    const items = [];
     const params = [];
 
-    if (category && category !== 'all') {
-      query += ' AND category = ?';
-      params.push(category);
-    }
+    if (name) { items.push('name = ?'); params.push(name); }
+    if (category) { items.push('category_id = ?'); params.push(await getCategoryId(category)); }
+    if (unit) { items.push('unit_id = ?'); params.push(await getUnitId(unit)); }
+    if (price !== undefined) { items.push('price = ?'); params.push(price); }
+    if (stock !== undefined) { items.push('stock_quantity = ?'); params.push(stock); }
+    if (description) { items.push('description = ?'); params.push(description); }
+    if (availability !== undefined) { items.push('is_available = ?'); params.push(availability === 'In Stock'); }
+    if (is_featured !== undefined) { items.push('is_featured = ?'); params.push(is_featured); }
 
-    if (availability && availability !== 'all') {
-      query += ' AND availability = ?';
-      params.push(availability);
-    }
+    if (items.length === 0) return res.status(400).json({ message: 'No fields to update' });
 
-    if (minPrice) {
-      query += ' AND price >= ?';
-      params.push(parseFloat(minPrice));
-    }
+    params.push(req.params.id);
+    await db.query(`UPDATE products SET ${items.join(', ')} WHERE id = ?`, params);
+    res.json({ success: true, message: 'Updated successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Update failed', error: error.message });
+  }
+};
 
-    if (maxPrice) {
-      query += ' AND price <= ?';
-      params.push(parseFloat(maxPrice));
-    }
+exports.deleteProduct = async (req, res) => {
+  try {
+    await db.query('DELETE FROM products WHERE id = ?', [req.params.id]);
+    res.json({ success: true, message: 'Deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Delete failed', error: error.message });
+  }
+};
+// FR04: Filter Products
+exports.filterProducts = async (req, res) => {
+  try {
+    const { category, minPrice, maxPrice } = req.query;
+    let query = `
+      SELECT p.*, c.category_name as category, u.unit_name as unit 
+      FROM products p
+      JOIN product_categories c ON p.category_id = c.id
+      JOIN measurement_units u ON p.unit_id = u.id
+      WHERE p.is_available = TRUE`;
+    const params = [];
 
-    query += ' ORDER BY category, name';
+    if (category) { query += ' AND c.category_name = ?'; params.push(category); }
+    if (minPrice) { query += ' AND p.price >= ?'; params.push(minPrice); }
+    if (maxPrice) { query += ' AND p.price <= ?'; params.push(maxPrice); }
 
     const [products] = await db.query(query, params);
-
-    res.json({ 
-      success: true,
-      count: products.length,
-      products 
-    });
+    res.json({ success: true, count: products.length, products });
   } catch (error) {
-    console.error('Filter products error:', error);
     res.status(500).json({ message: 'Filter failed', error: error.message });
   }
 };
 
-// FR03: Get products by category
+// Get by Category
 exports.getProductsByCategory = async (req, res) => {
   try {
-    const { category } = req.params;
-
-    const [products] = await db.query(
-      'SELECT * FROM products WHERE category = ? AND availability != ? ORDER BY name',
-      [category, 'out-of-stock']
-    );
-
-    res.json({ 
-      success: true,
-      category,
-      count: products.length,
-      products 
-    });
+    const [products] = await db.query(`
+      SELECT p.*, c.category_name as category, u.unit_name as unit 
+      FROM products p
+      JOIN product_categories c ON p.category_id = c.id
+      JOIN measurement_units u ON p.unit_id = u.id
+      WHERE c.category_name = ? AND p.is_available = TRUE`, [req.params.category]);
+    res.json({ success: true, products });
   } catch (error) {
-    console.error('Get category products error:', error);
-    res.status(500).json({ message: 'Failed to fetch products', error: error.message });
+    res.status(500).json({ message: 'Fetch failed', error: error.message });
   }
 };
 
-// FR22: Add new product (Admin only)
-exports.addProduct = async (req, res) => {
-  try {
-    const { name, category, description, price, unit, stock, availability, imageUrl } = req.body;
-
-    const [result] = await db.query(
-      `INSERT INTO products (name, category, description, price, unit, stock, availability, image_url) 
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [name, category, description || null, price, unit, stock || 0, availability || 'in-stock', imageUrl || null]
-    );
-
-    res.status(201).json({
-      success: true,
-      message: 'Product added successfully',
-      productId: result.insertId
-    });
-  } catch (error) {
-    console.error('Add product error:', error);
-    res.status(500).json({ message: 'Failed to add product', error: error.message });
-  }
-};
-
-// FR22: Update product (Admin only)
-exports.updateProduct = async (req, res) => {
-  try {
-    const productId = req.params.id;
-    const { name, category, description, price, unit, stock, availability, imageUrl } = req.body;
-
-    const [result] = await db.query(
-      `UPDATE products 
-       SET name = ?, category = ?, description = ?, price = ?, unit = ?, 
-           stock = ?, availability = ?, image_url = ?
-       WHERE id = ?`,
-      [name, category, description, price, unit, stock, availability, imageUrl, productId]
-    );
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: 'Product not found' });
-    }
-
-    res.json({
-      success: true,
-      message: 'Product updated successfully'
-    });
-  } catch (error) {
-    console.error('Update product error:', error);
-    res.status(500).json({ message: 'Failed to update product', error: error.message });
-  }
-};
-
-// FR22: Delete product (Admin only)
-exports.deleteProduct = async (req, res) => {
-  try {
-    const productId = req.params.id;
-
-    const [result] = await db.query('DELETE FROM products WHERE id = ?', [productId]);
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: 'Product not found' });
-    }
-
-    res.json({
-      success: true,
-      message: 'Product deleted successfully'
-    });
-  } catch (error) {
-    console.error('Delete product error:', error);
-    res.status(500).json({ message: 'Failed to delete product', error: error.message });
-  }
-};
-
-// Update product stock
+// Update stock (Employee/Admin)
 exports.updateStock = async (req, res) => {
   try {
-    const productId = req.params.id;
-    const { stock } = req.body;
-
-    // Update stock and availability based on stock level
-    let availability = 'in-stock';
-    if (stock === 0) {
-      availability = 'out-of-stock';
-    } else if (stock < 50) {
-      availability = 'low-stock';
-    }
-
-    const [result] = await db.query(
-      'UPDATE products SET stock = ?, availability = ? WHERE id = ?',
-      [stock, availability, productId]
-    );
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: 'Product not found' });
-    }
-
-    res.json({
-      success: true,
-      message: 'Stock updated successfully',
-      newStock: stock,
-      availability
-    });
+    const { quantity } = req.body;
+    await db.query('UPDATE products SET stock_quantity = ? WHERE id = ?', [quantity, req.params.id]);
+    res.json({ success: true, message: 'Stock updated' });
   } catch (error) {
-    console.error('Update stock error:', error);
-    res.status(500).json({ message: 'Failed to update stock', error: error.message });
+    res.status(500).json({ message: 'Update failed', error: error.message });
   }
 };

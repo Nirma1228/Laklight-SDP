@@ -5,7 +5,19 @@ const { generateOTP, sendOTPEmail, sendWelcomeEmail } = require('../services/ema
 
 const JWT_SECRET = process.env.JWT_SECRET || 'laklight_super_secret_key_2026_sdp_project';
 
-// FR01: Customer Registration - Step 1: Send OTP
+// Helper: Get Role ID from Name
+const getRoleId = async (roleName) => {
+  const [roles] = await db.query('SELECT id FROM user_roles WHERE role_name = ?', [roleName]);
+  return roles.length > 0 ? roles[0].id : null;
+};
+
+// Helper: Get Status ID from Name
+const getStatusId = async (statusName) => {
+  const [statuses] = await db.query('SELECT id FROM account_statuses WHERE status_name = ?', [statusName]);
+  return statuses.length > 0 ? statuses[0].id : null;
+};
+
+// FR01: Generic Registration - Step 1: Send OTP
 exports.register = async (req, res) => {
   try {
     const { fullName, email, phone, password, userType, address } = req.body;
@@ -16,30 +28,30 @@ exports.register = async (req, res) => {
       return res.status(400).json({ message: 'Email already registered' });
     }
 
+    const roleId = await getRoleId(userType || 'customer');
+    if (!roleId) return res.status(400).json({ message: 'Invalid user type' });
+
     // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
-
-    // Generate OTP
     const otp = generateOTP();
-
-    // Calculate expiry time (10 minutes from now)
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    // Delete any existing OTP for this email
-    await db.query('DELETE FROM otp_verifications WHERE email = ?', [email]);
+    // Delete existing OTPs
+    await db.query('DELETE FROM otp_verifications WHERE email = ? AND flow_type = "registration"', [email]);
 
-    // Store OTP and user data temporarily
+    // Store registration data in JSON
+    const userData = JSON.stringify({ fullName, phone, passwordHash, roleId, address });
+
     await db.query(
-      'INSERT INTO otp_verifications (email, otp, full_name, phone, password_hash, user_type, address, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [email, otp, fullName, phone, passwordHash, userType || 'customer', address || null, expiresAt]
+      'INSERT INTO otp_verifications (email, otp, flow_type, user_data_json, expires_at) VALUES (?, ?, "registration", ?, ?)',
+      [email, otp, userData, expiresAt]
     );
 
-    // Send OTP email (Hard Fail for security)
     await sendOTPEmail(email, fullName, otp);
 
     res.status(200).json({
       message: 'OTP sent to your email. Please verify to complete registration.',
-      email: email,
+      email,
       requiresVerification: true
     });
   } catch (error) {
@@ -48,87 +60,48 @@ exports.register = async (req, res) => {
   }
 };
 
-// FR08: Farmer Registration - Step 1: Send OTP
+// FR08: Farmer Registration - Step 1: Send OTP (Shared logic)
 exports.farmerRegister = async (req, res) => {
-  try {
-    const { fullName, email, phone, password, address, farmDetails } = req.body;
-
-    // Check if user already exists
-    const [existingUser] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
-    if (existingUser.length > 0) {
-      return res.status(400).json({ message: 'Email already registered' });
-    }
-
-    // Hash password
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    // Generate OTP
-    const otp = generateOTP();
-
-    // Calculate expiry time (10 minutes from now)
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-
-    // Delete any existing OTP for this email
-    await db.query('DELETE FROM otp_verifications WHERE email = ?', [email]);
-
-    // Store OTP and farmer data temporarily
-    await db.query(
-      'INSERT INTO otp_verifications (email, otp, full_name, phone, password_hash, user_type, address, expires_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [email, otp, fullName, phone, passwordHash, 'farmer', address || null, expiresAt]
-    );
-
-    // Send OTP email (Hard Fail for security)
-    await sendOTPEmail(email, fullName, otp);
-    let emailSent = true;
-
-    res.status(200).json({
-      message: 'OTP sent to your email. Please verify to complete registration.',
-      email: email,
-      requiresVerification: true
-    });
-  } catch (error) {
-    console.error('Farmer registration error:', error);
-    res.status(500).json({ message: 'Farmer registration failed', error: error.message });
-  }
+  req.body.userType = 'farmer';
+  return exports.register(req, res);
 };
 
 // Login for all users (FR01, FR08)
 exports.login = async (req, res) => {
   try {
-
     const { email, password } = req.body;
 
-    // Find user by email only
-    const [users] = await db.query(
-      'SELECT * FROM users WHERE email = ?',
+    // Find user and join role/status names
+    const [rows] = await db.query(
+      `SELECT u.*, r.role_name, s.status_name 
+       FROM users u
+       JOIN user_roles r ON u.role_id = r.id
+       JOIN account_statuses s ON u.status_id = s.id
+       WHERE u.email = ?`,
       [email]
     );
 
-    if (users.length === 0) {
+    if (rows.length === 0) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    const user = users[0];
+    const user = rows[0];
 
-    // Check if account is active
-    if (user.status !== 'active') {
+    if (user.status_name !== 'active') {
       return res.status(403).json({
-        message: `Account is ${user.status}. Please contact administrator.`
+        message: `Account is ${user.status_name}. Please contact administrator.`
       });
     }
 
-    // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password_hash);
     if (!isPasswordValid) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Update last login
     await db.query('UPDATE users SET last_login = NOW() WHERE id = ?', [user.id]);
 
-    // Generate JWT token
     const token = jwt.sign(
-      { userId: user.id, userType: user.user_type },
+      { userId: user.id, userType: user.role_name },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
@@ -141,7 +114,7 @@ exports.login = async (req, res) => {
         name: user.full_name,
         email: user.email,
         phone: user.phone,
-        userType: user.user_type,
+        userType: user.role_name,
         address: user.address
       }
     });
@@ -151,90 +124,13 @@ exports.login = async (req, res) => {
   }
 };
 
-// FR18: Get user profile
-exports.getProfile = async (req, res) => {
-  try {
-    const userId = req.user.userId;
-
-    const [users] = await db.query(
-      'SELECT id, full_name, email, phone, user_type, address, status, join_date FROM users WHERE id = ?',
-      [userId]
-    );
-
-    if (users.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    res.json({ user: users[0] });
-  } catch (error) {
-    console.error('Get profile error:', error);
-    res.status(500).json({ message: 'Failed to fetch profile', error: error.message });
-  }
-};
-
-// FR18: Update profile
-exports.updateProfile = async (req, res) => {
-  try {
-    const userId = req.user.userId;
-    const { fullName, phone, address } = req.body;
-
-    await db.query(
-      'UPDATE users SET full_name = ?, phone = ?, address = ? WHERE id = ?',
-      [fullName, phone, address, userId]
-    );
-
-    res.json({ message: 'Profile updated successfully' });
-  } catch (error) {
-    console.error('Update profile error:', error);
-    res.status(500).json({ message: 'Failed to update profile', error: error.message });
-  }
-};
-
-// Change password
-exports.changePassword = async (req, res) => {
-  try {
-    const userId = req.user.userId;
-    const { currentPassword, newPassword } = req.body;
-
-    // Get current password hash
-    const [users] = await db.query('SELECT password_hash FROM users WHERE id = ?', [userId]);
-
-    if (users.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-
-    // Verify current password
-    const isPasswordValid = await bcrypt.compare(currentPassword, users[0].password_hash);
-    if (!isPasswordValid) {
-      return res.status(401).json({ message: 'Current password is incorrect' });
-    }
-
-    // Hash new password
-    const newPasswordHash = await bcrypt.hash(newPassword, 10);
-
-    // Update password
-    await db.query('UPDATE users SET password_hash = ? WHERE id = ?', [newPasswordHash, userId]);
-
-    res.json({ message: 'Password changed successfully' });
-  } catch (error) {
-    console.error('Change password error:', error);
-    res.status(500).json({ message: 'Failed to change password', error: error.message });
-  }
-};
-
-// Logout (client-side handles token removal)
-exports.logout = async (req, res) => {
-  res.json({ message: 'Logout successful' });
-};
-
 // Step 2: Verify OTP and Complete Registration
 exports.verifyOTP = async (req, res) => {
   try {
     const { email, otp } = req.body;
 
-    // Find OTP record
     const [otpRecords] = await db.query(
-      'SELECT * FROM otp_verifications WHERE email = ? AND otp = ? AND verified = FALSE',
+      'SELECT * FROM otp_verifications WHERE email = ? AND otp = ? AND flow_type = "registration" AND verified = FALSE',
       [email, otp]
     );
 
@@ -243,40 +139,36 @@ exports.verifyOTP = async (req, res) => {
     }
 
     const otpRecord = otpRecords[0];
-
-    // Check if OTP has expired
     if (new Date() > new Date(otpRecord.expires_at)) {
-      return res.status(400).json({ message: 'OTP has expired. Please request a new one.' });
+      return res.status(400).json({ message: 'OTP has expired' });
     }
 
-    // Insert user into users table
+    const userData = JSON.parse(otpRecord.user_data_json);
+    const activeStatusId = await getStatusId('active');
+
     const [result] = await db.query(
-      'INSERT INTO users (full_name, email, phone, password_hash, user_type, address, status) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [otpRecord.full_name, otpRecord.email, otpRecord.phone, otpRecord.password_hash, otpRecord.user_type, otpRecord.address, 'active']
+      'INSERT INTO users (full_name, email, phone, password_hash, role_id, status_id, address) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [userData.fullName, email, userData.phone, userData.passwordHash, userData.roleId, activeStatusId, userData.address]
     );
 
-    // Mark OTP as verified
     await db.query('UPDATE otp_verifications SET verified = TRUE WHERE id = ?', [otpRecord.id]);
 
-    // Send welcome email
-    await sendWelcomeEmail(otpRecord.email, otpRecord.full_name, otpRecord.user_type);
+    // Get role name for response
+    const [roles] = await db.query('SELECT role_name FROM user_roles WHERE id = ?', [userData.roleId]);
+    const roleName = roles[0].role_name;
 
-    // Generate JWT token
+    await sendWelcomeEmail(email, userData.fullName, roleName);
+
     const token = jwt.sign(
-      { userId: result.insertId, userType: otpRecord.user_type },
+      { userId: result.insertId, userType: roleName },
       JWT_SECRET,
       { expiresIn: '24h' }
     );
 
     res.status(201).json({
-      message: 'Email verified successfully! Registration complete.',
+      message: 'Registration complete',
       token,
-      user: {
-        id: result.insertId,
-        name: otpRecord.full_name,
-        email: otpRecord.email,
-        userType: otpRecord.user_type
-      }
+      user: { id: result.insertId, name: userData.fullName, email, userType: roleName }
     });
   } catch (error) {
     console.error('OTP verification error:', error);
@@ -284,42 +176,65 @@ exports.verifyOTP = async (req, res) => {
   }
 };
 
-// Resend OTP
+// FR18: Get user profile
+exports.getProfile = async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT u.id, u.full_name, u.email, u.phone, u.address, r.role_name as user_type, s.status_name as status, u.join_date 
+       FROM users u
+       JOIN user_roles r ON u.role_id = r.id
+       JOIN account_statuses s ON u.status_id = s.id
+       WHERE u.id = ?`,
+      [req.user.userId]
+    );
+
+    if (rows.length === 0) return res.status(404).json({ message: 'User not found' });
+    res.json({ user: rows[0] });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch profile', error: error.message });
+  }
+};
+
+exports.updateProfile = async (req, res) => {
+  try {
+    const { fullName, phone, address } = req.body;
+    await db.query('UPDATE users SET full_name = ?, phone = ?, address = ? WHERE id = ?', [fullName, phone, address, req.user.userId]);
+    res.json({ message: 'Profile updated successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Update failed', error: error.message });
+  }
+};
+
+exports.changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const [users] = await db.query('SELECT password_hash FROM users WHERE id = ?', [req.user.userId]);
+    if (!await bcrypt.compare(currentPassword, users[0].password_hash)) return res.status(401).json({ message: 'Incorrect password' });
+    const newHash = await bcrypt.hash(newPassword, 10);
+    await db.query('UPDATE users SET password_hash = ? WHERE id = ?', [newHash, req.user.userId]);
+    res.json({ message: 'Password changed successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Change failed', error: error.message });
+  }
+};
+
 exports.resendOTP = async (req, res) => {
   try {
     const { email } = req.body;
-
-    // Find existing OTP record
-    const [otpRecords] = await db.query(
-      'SELECT * FROM otp_verifications WHERE email = ? AND verified = FALSE ORDER BY created_at DESC LIMIT 1',
-      [email]
-    );
-
-    if (otpRecords.length === 0) {
-      return res.status(404).json({ message: 'No pending registration found for this email' });
-    }
-
-    const otpRecord = otpRecords[0];
-
-    // Generate new OTP
+    const [records] = await db.query('SELECT * FROM otp_verifications WHERE email = ? AND verified = FALSE ORDER BY created_at DESC LIMIT 1', [email]);
+    if (records.length === 0) return res.status(404).json({ message: 'No pending registration' });
     const newOtp = generateOTP();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
-
-    // Update OTP
-    await db.query(
-      'UPDATE otp_verifications SET otp = ?, expires_at = ?, created_at = NOW() WHERE id = ?',
-      [newOtp, expiresAt, otpRecord.id]
-    );
-
-    // Send new OTP email
-    await sendOTPEmail(email, otpRecord.full_name, newOtp);
-
-    res.status(200).json({
-      message: 'New OTP sent to your email'
-    });
+    await db.query('UPDATE otp_verifications SET otp = ?, expires_at = ?, created_at = NOW() WHERE id = ?', [newOtp, expiresAt, records[0].id]);
+    const userData = JSON.parse(records[0].user_data_json);
+    await sendOTPEmail(email, userData.fullName, newOtp);
+    res.json({ message: 'New OTP sent' });
   } catch (error) {
-    console.error('Resend OTP error:', error);
-    res.status(500).json({ message: 'Failed to resend OTP', error: error.message });
+    res.status(500).json({ message: 'Resend failed', error: error.message });
   }
+};
+
+exports.logout = async (req, res) => {
+  res.json({ message: 'Logout successful' });
 };
 
