@@ -208,12 +208,11 @@ function Register() {
     <div className="register-page">
       <Link to="/" className="back-home">← Back to Home</Link>
 
-      <div className="main-content">
-        <div className="register-container">
+      <div className="register-container">
+        <div className="register-right">
           <div className="register-header">
-            <img src="/Logo.png" alt="Laklight Logo" className="logo" />
             <h1>{step === 1 ? 'Create Account' : 'Verify Email'}</h1>
-            <p>{step === 1 ? 'Join Laklight Food Products today' : 'Enter the OTP sent to your email'}</p>
+            <p>{step === 1 ? 'Start your journey with Laklight today' : 'We\'ve sent a code to your inbox'}</p>
           </div>
 
           {step === 1 ? (

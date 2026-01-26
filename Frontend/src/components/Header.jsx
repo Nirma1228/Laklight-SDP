@@ -1,5 +1,13 @@
 import { Link } from 'react-router-dom'
 import { useState, useEffect } from 'react'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import {
+  faUser,
+  faSignOutAlt,
+  faBars,
+  faTimes,
+  faShoppingBasket
+} from '@fortawesome/free-solid-svg-icons'
 import { config } from '../config'
 import './Header.css'
 
@@ -7,8 +15,14 @@ function Header({ isLoggedIn = false, customLinks = null, children = null }) {
   const [userName, setUserName] = useState('')
   const [userRole, setUserRole] = useState('')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
 
   useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20)
+    }
+    window.addEventListener('scroll', handleScroll)
+
     if (isLoggedIn) {
       const storedName = localStorage.getItem('userName')
       const storedRole = localStorage.getItem('userType')
@@ -38,6 +52,7 @@ function Header({ isLoggedIn = false, customLinks = null, children = null }) {
       }
       fetchUserProfile()
     }
+    return () => window.removeEventListener('scroll', handleScroll)
   }, [isLoggedIn])
 
   const defaultLinks = [
@@ -50,90 +65,28 @@ function Header({ isLoggedIn = false, customLinks = null, children = null }) {
   const linksToDisplay = customLinks || defaultLinks
 
   return (
-    <header className="header">
+    <header className={`header ${scrolled ? 'scrolled' : ''}`}>
       <nav className="nav-container">
         <Link to="/" className="logo">
-          <img src="/images/Logo.png" alt="Laklights Food Products" className="logo-img" />
-          <span className="logo-text">Laklights Food Products</span>
+          <img src="/images/Logo.png" alt="Laklight" className="logo-img" />
+          <span className="logo-text">Laklight</span>
         </Link>
 
-        {children && (
-          <div className="header-mobile-actions mobile-only-flex">
-            {children}
-          </div>
-        )}
-
-        {/* Mobile Menu Overlay */}
-        <div
-          className={`mobile-overlay ${isMobileMenuOpen ? 'active' : ''}`}
-          onClick={() => setIsMobileMenuOpen(false)}
-        ></div>
-
-        {/* Mobile Menu Toggle Button */}
-        <button
-          className={`mobile-menu-toggle ${isMobileMenuOpen ? 'active' : ''}`}
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          aria-label="Toggle Navigation"
-        >
-          <span></span>
-          <span></span>
-          <span></span>
-        </button>
-
-        <ul className={`nav-menu ${isMobileMenuOpen ? 'active' : ''}`}>
-          {/* Mobile-Only User Identity Display */}
-          {isLoggedIn && (
-            <li className="mobile-only user-status-item">
-              <div className="mobile-user-status">
-                <span className="user-role-label">{userRole}</span>
-                <span className="user-name-display">{userName || 'User'}</span>
-              </div>
-            </li>
-          )}
-
-          {/* Core Navigation Links */}
+        <ul className="nav-menu">
           {linksToDisplay.map((link, index) => (
-            <li key={index} style={{ transitionDelay: `${0.1 + index * 0.05}s` }}>
+            <li key={index}>
               {link.onClick ? (
-                <button
-                  className="nav-link-btn"
-                  onClick={() => {
-                    link.onClick();
-                    setIsMobileMenuOpen(false);
-                  }}
-                >
+                <button className="nav-link-btn" onClick={link.onClick}>
                   {link.label}
                 </button>
               ) : (
-                <Link to={link.path} onClick={() => setIsMobileMenuOpen(false)}>{link.label}</Link>
+                <Link to={link.path}>{link.label}</Link>
               )}
             </li>
           ))}
-
-          {/* Mobile Auth/Account Actions */}
-          <li className="mobile-only auth-action-item" style={{ transitionDelay: `${0.1 + linksToDisplay.length * 0.05}s` }}>
-            {!isLoggedIn ? (
-              <div className="mobile-auth-links">
-                <Link to="/login" className="btn btn-secondary" onClick={() => setIsMobileMenuOpen(false)}>Login</Link>
-                <Link to="/register" className="btn btn-primary" onClick={() => setIsMobileMenuOpen(false)}>Register</Link>
-              </div>
-            ) : (
-              <button
-                onClick={() => {
-                  localStorage.clear()
-                  sessionStorage.clear()
-                  window.location.href = '/'
-                }}
-                className="mobile-logout-link"
-              >
-                <span className="logout-icon">🚪</span> Logout
-              </button>
-            )}
-          </li>
         </ul>
 
-        {/* Desktop-Only Auth Buttons */}
-        <div className="auth-buttons desktop-only">
+        <div className="auth-buttons">
           {!isLoggedIn ? (
             <>
               <Link to="/login" className="btn btn-secondary">Login</Link>
@@ -142,21 +95,56 @@ function Header({ isLoggedIn = false, customLinks = null, children = null }) {
           ) : (
             <div className="user-nav-info">
               {children}
-              <span className="user-display-name">{userRole}: {userName || 'User'}</span>
+              <span className="user-display-name">
+                <FontAwesomeIcon icon={faUser} style={{ marginRight: '8px' }} />
+                {userName || 'User'}
+              </span>
               <button
                 onClick={() => {
                   localStorage.clear()
                   sessionStorage.clear()
                   window.location.href = '/'
                 }}
-                className="btn btn-secondary btn-small"
+                className="btn btn-secondary"
+                title="Logout"
               >
-                Logout
+                <FontAwesomeIcon icon={faSignOutAlt} />
               </button>
             </div>
           )}
+
+          <button
+            className="mobile-menu-toggle"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+          >
+            <FontAwesomeIcon icon={isMobileMenuOpen ? faTimes : faBars} />
+          </button>
         </div>
       </nav>
+
+      {/* Modern Mobile Menu */}
+      {isMobileMenuOpen && (
+        <div className="mobile-dropdown-menu">
+          {linksToDisplay.map((link, index) => (
+            <div key={index} className="mobile-nav-item">
+              {link.onClick ? (
+                <button onClick={() => { link.onClick(); setIsMobileMenuOpen(false); }}>{link.label}</button>
+              ) : (
+                <Link to={link.path} onClick={() => setIsMobileMenuOpen(false)}>{link.label}</Link>
+              )}
+            </div>
+          ))}
+          {!isLoggedIn ? (
+            <div className="mobile-auth-footer">
+              <Link to="/login" className="btn btn-primary" onClick={() => setIsMobileMenuOpen(false)}>Login</Link>
+            </div>
+          ) : (
+            <div className="mobile-auth-footer">
+              <button onClick={() => { localStorage.clear(); window.location.href = '/'; }} className="btn btn-secondary">Logout</button>
+            </div>
+          )}
+        </div>
+      )}
     </header>
   )
 }

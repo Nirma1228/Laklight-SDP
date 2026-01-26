@@ -1,12 +1,25 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import {
+  faShoppingBasket,
+  faSeedling,
+  faUserTie,
+  faChartLine,
+  faTruckLoading,
+  faPercentage,
+  faWarehouse,
+  faBell,
+  faMobileAlt,
+  faCheckCircle,
+  faArrowRight
+} from '@fortawesome/free-solid-svg-icons'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import './Home.css'
 
 function Home() {
   useEffect(() => {
-    // Animation on scroll
     const observerOptions = {
       threshold: 0.1,
       rootMargin: '0px 0px -50px 0px'
@@ -15,255 +28,203 @@ function Home() {
     const observer = new IntersectionObserver((entries) => {
       entries.forEach(entry => {
         if (entry.isIntersecting) {
-          entry.target.classList.add('animate-fadeInUp')
+          entry.target.classList.add('reveal')
         }
       })
     }, observerOptions)
 
-    // Observe all cards and features
-    document.querySelectorAll('.type-card, .feature-item, .stat-item').forEach(el => {
+    document.querySelectorAll('.reveal-on-scroll').forEach(el => {
       observer.observe(el)
     })
 
-    // Smooth scrolling for navigation links
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-      anchor.addEventListener('click', function (e) {
-        e.preventDefault()
-        const target = document.querySelector(this.getAttribute('href'))
-        if (target) {
-          target.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
-          })
-        }
-      })
-    })
-
-    // Counter animation for stats
+    // Counter animation
+    const counters = document.querySelectorAll('.stat-number')
     const animateCounters = () => {
-      const counters = document.querySelectorAll('.stat-number')
       counters.forEach(counter => {
-        const target = counter.getAttribute('data-target')
-        const suffix = counter.getAttribute('data-suffix') || '+'
+        const target = parseFloat(counter.getAttribute('data-target'))
+        const suffix = counter.getAttribute('data-suffix') || ''
         let count = 0
-        const increment = target / 100
+        const speed = 2000
+        const increment = target / (speed / 16)
 
-        const updateCounter = () => {
+        const updateCount = () => {
           if (count < target) {
             count += increment
-            counter.innerText = Math.ceil(count) + suffix
-            requestAnimationFrame(updateCounter)
+            counter.innerText = (Math.ceil(count * 10) / 10).toFixed(target % 1 === 0 ? 0 : 1) + suffix
+            requestAnimationFrame(updateCount)
           } else {
             counter.innerText = target + suffix
           }
         }
-
-        updateCounter()
+        updateCount()
       })
     }
 
-    // Trigger counter animation when stats section is visible
-    const statsObserver = new IntersectionObserver((entries) => {
-      entries.forEach(entry => {
-        if (entry.isIntersecting) {
+    const statsSection = document.querySelector('.stats-section')
+    if (statsSection) {
+      const statsObserver = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting) {
           animateCounters()
           statsObserver.disconnect()
         }
-      })
-    }, { threshold: 0.5 })
-
-    const statsSection = document.querySelector('.stats')
-    if (statsSection) {
+      }, { threshold: 0.5 })
       statsObserver.observe(statsSection)
     }
 
     return () => {
       observer.disconnect()
-      statsObserver.disconnect()
     }
   }, [])
 
   return (
-    <div className="home-page">
+    <div className="home-container">
       <Header />
 
       {/* Hero Section */}
-      <section id="home" className="hero">
-        <div className="hero-content">
-          <h1 className="animate-fadeInUp">
-            Fresh Food Products, From Farm to Table
-          </h1>
-          <p className="animate-fadeInUp">
-            Experience quality and freshness with our locally products
-          </p>
-          <div className="hero-buttons animate-fadeInUp">
-            <Link to="/login" className="btn btn-primary btn-large">
-              Shop Fresh Products
-            </Link>
-            <Link to="/login" className="btn btn-secondary btn-large">
-              Join as Farmer
-            </Link>
-          </div>
-        </div>
-      </section>
+      <section className="hero-section">
+        <div className="hero-overlay"></div>
+        <div className="hero-content container">
+          <div className="hero-main-layout">
+            <div className="hero-text-wrapper reveal-on-scroll">
+              <span className="hero-badge">100% Organic & Local</span>
+              <h1>Premium Food Products <br />Direct From <span>Nature's Heart</span></h1>
+              <p>Bringing the freshest harvest from Sri Lanka's finest farms directly to your doorstep. Quality you can taste, freshness you can trust.</p>
+              <div className="hero-cta">
+                <Link to="/login" className="btn btn-primary-premium">
+                  Explore Shop <FontAwesomeIcon icon={faShoppingBasket} />
+                </Link>
+                <Link to="/login" className="btn btn-outline-premium">
+                  Partner with Us <FontAwesomeIcon icon={faSeedling} />
+                </Link>
+              </div>
+            </div>
 
-      {/* User Types Section */}
-      <section id="user-types" className="user-types">
-        <div className="container">
-          <h2 className="section-title">Who Are You?</h2>
-          <div className="types-grid">
-            <div className="type-card">
-              <div className="type-icon"></div>
-              <h3>Customer</h3>
-              <p>
-                Browse fresh products, enjoy wholesale discounts on bulk orders (12+ pieces), 
-                and get doorstep delivery of premium quality products.
-              </p>
-              <Link to="/login" className="btn btn-primary">
-                Shop Now
-              </Link>
-            </div>
-            <div className="type-card">
-              <div className="type-icon"></div>
-              <h3>Farmer</h3>
-              <p>
-                Submit your product details, get fair prices, schedule deliveries, 
-                and track your applications through our farmer-friendly portal.
-              </p>
-              <Link to="/login" className="btn btn-primary">
-                Join as Farmer
-              </Link>
-            </div>
-            <div className="type-card">
-              <div className="type-icon"></div>
-              <h3>Employee</h3>
-              <p>
-                Manage inventory with real-time tracking, handle warehouse locations 
-                (cupboard & rack system), and process farmer applications.
-              </p>
-              <Link to="/login" className="btn btn-primary">
-                Employee Portal
-              </Link>
-            </div>
-            <div className="type-card">
-              <div className="type-icon"></div>
-              <h3>Administrator</h3>
-              <p>
-                Access comprehensive analytics, generate business reports, 
-                manage users, and oversee system operations.
-              </p>
-              <Link to="/login" className="btn btn-primary">
-                Admin Dashboard
-              </Link>
+            <div className="hero-stats-wrapper reveal-on-scroll">
+              <div className="hero-stat-item">
+                <span className="stat-icon-mini"><FontAwesomeIcon icon={faCheckCircle} /></span>
+                <div>
+                  <strong>Quality Guaranteed</strong>
+                  <p>Triple-checked for freshness</p>
+                </div>
+              </div>
+              <div className="hero-stat-item">
+                <span className="stat-icon-mini"><FontAwesomeIcon icon={faTruckLoading} /></span>
+                <div>
+                  <strong>Fast Delivery</strong>
+                  <p>Within 24 hours of harvest</p>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
 
-      {/* Features Section */}
-      <section id="features" className="features">
-        <div className="container">
-          <h2 className="section-title">System Features</h2>
-          <div className="features-grid">
-            <div className="feature-item">
-              <div className="feature-icon"></div>
-              <div className="feature-content">
-                <h4>E-commerce Platform</h4>
-                <p>
-                  Complete online shopping experience with secure payments, 
-                  order tracking, and customer feedback system.
-                </p>
+          {/* Unified Ecosystem Portals INTEGRATED into Hero */}
+          <div className="hero-portals-grid reveal-on-scroll">
+            {[
+              {
+                title: 'Customer',
+                icon: faShoppingBasket,
+                desc: 'Browse a premium selection of fresh produce with automatic wholesale discounts.',
+                color: 'green',
+                link: '/login'
+              },
+              {
+                title: 'Farmer',
+                icon: faSeedling,
+                desc: 'Direct access to marketplace, fair pricing, and smart delivery scheduling.',
+                color: 'emerald',
+                link: '/login'
+              },
+              {
+                title: 'Employee',
+                icon: faUserTie,
+                desc: 'Streamlined warehouse management, real-time inventory and logistics control.',
+                color: 'gold',
+                link: '/login'
+              },
+              {
+                title: 'Admin',
+                icon: faChartLine,
+                desc: 'Comprehensive oversight, advanced analytics and system-wide management.',
+                color: 'dark',
+                link: '/login'
+              }
+            ].map((portal, idx) => (
+              <div key={idx} className={`hero-portal-card delay-${idx}`}>
+                <div className={`portal-icon-box ${portal.color}`}>
+                  <FontAwesomeIcon icon={portal.icon} />
+                </div>
+                <h3>{portal.title}</h3>
+                <p>{portal.desc}</p>
+                <Link to={portal.link} className="hero-portal-link">
+                  Access Portal <FontAwesomeIcon icon={faArrowRight} />
+                </Link>
               </div>
-            </div>
-            <div className="feature-item">
-              <div className="feature-icon"></div>
-              <div className="feature-content">
-                <h4>Wholesale Discounts</h4>
-                <p>
-                  Automatic discounts applied for bulk orders of 12+ pieces, 
-                  encouraging larger purchases and better value.
-                </p>
-              </div>
-            </div>
-            <div className="feature-item">
-              <div className="feature-icon"></div>
-              <div className="feature-content">
-                <h4>Smart Warehouse Management</h4>
-                <p>
-                  Real-time location tracking with detailed mapping (3rd cupboard, 4th rack) 
-                  for efficient inventory management.
-                </p>
-              </div>
-            </div>
-            <div className="feature-item">
-              <div className="feature-icon"></div>
-              <div className="feature-content">
-                <h4>Expiry Alert System</h4>
-                <p>
-                  Automated alerts for product expiry dates, reducing waste and 
-                  ensuring fresh product delivery.
-                </p>
-              </div>
-            </div>
-            <div className="feature-item">
-              <div className="feature-icon"></div>
-              <div className="feature-content">
-                <h4>Delivery Scheduling</h4>
-                <p>
-                  Smart scheduling system for farmer deliveries with real-time 
-                  coordination and status tracking.
-                </p>
-              </div>
-            </div>
-            <div className="feature-item">
-              <div className="feature-icon"></div>
-              <div className="feature-content">
-                <h4>Mobile Responsive</h4>
-                <p>
-                  Fully responsive design works seamlessly across desktop, 
-                  tablet, and mobile devices.
-                </p>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>
 
       {/* Stats Section */}
-      <section className="stats">
-        <div className="stats-grid">
-          <div className="stat-item">
-            <div className="stat-number" data-target="500" data-suffix="+">500+</div>
-            <div className="stat-label">Registered Farmers</div>
+      <section className="stats-section">
+        <div className="container stats-flex">
+          <div className="stat-box reveal-on-scroll">
+            <span className="stat-number" data-target="500" data-suffix="+">0</span>
+            <span className="stat-label">Trusted Farmers</span>
           </div>
-          <div className="stat-item">
-            <div className="stat-number" data-target="2000" data-suffix="+">2,000+</div>
-            <div className="stat-label">Happy Customers</div>
+          <div className="stat-box reveal-on-scroll">
+            <span className="stat-number" data-target="2000" data-suffix="+">0</span>
+            <span className="stat-label">Happy Customers</span>
           </div>
-          <div className="stat-item">
-            <div className="stat-number" data-target="50" data-suffix="+">50+</div>
-            <div className="stat-label">Fruit Varieties</div>
+          <div className="stat-box reveal-on-scroll">
+            <span className="stat-number" data-target="50" data-suffix="+">0</span>
+            <span className="stat-label">Fruit Varieties</span>
           </div>
-          <div className="stat-item">
-            <div className="stat-number" data-target="99.5" data-suffix="%">99.5%</div>
-            <div className="stat-label">Fresh Delivery Rate</div>
+          <div className="stat-box reveal-on-scroll">
+            <span className="stat-number" data-target="99.5" data-suffix="%">0</span>
+            <span className="stat-label">Delivery Success</span>
           </div>
         </div>
       </section>
 
+      {/* Features Showcase */}
+      <section className="features-section container">
+        <div className="section-header reveal-on-scroll">
+          <h2>Why Choose <span>Laklight</span>?</h2>
+          <p className="section-tagline">We combine traditional farming values with cutting-edge technology.</p>
+        </div>
+        <div className="features-grid-premium">
+          {[
+            { icon: faPercentage, title: 'Wholesale Advantage', desc: 'Dynamic pricing automatically applies discounts for bulk orders of 12+ items.' },
+            { icon: faWarehouse, title: 'Smart Warehousing', desc: 'Advanced tracking maps products to precise shelf locations for peak efficiency.' },
+            { icon: faBell, title: 'Expiry Management', desc: 'Intelligent alerts ensure zero waste and maximum freshness for every delivery.' },
+            { icon: faTruckLoading, title: 'Optimized Logistics', desc: 'Seamless communication between farmers and warehouse for rapid fulfillment.' },
+            { icon: faMobileAlt, title: 'Mobile First', desc: 'Full-featured experience across all devices for management on the go.' },
+            { icon: faCheckCircle, title: 'Quality Assurance', desc: 'Strict grade-based classification ensures you get exactly what you pay for.' }
+          ].map((f, i) => (
+            <div key={i} className="feature-card-premium reveal-on-scroll">
+              <div className="feature-icon-premium">
+                <FontAwesomeIcon icon={f.icon} />
+              </div>
+              <div className="feature-info-premium">
+                <h4>{f.title}</h4>
+                <p>{f.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* CTA Section */}
-      <section className="cta">
-        <div className="cta-content">
-          <h2>Ready to Get Started?</h2>
-          <p>Join our growing community of customers and suppliers</p>
-          <div className="cta-buttons">
-            <Link to="/login" className="btn btn-primary btn-large">
-              Shop Fresh Products
-            </Link>
-            <Link to="/login" className="btn btn-secondary btn-large">
-              Join as Farmer
-            </Link>
+      <section className="premium-cta">
+        <div className="cta-glass-box container reveal-on-scroll">
+          <div className="cta-content-premium">
+            <h2 className="reveal-on-scroll">Ready to Experience <br /><span>The Purest Quality?</span></h2>
+            <p className="reveal-on-scroll">Join the Laklight community today and transform how you source and supply fresh food.</p>
+            <div className="cta-actions-premium reveal-on-scroll">
+              <Link to="/login" className="btn btn-primary-premium">Get Started Now</Link>
+            </div>
           </div>
+          <div className="cta-visual reveal-on-scroll"></div>
         </div>
       </section>
 
