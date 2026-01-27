@@ -2,23 +2,23 @@ const db = require('../config/database');
 
 // Helpers for Name to ID mapping
 const getCategoryId = async (name) => {
-  const [rows] = await db.query('SELECT id FROM product_categories WHERE category_name = ?', [name]);
-  return rows.length > 0 ? rows[0].id : null;
+  const [rows] = await db.query('SELECT category_id FROM product_categories WHERE category_name = ?', [name]);
+  return rows.length > 0 ? rows[0].category_id : null;
 };
 
 const getUnitId = async (name) => {
-  const [rows] = await db.query('SELECT id FROM measurement_units WHERE unit_name = ?', [name]);
-  return rows.length > 0 ? rows[0].id : null;
+  const [rows] = await db.query('SELECT unit_id FROM measurement_units WHERE unit_name = ?', [name]);
+  return rows.length > 0 ? rows[0].unit_id : null;
 };
 
 // FR04: Browse product catalog
 exports.getAllProducts = async (req, res) => {
   try {
     const [products] = await db.query(`
-      SELECT p.*, c.category_name as category, u.unit_name as unit 
+      SELECT p.*, p.product_id as id, c.category_name as category, u.unit_name as unit 
       FROM products p
-      JOIN product_categories c ON p.category_id = c.id
-      JOIN measurement_units u ON p.unit_id = u.id
+      JOIN product_categories c ON p.category_id = c.category_id
+      JOIN measurement_units u ON p.unit_id = u.unit_id
       WHERE p.is_available = TRUE 
       ORDER BY c.category_name, p.name
     `);
@@ -33,11 +33,11 @@ exports.getAllProducts = async (req, res) => {
 exports.getProductById = async (req, res) => {
   try {
     const [products] = await db.query(`
-      SELECT p.*, c.category_name as category, u.unit_name as unit 
+      SELECT p.*, p.product_id as id, c.category_name as category, u.unit_name as unit 
       FROM products p
-      JOIN product_categories c ON p.category_id = c.id
-      JOIN measurement_units u ON p.unit_id = u.id
-      WHERE p.id = ?`, [req.params.id]);
+      JOIN product_categories c ON p.category_id = c.category_id
+      JOIN measurement_units u ON p.unit_id = u.unit_id
+      WHERE p.product_id = ?`, [req.params.id]);
 
     if (products.length === 0) return res.status(404).json({ message: 'Product not found' });
     res.json({ success: true, product: products[0] });
@@ -51,10 +51,10 @@ exports.searchProducts = async (req, res) => {
   try {
     const { query } = req.query;
     const [products] = await db.query(`
-      SELECT p.*, c.category_name as category, u.unit_name as unit 
+      SELECT p.*, p.product_id as id, c.category_name as category, u.unit_name as unit 
       FROM products p
-      JOIN product_categories c ON p.category_id = c.id
-      JOIN measurement_units u ON p.unit_id = u.id
+      JOIN product_categories c ON p.category_id = c.category_id
+      JOIN measurement_units u ON p.unit_id = u.unit_id
       WHERE (p.name LIKE ? OR p.description LIKE ?) AND p.is_available = TRUE`,
       [`%${query}%`, `%${query}%`]);
 
@@ -103,7 +103,7 @@ exports.updateProduct = async (req, res) => {
     if (items.length === 0) return res.status(400).json({ message: 'No fields to update' });
 
     params.push(req.params.id);
-    await db.query(`UPDATE products SET ${items.join(', ')} WHERE id = ?`, params);
+    await db.query(`UPDATE products SET ${items.join(', ')} WHERE product_id = ?`, params);
     res.json({ success: true, message: 'Updated successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Update failed', error: error.message });
@@ -112,7 +112,7 @@ exports.updateProduct = async (req, res) => {
 
 exports.deleteProduct = async (req, res) => {
   try {
-    await db.query('DELETE FROM products WHERE id = ?', [req.params.id]);
+    await db.query('DELETE FROM products WHERE product_id = ?', [req.params.id]);
     res.json({ success: true, message: 'Deleted successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Delete failed', error: error.message });
@@ -123,10 +123,10 @@ exports.filterProducts = async (req, res) => {
   try {
     const { category, minPrice, maxPrice } = req.query;
     let query = `
-      SELECT p.*, c.category_name as category, u.unit_name as unit 
+      SELECT p.*, p.product_id as id, c.category_name as category, u.unit_name as unit 
       FROM products p
-      JOIN product_categories c ON p.category_id = c.id
-      JOIN measurement_units u ON p.unit_id = u.id
+      JOIN product_categories c ON p.category_id = c.category_id
+      JOIN measurement_units u ON p.unit_id = u.unit_id
       WHERE p.is_available = TRUE`;
     const params = [];
 
@@ -145,10 +145,10 @@ exports.filterProducts = async (req, res) => {
 exports.getProductsByCategory = async (req, res) => {
   try {
     const [products] = await db.query(`
-      SELECT p.*, c.category_name as category, u.unit_name as unit 
+      SELECT p.*, p.product_id as id, c.category_name as category, u.unit_name as unit 
       FROM products p
-      JOIN product_categories c ON p.category_id = c.id
-      JOIN measurement_units u ON p.unit_id = u.id
+      JOIN product_categories c ON p.category_id = c.category_id
+      JOIN measurement_units u ON p.unit_id = u.unit_id
       WHERE c.category_name = ? AND p.is_available = TRUE`, [req.params.category]);
     res.json({ success: true, products });
   } catch (error) {
@@ -160,7 +160,7 @@ exports.getProductsByCategory = async (req, res) => {
 exports.updateStock = async (req, res) => {
   try {
     const { quantity } = req.body;
-    await db.query('UPDATE products SET stock_quantity = ? WHERE id = ?', [quantity, req.params.id]);
+    await db.query('UPDATE products SET stock_quantity = ? WHERE product_id = ?', [quantity, req.params.id]);
     res.json({ success: true, message: 'Stock updated' });
   } catch (error) {
     res.status(500).json({ message: 'Update failed', error: error.message });

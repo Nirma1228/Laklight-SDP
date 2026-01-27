@@ -47,7 +47,7 @@ exports.getMyFeedback = async (req, res) => {
     const customerId = req.user.userId;
 
     const [feedback] = await db.query(
-      'SELECT * FROM feedback WHERE customer_id = ? ORDER BY submitted_at DESC',
+      'SELECT f.*, f.feedback_id as id FROM feedback f WHERE f.customer_id = ? ORDER BY f.created_at DESC',
       [customerId]
     );
 
@@ -69,7 +69,7 @@ exports.getFeedbackById = async (req, res) => {
     const userId = req.user.userId;
 
     const [feedback] = await db.query(
-      'SELECT * FROM feedback WHERE id = ? AND customer_id = ?',
+      'SELECT * FROM feedback WHERE feedback_id = ? AND customer_id = ?',
       [feedbackId, userId]
     );
 
@@ -106,7 +106,7 @@ exports.updateFeedback = async (req, res) => {
       `UPDATE feedback 
        SET product_quality = ?, packaging = ?, delivery_time = ?, customer_service = ?, 
            value_for_money = ?, feedback_text = ?, improvements = ?
-       WHERE id = ? AND customer_id = ?`,
+       WHERE feedback_id = ? AND customer_id = ?`,
       [
         productQuality,
         packaging,
@@ -141,7 +141,7 @@ exports.deleteFeedback = async (req, res) => {
     const userId = req.user.userId;
 
     const [result] = await db.query(
-      'DELETE FROM feedback WHERE id = ? AND customer_id = ?',
+      'DELETE FROM feedback WHERE feedback_id = ? AND customer_id = ?',
       [feedbackId, userId]
     );
 

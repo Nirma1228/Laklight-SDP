@@ -12,10 +12,11 @@ exports.processPayment = async (req, res) => {
     await connection.beginTransaction();
     const { orderId, paymentMethod } = req.body;
 
-    const [[order]] = await connection.query('SELECT * FROM orders WHERE id = ?', [orderId]);
+    const [[order]] = await connection.query('SELECT * FROM orders WHERE order_id = ?', [orderId]);
     if (!order) throw new Error('Order not found');
 
-    const paidStatusId = await getStatusId('payment_statuses', 'status_name', 'paid');
+    const [paidStatuses] = await connection.query('SELECT payment_status_id FROM payment_statuses WHERE status_name = "paid"');
+    const paidStatusId = paidStatuses[0].payment_status_id;
     const txnId = `TXN-${Date.now()}`;
 
     await connection.query(
@@ -23,7 +24,7 @@ exports.processPayment = async (req, res) => {
       [orderId, txnId, order.net_amount, paidStatusId, paymentMethod]
     );
 
-    await connection.query('UPDATE orders SET payment_status_id = ? WHERE id = ?', [paidStatusId, orderId]);
+    await connection.query('UPDATE orders SET payment_status_id = ? WHERE order_id = ?', [paidStatusId, orderId]);
     await connection.query('DELETE FROM cart WHERE user_id = ?', [order.customer_id]);
 
     await connection.commit();
@@ -39,8 +40,8 @@ exports.getPaymentHistory = async (req, res) => {
     const [payments] = await db.query(`
       SELECT p.*, o.order_number, s.status_name as status 
       FROM payments p
-      JOIN orders o ON p.order_id = o.id
-      JOIN payment_statuses s ON p.status_id = s.id
+      JOIN orders o ON p.order_id = o.order_id
+      JOIN payment_statuses s ON p.status_id = s.payment_status_id
       WHERE o.customer_id = ?`, [req.user.userId]);
     res.json({ success: true, payments });
   } catch (error) {
@@ -64,12 +65,13 @@ exports.processCardPayment = async (req, res) => {
   // Simulate external card processor
   try {
     const { orderId } = req.body;
-    const paidStatusId = await getStatusId('payment_statuses', 'status_name', 'paid');
+    const [paidStatuses] = await db.query('SELECT payment_status_id FROM payment_statuses WHERE status_name = "paid"');
+    const paidStatusId = paidStatuses[0].payment_status_id;
     const txnId = `CARD-${Date.now()}`;
-    const [[order]] = await db.query('SELECT net_amount FROM orders WHERE id = ?', [orderId]);
+    const [[order]] = await db.query('SELECT net_amount FROM orders WHERE order_id = ?', [orderId]);
 
     await db.query('INSERT INTO payments (order_id, transaction_id, amount, status_id, payment_method) VALUES (?, ?, ?, ?, ?)', [orderId, txnId, order.net_amount, paidStatusId, 'Card Payment']);
-    await db.query('UPDATE orders SET payment_status_id = ? WHERE id = ?', [paidStatusId, orderId]);
+    await db.query('UPDATE orders SET payment_status_id = ? WHERE order_id = ?', [paidStatusId, orderId]);
 
     res.json({ success: true, transactionId: txnId });
   } catch (error) { res.status(500).json({ message: 'Card processing failed', error: error.message }); }

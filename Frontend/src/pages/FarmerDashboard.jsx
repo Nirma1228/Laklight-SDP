@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import { config } from '../config'
+import { useToast } from '../components/ToastNotification'
 import './FarmerDashboard.css'
 
 // Utility: get today's date in YYYY-MM-DD
@@ -13,8 +14,26 @@ const getAuthToken = () => {
   return localStorage.getItem('token') || sessionStorage.getItem('token');
 };
 
+// Format Helpers
+const formatGrade = (g) => {
+  if (!g) return '';
+  // Check if it's already formatted (starts with Grade with capital G)
+  if (g.startsWith('Grade')) return g;
+
+  const map = { 'grade-a': 'Grade A', 'grade-b': 'Grade B', 'grade-c': 'Grade C' };
+  // If not in map, try title case
+  return map[g] || g.charAt(0).toUpperCase() + g.slice(1);
+};
+
+const formatTransport = (t) => {
+  if (!t) return '';
+  const map = { 'self': 'Self Transport', 'company': 'Company Truck Pickup' };
+  return map[t] || t;
+};
+
 function FarmerDashboard() {
   const navigate = useNavigate()
+  const toast = useToast()
 
   const [products, setProducts] = useState([{
     id: 1,
@@ -155,7 +174,7 @@ function FarmerDashboard() {
       // Map statuses for compatibility with farmer dashboard view
       return allApps.map(app => ({
         ...app,
-        grade: app.qualityGrade,
+        grade: app.grade || app.qualityGrade, // CORRECT: Use existing grade if qualityGrade is missing
         status: app.status // 'selected', 'not-selected', 'under-review'
       }))
     }
@@ -234,6 +253,23 @@ function FarmerDashboard() {
     }
     return defaultDeliveries
   })
+
+  // Check for updates and notify farmer on load
+  useEffect(() => {
+    // 1. Check for newly approved submissions
+    const approvedCount = submissions.filter(s => s.status === 'selected').length;
+    // 2. Check for rejected submissions
+    const rejectedCount = submissions.filter(s => s.status === 'not-selected').length;
+    // 3. Check for delivery schedules needing confirmation
+    const negotiationCount = deliveries.filter(d => d.status === 'pending-confirmation').length;
+
+    if (negotiationCount > 0) {
+      setTimeout(() => alert(`🔔 Action Required: You have ${negotiationCount} delivery schedule(s) pending your confirmation. Please check the Delivery Schedule section.`), 1000);
+    } else if (approvedCount > 0) {
+      // Optional: only notify if we haven't acknowledged them? 
+      // For simplicity, just a gentle reminder or rely on the visual badges.
+    }
+  }, []);
 
   // Auto-save deliveries
   useEffect(() => {
@@ -337,7 +373,7 @@ function FarmerDashboard() {
     const validProducts = products.filter(p => p.name && p.quantity)
 
     if (validProducts.length === 0) {
-      alert('Please fill in at least one complete product form.')
+      toast.warning('Please fill in at least one complete product form.')
       return
     }
 
@@ -381,31 +417,48 @@ function FarmerDashboard() {
 
       const results = await Promise.all(promises)
 
+      // Format Helper
+      const formatGrade = (g) => {
+        if (!g) return '';
+        const map = { 'grade-a': 'Grade A', 'grade-b': 'Grade B', 'grade-c': 'Grade C' };
+        return map[g] || g;
+      };
+
+      const formatTransport = (t) => {
+        const map = { 'self': 'Self Transport', 'company': 'Company Truck Pickup' };
+        return map[t] || t;
+      };
+
       // Update local state with new real data
       const newSubmissions = results.map((res, index) => {
         const p = validProducts[index]
         return {
           id: res.submissionId,
           product: p.name,
-          grade: p.grade || 'N/A',
+          grade: formatGrade(p.grade),
           quantity: `${p.quantity}${p.unit}`,
           price: `LKR ${p.customPrice || '0'}`,
           harvestDate: p.harvestDate,
           status: 'under-review',
-          date: getToday()
+          date: getToday(),
+          // Extra fields for Employee View
+          transport: formatTransport(p.transport),
+          images: p.images || [],
+          farmerName: localStorage.getItem('userName') || 'Local Farmer',
+          category: p.category || 'raw',
+          submitted: getToday()
         }
       })
 
-      // Deliveries are auto-created on backend, so we should fetch default deliveries or mock them for now
-      // Ideally we would fetch '/api/farmer/deliveries', but let's just add to local state to reflect UI immediately
+      // Deliveries are auto-created on backend
       const newDeliveries = validProducts.filter(p => p.deliveryDate).map((p, index) => ({
-        id: `DEL-${Date.now()}-${index}`,
-        product: `${p.name} - ${p.grade || ''}`,
+        id: `DEL-${Math.floor(1000 + Math.random() * 9000)}`, // Simple 4-digit ID
+        product: `${p.name} - ${formatGrade(p.grade)}`,
         quantity: `${p.quantity}${p.unit}`,
         proposedDate: p.deliveryDate,
         scheduleDate: '',
-        transport: p.transport || 'Self Transport',
-        status: 'pending' // Matches backend default
+        transport: formatTransport(p.transport),
+        status: 'pending'
       }))
 
       setSubmissions(prev => [...prev, ...newSubmissions])
@@ -415,7 +468,7 @@ function FarmerDashboard() {
       localStorage.setItem('supplier_applications', JSON.stringify([...submissions, ...newSubmissions]))
       localStorage.setItem('delivery_list', JSON.stringify([...deliveries, ...newDeliveries]))
 
-      alert(`Successfully submitted ${validProducts.length} product(s) to database!`)
+      toast.success(`Successfully submitted ${validProducts.length} product(s) to database!`)
 
       // Reset Form
       setProducts([{
@@ -436,7 +489,7 @@ function FarmerDashboard() {
 
     } catch (error) {
       console.error('Submission error:', error)
-      alert(`Failed to submit products: ${error.message}`)
+      toast.error(`Failed to submit products: ${error.message}`)
     }
   }
 
@@ -844,15 +897,15 @@ function FarmerDashboard() {
               {deliveries.map(delivery => (
                 <div key={delivery.id} className="delivery-row">
                   <div className="delivery-col">
-                    <strong>{delivery.id}</strong>
+                    <strong>{delivery.id.length > 15 ? `DEL-${delivery.id.slice(-4)}` : delivery.id}</strong>
                   </div>
-                  <div className="delivery-col">{delivery.product}</div>
+                  <div className="delivery-col">{delivery.product.replace(/grade-[abc]/i, (m) => formatGrade(m.toLowerCase()))}</div>
                   <div className="delivery-col">{delivery.quantity}</div>
                   <div className="delivery-col">{delivery.proposedDate}</div>
                   <div className="delivery-col">
                     {delivery.scheduleDate || '-'}
                   </div>
-                  <div className="delivery-col">{delivery.transport || delivery.transportMethod}</div>
+                  <div className="delivery-col">{formatTransport(delivery.transport || delivery.transportMethod)}</div>
                   <div className="delivery-col">
                     <span className={`delivery-badge badge-${delivery.status}`}>
                       {delivery.status === 'pending' && 'Pending Review'}

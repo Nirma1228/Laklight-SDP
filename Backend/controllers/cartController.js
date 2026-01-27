@@ -4,9 +4,9 @@ const db = require('../config/database');
 exports.getCart = async (req, res) => {
   try {
     const [items] = await db.query(`
-      SELECT c.*, p.name, p.price, p.image_url, p.stock_quantity, p.is_available
+      SELECT c.*, c.cart_id as id, p.name, p.price, p.image_url, p.stock_quantity, p.is_available
       FROM cart c
-      JOIN products p ON c.product_id = p.id
+      JOIN products p ON c.product_id = p.product_id
       WHERE c.user_id = ?`, [req.user.userId]);
 
     const total = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -22,14 +22,14 @@ exports.addToCart = async (req, res) => {
     const { productId, quantity } = req.body;
     const userId = req.user.userId;
 
-    const [products] = await db.query('SELECT * FROM products WHERE id = ? AND is_available = TRUE', [productId]);
+    const [products] = await db.query('SELECT * FROM products WHERE product_id = ? AND is_available = TRUE', [productId]);
     if (products.length === 0) return res.status(404).json({ message: 'Product unavailable' });
 
     if (products[0].stock_quantity < quantity) return res.status(400).json({ message: 'Insufficient stock' });
 
     const [existing] = await db.query('SELECT * FROM cart WHERE user_id = ? AND product_id = ?', [userId, productId]);
     if (existing.length > 0) {
-      await db.query('UPDATE cart SET quantity = quantity + ? WHERE id = ?', [quantity, existing[0].id]);
+      await db.query('UPDATE cart SET quantity = quantity + ? WHERE cart_id = ?', [quantity, existing[0].cart_id]);
     } else {
       await db.query('INSERT INTO cart (user_id, product_id, quantity) VALUES (?, ?, ?)', [userId, productId, quantity]);
     }
@@ -42,7 +42,7 @@ exports.addToCart = async (req, res) => {
 
 exports.removeFromCart = async (req, res) => {
   try {
-    await db.query('DELETE FROM cart WHERE id = ? AND user_id = ?', [req.params.itemId, req.user.userId]);
+    await db.query('DELETE FROM cart WHERE cart_id = ? AND user_id = ?', [req.params.itemId, req.user.userId]);
     res.json({ success: true, message: 'Removed' });
   } catch (error) {
     res.status(500).json({ message: 'Remove failed', error: error.message });
@@ -60,7 +60,7 @@ exports.clearCart = async (req, res) => {
 exports.updateCartItem = async (req, res) => {
   try {
     const { quantity } = req.body;
-    await db.query('UPDATE cart SET quantity = ? WHERE id = ? AND user_id = ?', [quantity, req.params.itemId, req.user.userId]);
+    await db.query('UPDATE cart SET quantity = ? WHERE cart_id = ? AND user_id = ?', [quantity, req.params.itemId, req.user.userId]);
     res.json({ success: true, message: 'Cart updated' });
   } catch (error) {
     res.status(500).json({ message: 'Update failed', error: error.message });

@@ -18,7 +18,7 @@ exports.placeOrder = async (req, res) => {
     const processedItems = [];
 
     for (const item of items) {
-      const [rows] = await connection.query('SELECT * FROM products WHERE id = ?', [item.productId]);
+      const [rows] = await connection.query('SELECT * FROM products WHERE product_id = ?', [item.productId]);
       if (rows.length === 0) throw new Error('Product not found');
       const product = rows[0];
 
@@ -32,8 +32,10 @@ exports.placeOrder = async (req, res) => {
     }
 
     const orderNumber = `ORD-${Date.now()}`;
-    const pendingStatusId = await getStatusId('order_statuses', 'status_name', 'Pending');
-    const unpaidStatusId = await getStatusId('payment_statuses', 'status_name', 'unpaid');
+    const [pendingStatuses] = await connection.query('SELECT order_status_id FROM order_statuses WHERE status_name = "Pending"');
+    const [unpaidStatuses] = await connection.query('SELECT payment_status_id FROM payment_statuses WHERE status_name = "unpaid"');
+    const pendingStatusId = pendingStatuses[0].order_status_id;
+    const unpaidStatusId = unpaidStatuses[0].payment_status_id;
 
     const [orderResult] = await connection.query(
       'INSERT INTO orders (order_number, customer_id, total_amount, net_amount, payment_status_id, order_status_id, payment_method, delivery_address) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
@@ -46,7 +48,7 @@ exports.placeOrder = async (req, res) => {
         'INSERT INTO order_items (order_id, product_id, quantity, price_at_purchase, subtotal) VALUES (?, ?, ?, ?, ?)',
         [orderId, item.productId, item.quantity, item.price, item.subtotal]
       );
-      await connection.query('UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ?', [item.quantity, item.productId]);
+      await connection.query('UPDATE products SET stock_quantity = stock_quantity - ? WHERE product_id = ?', [item.quantity, item.productId]);
     }
 
     await connection.commit();
@@ -63,10 +65,10 @@ exports.placeOrder = async (req, res) => {
 exports.getOrders = async (req, res) => {
   try {
     const [orders] = await db.query(`
-      SELECT o.*, os.status_name as order_status, ps.status_name as payment_status
+      SELECT o.*, o.order_id as id, os.status_name as order_status, ps.status_name as payment_status
       FROM orders o
-      JOIN order_statuses os ON o.order_status_id = os.id
-      JOIN payment_statuses ps ON o.payment_status_id = ps.id
+      JOIN order_statuses os ON o.order_status_id = os.order_status_id
+      JOIN payment_statuses ps ON o.payment_status_id = ps.payment_status_id
       WHERE o.customer_id = ? ORDER BY o.order_date DESC`, [req.user.userId]);
     res.json({ success: true, orders });
   } catch (error) {
@@ -78,10 +80,11 @@ exports.getOrders = async (req, res) => {
 exports.updateOrderStatus = async (req, res) => {
   try {
     const { status } = req.body;
-    const statusId = await getStatusId('order_statuses', 'status_name', status);
-    if (!statusId) return res.status(400).json({ message: 'Invalid status' });
+    const [statuses] = await db.query('SELECT order_status_id FROM order_statuses WHERE status_name = ?', [status]);
+    if (statuses.length === 0) return res.status(400).json({ message: 'Invalid status' });
+    const statusId = statuses[0].order_status_id;
 
-    await db.query('UPDATE orders SET order_status_id = ? WHERE id = ?', [statusId, req.params.id]);
+    await db.query('UPDATE orders SET order_status_id = ? WHERE order_id = ?', [statusId, req.params.id]);
     res.json({ success: true, message: 'Status updated' });
   } catch (error) {
     res.status(500).json({ message: 'Update failed', error: error.message });
@@ -91,19 +94,19 @@ exports.updateOrderStatus = async (req, res) => {
 exports.getOrderDetails = async (req, res) => {
   try {
     const [orders] = await db.query(`
-      SELECT o.*, os.status_name as order_status, ps.status_name as payment_status, u.full_name as customer_name
+      SELECT o.*, o.order_id as id, os.status_name as order_status, ps.status_name as payment_status, u.full_name as customer_name
       FROM orders o
-      JOIN order_statuses os ON o.order_status_id = os.id
-      JOIN payment_statuses ps ON o.payment_status_id = ps.id
-      JOIN users u ON o.customer_id = u.id
-      WHERE o.id = ?`, [req.params.id]);
+      JOIN order_statuses os ON o.order_status_id = os.order_status_id
+      JOIN payment_statuses ps ON o.payment_status_id = ps.payment_status_id
+      JOIN users u ON o.customer_id = u.user_id
+      WHERE o.order_id = ?`, [req.params.id]);
 
     if (orders.length === 0) return res.status(404).json({ message: 'Order not found' });
 
     const [items] = await db.query(`
-      SELECT oi.*, p.name, p.image_url
+      SELECT oi.*, oi.order_item_id as id, p.name, p.image_url
       FROM order_items oi
-      JOIN products p ON oi.product_id = p.id
+      JOIN products p ON oi.product_id = p.product_id
       WHERE oi.order_id = ?`, [req.params.id]);
 
     res.json({ success: true, order: orders[0], items });
@@ -116,11 +119,11 @@ exports.getOrderDetails = async (req, res) => {
 exports.getAllOrders = async (req, res) => {
   try {
     const [orders] = await db.query(`
-      SELECT o.*, os.status_name as order_status, ps.status_name as payment_status, u.full_name as customer_name
+      SELECT o.*, o.order_id as id, os.status_name as order_status, ps.status_name as payment_status, u.full_name as customer_name
       FROM orders o
-      JOIN order_statuses os ON o.order_status_id = os.id
-      JOIN payment_statuses ps ON o.payment_status_id = ps.id
-      JOIN users u ON o.customer_id = u.id
+      JOIN order_statuses os ON o.order_status_id = os.order_status_id
+      JOIN payment_statuses ps ON o.payment_status_id = ps.payment_status_id
+      JOIN users u ON o.customer_id = u.user_id
       ORDER BY o.order_date DESC`);
     res.json({ success: true, orders });
   } catch (error) {
@@ -131,11 +134,14 @@ exports.getAllOrders = async (req, res) => {
 // Cancel order
 exports.cancelOrder = async (req, res) => {
   try {
-    const cancelStatusId = await getStatusId('order_statuses', 'status_name', 'Cancelled');
-    const [order] = await db.query('SELECT * FROM orders WHERE id = ?', [req.params.id]);
+    const [cancelStatuses] = await db.query('SELECT order_status_id FROM order_statuses WHERE status_name = "Cancelled"');
+    if (cancelStatuses.length === 0) return res.status(500).json({ message: 'Status config error' });
+    const cancelStatusId = cancelStatuses[0].order_status_id;
+
+    const [order] = await db.query('SELECT * FROM orders WHERE order_id = ?', [req.params.id]);
     if (order.length === 0) return res.status(404).json({ message: 'Order not found' });
 
-    await db.query('UPDATE orders SET order_status_id = ? WHERE id = ?', [cancelStatusId, req.params.id]);
+    await db.query('UPDATE orders SET order_status_id = ? WHERE order_id = ?', [cancelStatusId, req.params.id]);
     res.json({ success: true, message: 'Order cancelled' });
   } catch (error) {
     res.status(500).json({ message: 'Cancel failed', error: error.message });
@@ -148,7 +154,7 @@ exports.trackOrder = async (req, res) => {
     const [rows] = await db.query(`
       SELECT o.order_number, os.status_name as status, o.order_date
       FROM orders o
-      JOIN order_statuses os ON o.order_status_id = os.id
+      JOIN order_statuses os ON o.order_status_id = os.order_status_id
       WHERE o.order_number = ?`, [req.params.orderNumber]);
     if (rows.length === 0) return res.status(404).json({ message: 'Order not found' });
     res.json({ success: true, tracking: rows[0] });

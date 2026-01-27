@@ -31,6 +31,11 @@ const EmployeeDashboard = () => {
   const [customScheduleDate, setCustomScheduleDate] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
 
+  const showNotification = (message) => {
+    setSuccessMessage(message)
+    setTimeout(() => setSuccessMessage(''), 3000)
+  }
+
   const [profileData, setProfileData] = useState({
     firstName: '',
     lastName: '',
@@ -393,34 +398,43 @@ const EmployeeDashboard = () => {
         // Show only pending (under-review) applications in this dashboard
         if (app.status !== 'under-review') return false
 
-        const matchesSearch = app.farmerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          app.product.toLowerCase().includes(searchTerm.toLowerCase())
+        const pName = app.farmerName || '';
+        const prod = app.product || '';
+
+        const matchesSearch = pName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          prod.toLowerCase().includes(searchTerm.toLowerCase())
         const matchesCategory = !categoryFilter || app.category === categoryFilter
 
         // Use Status Filter for Quality Grade mapping
+        const grade = app.qualityGrade || app.grade || '';
         let matchesStatus = true
-        if (statusFilter === 'in-stock') matchesStatus = app.qualityGrade === 'Grade A'
-        if (statusFilter === 'low-stock') matchesStatus = app.qualityGrade === 'Grade B'
-        if (statusFilter === 'out-of-stock') matchesStatus = app.qualityGrade === 'Grade C'
+        if (statusFilter === 'in-stock') matchesStatus = grade === 'Grade A'
+        if (statusFilter === 'low-stock') matchesStatus = grade === 'Grade B'
+        if (statusFilter === 'out-of-stock') matchesStatus = grade === 'Grade C'
 
         return matchesSearch && matchesCategory && matchesStatus
       })
       .sort((a, b) => {
-        if (sortFilter === 'name-asc') return a.farmerName.localeCompare(b.farmerName)
-        if (sortFilter === 'name-desc') return b.farmerName.localeCompare(a.farmerName)
+
+        const nameA = a.farmerName || '';
+        const nameB = b.farmerName || '';
+
+        if (sortFilter === 'name-asc') return nameA.localeCompare(nameB)
+        if (sortFilter === 'name-desc') return nameB.localeCompare(nameA)
 
         // Date sort (assuming submitted date strings)
         if (sortFilter === 'newest') return new Date(b.submitted) - new Date(a.submitted)
 
         // Quantity sort (parsing '200kg' etc)
-        const qtyA = parseInt(a.quantity)
-        const qtyB = parseInt(b.quantity)
+        const qtyA = parseInt(a.quantity || '0')
+        const qtyB = parseInt(b.quantity || '0')
         if (sortFilter === 'stock-low') return qtyA - qtyB
         if (sortFilter === 'stock-high') return qtyB - qtyA
 
         // Price sort (parsing 'LKR 180.00/kg')
         if (sortFilter === 'price-low' || sortFilter === 'price-high') {
           const parsePrice = (str) => {
+            if (!str) return 0;
             const match = str.match(/[\d.]+/);
             return match ? parseFloat(match[0]) : 0;
           }
@@ -612,8 +626,8 @@ const EmployeeDashboard = () => {
     }, 100);
   }
 
-  const approveApplication = (farmName) => {
-    const app = supplierApplications.find(a => a.farmerName === farmName)
+  const approveApplication = (id) => {
+    const app = supplierApplications.find(a => a.id === id)
     if (!app) return
     setSelectedApp(app)
     setCustomScheduleDate(app.date)
@@ -627,7 +641,7 @@ const EmployeeDashboard = () => {
     }
 
     const updatedApplications = supplierApplications.map(a =>
-      a.farmerName === selectedApp.farmerName ? {
+      a.id === selectedApp.id ? {
         ...a,
         status: 'selected',
         scheduleDate: customScheduleDate,
@@ -655,13 +669,16 @@ const EmployeeDashboard = () => {
     setSelectedApp(null)
   }
 
-  const rejectApplication = (farmName) => {
-    const reason = window.prompt(`Reject application from ${farmName}?\n\nPlease provide reason for rejection:`)
-    if (reason && reason.trim()) {
-      alert(`❌ Application from ${farmName} has been rejected.\n\nReason: ${reason}\n\nFarmer will receive notification with feedback.`)
+  const rejectApplication = (id) => {
+    const app = supplierApplications.find(a => a.id === id);
+    if (!app) return;
 
-      const updatedApplications = supplierApplications.map(app =>
-        app.farmerName === farmName ? { ...app, status: 'not-selected', rejectionReason: reason } : app
+    const reason = window.prompt(`Reject application for ${app.product}?\n\nPlease provide reason for rejection:`)
+    if (reason && reason.trim()) {
+      showNotification(`Application rejected.`)
+
+      const updatedApplications = supplierApplications.map(a =>
+        a.id === id ? { ...a, status: 'not-selected', rejectionReason: reason } : a
       )
       setSupplierApplications(updatedApplications)
       localStorage.setItem('supplier_applications', JSON.stringify(updatedApplications))
@@ -1266,34 +1283,35 @@ const EmployeeDashboard = () => {
                     <div className="farmer-name">{app.farmerName}</div>
                     <p><strong>Product:</strong> {app.product}</p>
                     <p><strong>Quantity:</strong> {app.quantity} | <strong>Price:</strong> {app.price}</p>
-                    <p><strong>Harvest Date:</strong> {app.harvestDate} | <strong>Quality Grade:</strong> {app.qualityGrade}</p>
+                    <p><strong>Harvest Date:</strong> {app.harvestDate} | <strong>Quality Grade:</strong> {app.qualityGrade || app.grade}</p>
                     <p><strong>License:</strong> {app.license} | <strong>Submitted:</strong> {app.submitted}</p>
                     <p><strong>Transport:</strong> {app.transport} | <strong>Date:</strong> {app.date}</p>
 
                     <div className="submitted-images">
                       <p><strong>Submitted Images:</strong></p>
                       <div className="image-gallery">
-                        {app.images.map((img, idx) => (
+                        {(app.images || []).map((img, idx) => (
                           <img
                             key={idx}
-                            src={`https://via.placeholder.com/150x150?text=${img}`}
+                            src={img.startsWith('http') ? img : `https://via.placeholder.com/150x150?text=${img}`}
                             alt={`Product Image ${idx + 1}`}
                             className="product-thumbnail"
                           />
                         ))}
+                        {(!app.images || app.images.length === 0) && <span style={{ color: '#999', fontStyle: 'italic' }}>No images submitted</span>}
                       </div>
                     </div>
 
                     <div className="application-actions">
                       <button
                         className="btn btn-success btn-small"
-                        onClick={() => approveApplication(app.farmerName)}
+                        onClick={() => approveApplication(app.id)}
                       >
                         Approve & Schedule
                       </button>
                       <button
                         className="btn btn-danger btn-small"
-                        onClick={() => rejectApplication(app.farmerName)}
+                        onClick={() => rejectApplication(app.id)}
                       >
                         Reject
                       </button>

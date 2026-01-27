@@ -218,6 +218,27 @@
   box-shadow: 0 0 0 4px rgba(26, 93, 26, 0.05);
 }
 
+.admin-code-field {
+  background: #fff8eb;
+  padding: 1.5rem;
+  border-radius: 16px;
+  border: 1px dashed #f59e0b;
+}
+
+.admin-code-field input {
+  background: white;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
+.help-text {
+  display: block;
+  margin-top: 0.5rem;
+  color: #b45309;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
 .terms-group {
   margin: 2rem 0;
 }

@@ -16,6 +16,7 @@ function Register() {
     password: '',
     confirmPassword: '',
     address: '',
+    adminCode: '',
     agreeToTerms: false
   })
   const [loading, setLoading] = useState(false)
@@ -70,7 +71,8 @@ function Register() {
           phone: formData.phone,
           password: formData.password,
           userType: formData.userType,
-          address: formData.address
+          address: formData.address,
+          adminCode: formData.userType === 'admin' ? formData.adminCode : undefined
         })
       })
 
@@ -238,6 +240,22 @@ function Register() {
                   <option value="admin">Admin</option>
                 </select>
               </div>
+
+              {formData.userType === 'admin' && (
+                <div className="form-group admin-code-field">
+                  <label htmlFor="adminCode">Admin Authorization Code</label>
+                  <input
+                    type="password"
+                    id="adminCode"
+                    name="adminCode"
+                    value={formData.adminCode}
+                    onChange={handleChange}
+                    placeholder="Enter Authorization Code"
+                    required
+                  />
+                  <small className="help-text">Authorized personnel only.</small>
+                </div>
+              )}
 
               <div className="form-group">
                 <label htmlFor="fullName">Full Name</label>

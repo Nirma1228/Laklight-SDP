@@ -6,7 +6,7 @@ exports.getSalesReport = async (req, res) => {
     const [sales] = await db.query(`
       SELECT DATE(order_date) as date, COUNT(*) as orders, SUM(net_amount) as revenue
       FROM orders o
-      JOIN payment_statuses ps ON o.payment_status_id = ps.id
+      JOIN payment_statuses ps ON o.payment_status_id = ps.payment_status_id
       WHERE ps.status_name = 'paid'
       GROUP BY DATE(order_date) ORDER BY date DESC`);
     res.json({ success: true, reportType: 'sales', sales });
@@ -18,8 +18,8 @@ exports.getSalesReport = async (req, res) => {
 // FR17: Inventory Report
 exports.getInventoryReport = async (req, res) => {
   try {
-    const [raw] = await db.query('SELECT ir.*, rt.material_name FROM inventory_raw ir JOIN raw_material_types rt ON ir.material_type_id = rt.id');
-    const [finished] = await db.query('SELECT ifin.*, p.name FROM inventory_finished ifin JOIN products p ON ifin.product_id = p.id');
+    const [raw] = await db.query('SELECT ir.*, rt.material_name FROM inventory_raw ir JOIN raw_material_types rt ON ir.material_type_id = rt.material_type_id');
+    const [finished] = await db.query('SELECT ifin.*, p.name FROM inventory_finished ifin JOIN products p ON ifin.product_id = p.product_id');
     res.json({ success: true, reportType: 'inventory', raw, finished });
   } catch (error) {
     res.status(500).json({ message: 'Report failed', error: error.message });
@@ -32,7 +32,7 @@ exports.getSupplierReport = async (req, res) => {
     const [suppliers] = await db.query(`
       SELECT fp.*, u.full_name as owner_name 
       FROM farmer_profiles fp
-      JOIN users u ON fp.user_id = u.id`);
+      JOIN users u ON fp.farmer_id = u.user_id`);
     res.json({ success: true, reportType: 'supplier', suppliers });
   } catch (error) {
     res.status(500).json({ message: 'Report failed', error: error.message });
@@ -88,10 +88,10 @@ exports.getReportById = async (req, res) => {
     const reportId = req.params.id;
 
     const [reports] = await db.query(
-      `SELECT r.*, u.full_name as generated_by_name
+      `SELECT r.*, r.report_id as id, u.full_name as generated_by_name
        FROM reports r
-       JOIN users u ON r.generated_by = u.id
-       WHERE r.id = ?`,
+       JOIN users u ON r.generated_by = u.user_id
+       WHERE r.report_id = ?`,
       [reportId]
     );
 
@@ -114,7 +114,7 @@ exports.downloadReport = async (req, res) => {
   try {
     const reportId = req.params.id;
 
-    const [reports] = await db.query('SELECT * FROM reports WHERE id = ?', [reportId]);
+    const [reports] = await db.query('SELECT * FROM reports WHERE report_id = ?', [reportId]);
 
     if (reports.length === 0) {
       return res.status(404).json({ message: 'Report not found' });
@@ -136,12 +136,12 @@ exports.downloadReport = async (req, res) => {
 exports.getCustomerReport = async (req, res) => {
   try {
     const [customers] = await db.query(`
-      SELECT u.*, COUNT(o.id) as order_count, SUM(o.net_amount) as total_spent
+      SELECT u.*, COUNT(o.order_id) as order_count, SUM(o.net_amount) as total_spent
       FROM users u
-      LEFT JOIN orders o ON u.id = o.customer_id
-      JOIN user_roles r ON u.role_id = r.id
+      LEFT JOIN orders o ON u.user_id = o.customer_id
+      JOIN user_roles r ON u.role_id = r.role_id
       WHERE r.role_name = 'customer'
-      GROUP BY u.id`);
+      GROUP BY u.user_id`);
     res.json({ success: true, reportType: 'customer', customers });
   } catch (error) {
     res.status(500).json({ message: 'Report failed', error: error.message });
