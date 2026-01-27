@@ -35,11 +35,10 @@ exports.approveApplication = async (req, res) => {
     await connection.query('UPDATE farmer_submissions SET status_id = ?, notes = ? WHERE submission_id = ?', [statusId, notes, req.params.id]);
 
     const [[sub]] = await connection.query('SELECT * FROM farmer_submissions WHERE submission_id = ?', [req.params.id]);
-    const delNum = `DEL-${Date.now()}`;
 
     await connection.query(
-      'INSERT INTO deliveries (submission_id, delivery_number, scheduled_date, transport_method_id, status_id) VALUES (?, ?, ?, ?, ?)',
-      [req.params.id, delNum, scheduledDate || sub.delivery_date, sub.transport_method_id, deliveryStatusId]
+      'INSERT INTO deliveries (submission_id, scheduled_date, transport_method_id, status_id) VALUES (?, ?, ?, ?)',
+      [req.params.id, scheduledDate || sub.delivery_date, sub.transport_method_id, deliveryStatusId]
     );
 
     await connection.commit();
@@ -55,15 +54,14 @@ exports.approveApplication = async (req, res) => {
 exports.addRawMaterial = async (req, res) => {
   try {
     const { materialName, gradeName, quantity, expiryDate, location, unitName } = req.body;
-    const matId = await getId('raw_material_types', 'material_type_id', 'material_name', materialName);
     const gradeId = await getId('quality_grades', 'grade_id', 'grade_name', gradeName);
     const unitId = await getId('measurement_units', 'unit_id', 'unit_name', unitName || 'kg');
 
-    if (!matId || !gradeId) return res.status(400).json({ message: 'Invalid Material or Grade' });
+    if (!gradeId) return res.status(400).json({ message: 'Invalid Grade' });
 
     await db.query(
-      'INSERT INTO inventory_raw (material_type_id, grade_id, quantity_units, unit_id, received_date, expiry_date, storage_location) VALUES (?, ?, ?, ?, NOW(), ?, ?)',
-      [matId, gradeId, quantity, unitId || 1, expiryDate, location]
+      'INSERT INTO inventory_raw (material_name, grade_id, quantity_units, unit_id, received_date, expiry_date, storage_location) VALUES (?, ?, ?, ?, NOW(), ?, ?)',
+      [materialName, gradeId, quantity, unitId || 1, expiryDate, location]
     );
     res.json({ success: true, message: 'Raw stock added' });
   } catch (error) {
@@ -87,9 +85,9 @@ exports.addFinishedProduct = async (req, res) => {
 exports.getInventory = async (req, res) => {
   try {
     const [raw] = await db.query(`
-      SELECT ir.*, rt.material_name, qg.grade_name as grade 
+      SELECT ir.*, COALESCE(fs.product_name, ir.material_name) as material_name, qg.grade_name as grade 
       FROM inventory_raw ir 
-      JOIN raw_material_types rt ON ir.material_type_id = rt.material_type_id
+      LEFT JOIN farmer_submissions fs ON ir.submission_id = fs.submission_id
       JOIN quality_grades qg ON ir.grade_id = qg.grade_id`);
 
     const [finished] = await db.query(`

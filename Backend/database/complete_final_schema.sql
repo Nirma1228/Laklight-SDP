@@ -119,43 +119,7 @@ CREATE TABLE products (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================
--- 4. INVENTORY CONTROL
--- ============================================
-
-CREATE TABLE raw_material_types (
-    material_type_id INT PRIMARY KEY AUTO_INCREMENT,
-    material_name VARCHAR(100) UNIQUE NOT NULL,
-    category_id INT NOT NULL,
-    FOREIGN KEY (category_id) REFERENCES product_categories(category_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE inventory_raw (
-    raw_inventory_id INT PRIMARY KEY AUTO_INCREMENT,
-    material_type_id INT NOT NULL,
-    grade_id INT NOT NULL,
-    quantity_units DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
-    unit_id INT NOT NULL,
-    received_date DATE NOT NULL,
-    expiry_date DATE NOT NULL,
-    storage_location VARCHAR(100),
-    FOREIGN KEY (material_type_id) REFERENCES raw_material_types(material_type_id),
-    FOREIGN KEY (grade_id) REFERENCES quality_grades(grade_id),
-    FOREIGN KEY (unit_id) REFERENCES measurement_units(unit_id)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
-CREATE TABLE inventory_finished (
-    finished_inventory_id INT PRIMARY KEY AUTO_INCREMENT,
-    product_id INT NOT NULL,
-    batch_number VARCHAR(50) UNIQUE NOT NULL,
-    manufactured_date DATE NOT NULL,
-    expiry_date DATE NOT NULL,
-    quantity_units INT NOT NULL DEFAULT 0,
-    storage_location VARCHAR(100),
-    FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- ============================================
--- 5. SALES & ORDER FULFILLMENT
+-- 4. SALES & ORDER FULFILLMENT
 -- ============================================
 
 CREATE TABLE cart (
@@ -252,7 +216,6 @@ CREATE TABLE farmer_submissions (
 CREATE TABLE deliveries (
     delivery_id INT PRIMARY KEY AUTO_INCREMENT,
     submission_id INT NOT NULL,
-    delivery_number VARCHAR(50) UNIQUE NOT NULL,
     scheduled_date DATE,
     proposed_reschedule_date DATE,
     transport_method_id INT,
@@ -262,6 +225,41 @@ CREATE TABLE deliveries (
     FOREIGN KEY (submission_id) REFERENCES farmer_submissions(submission_id) ON DELETE CASCADE,
     FOREIGN KEY (transport_method_id) REFERENCES transport_methods(transport_method_id),
     FOREIGN KEY (status_id) REFERENCES delivery_statuses(delivery_status_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================
+-- 7. INVENTORY CONTROL
+-- ============================================
+
+CREATE TABLE raw_material_types (
+    material_type_id INT PRIMARY KEY AUTO_INCREMENT,
+    material_name VARCHAR(100) UNIQUE NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE inventory_raw (
+    raw_inventory_id INT PRIMARY KEY AUTO_INCREMENT,
+    submission_id INT NULL,
+    material_name VARCHAR(100),
+    grade_id INT NOT NULL,
+    quantity_units DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    unit_id INT NOT NULL,
+    received_date DATE NOT NULL,
+    expiry_date DATE NOT NULL,
+    storage_location VARCHAR(100),
+    FOREIGN KEY (submission_id) REFERENCES farmer_submissions(submission_id) ON DELETE SET NULL,
+    FOREIGN KEY (grade_id) REFERENCES quality_grades(grade_id),
+    FOREIGN KEY (unit_id) REFERENCES measurement_units(unit_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE inventory_finished (
+    finished_inventory_id INT PRIMARY KEY AUTO_INCREMENT,
+    product_id INT NOT NULL,
+    batch_number VARCHAR(50) UNIQUE NOT NULL,
+    manufactured_date DATE NOT NULL,
+    expiry_date DATE NOT NULL,
+    quantity_units INT NOT NULL DEFAULT 0,
+    storage_location VARCHAR(100),
+    FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================

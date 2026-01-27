@@ -18,7 +18,7 @@ exports.getSalesReport = async (req, res) => {
 // FR17: Inventory Report
 exports.getInventoryReport = async (req, res) => {
   try {
-    const [raw] = await db.query('SELECT ir.*, rt.material_name FROM inventory_raw ir JOIN raw_material_types rt ON ir.material_type_id = rt.material_type_id');
+    const [raw] = await db.query('SELECT ir.*, COALESCE(fs.product_name, ir.material_name) as material_name FROM inventory_raw ir LEFT JOIN farmer_submissions fs ON ir.submission_id = fs.submission_id');
     const [finished] = await db.query('SELECT ifin.*, p.name FROM inventory_finished ifin JOIN products p ON ifin.product_id = p.product_id');
     res.json({ success: true, reportType: 'inventory', raw, finished });
   } catch (error) {
