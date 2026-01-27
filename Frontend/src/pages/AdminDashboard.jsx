@@ -10,6 +10,7 @@ function AdminDashboard() {
   const [activeTab, setActiveTab] = useState('overview')
   const [dashboardData, setDashboardData] = useState(null)
   const [recentOrders, setRecentOrders] = useState([])
+  const [pendingUsers, setPendingUsers] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   const [adminName, setAdminName] = useState(localStorage.getItem('userName') || 'Administrator');
@@ -65,6 +66,7 @@ function AdminDashboard() {
           if (data.success) {
             setDashboardData(data.dashboard)
             setRecentOrders(data.dashboard.recentOrders || [])
+            setPendingUsers(data.dashboard.pendingUsers || [])
           }
         } else if (response.status === 401) {
           // Unauthorized - redirect to login
@@ -114,6 +116,38 @@ function AdminDashboard() {
       day: 'numeric'
     })
   }
+
+  const handleApproveUser = async (userId) => {
+    if (!confirm('Approve this user?')) return;
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${config.API_BASE_URL}/admin/users/${userId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ status: 'active' })
+      });
+      if (response.ok) {
+        setPendingUsers(prev => prev.filter(u => u.id !== userId));
+        // Optionally show success toast
+      }
+    } catch (err) { console.error(err); alert('Action failed'); }
+  };
+
+  const handleRejectUser = async (userId) => {
+    if (!confirm('Reject this user request?')) return;
+    try {
+      const token = getAuthToken();
+      // Set to inactive or delete. Using status update to 'inactive'
+      const response = await fetch(`${config.API_BASE_URL}/admin/users/${userId}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ status: 'inactive' })
+      });
+      if (response.ok) {
+        setPendingUsers(prev => prev.filter(u => u.id !== userId));
+      }
+    } catch (err) { console.error(err); alert('Action failed'); }
+  };
 
   return (
     <div className="admin-dashboard-container">
@@ -221,22 +255,48 @@ function AdminDashboard() {
 
           <div className="system-alerts-section">
             <div className="section-header">
-              <h3>System Alerts</h3>
+              <h3>Pending Registrations</h3>
+              <Link to="/admin/users" className="btn-view-all">View All</Link>
             </div>
-            <div className="alerts-list">
-              <div className="alert-item warning">
-                <p>Low Stock Alert</p>
-                <small>Mango Cordial stock is running low (5 bottles remaining)</small>
+
+            {pendingUsers.length > 0 ? (
+              <div className="pending-users-list">
+                {pendingUsers.map(user => (
+                  <div key={user.id} className="alert-item alert-info" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <p style={{ fontWeight: 600, margin: 0 }}>{user.full_name}</p>
+                      <small style={{ textTransform: 'capitalize' }}>{user.user_type} • {new Date(user.join_date).toLocaleDateString()}</small>
+                    </div>
+                    <div className="action-buttons-mini" style={{ display: 'flex', gap: '8px' }}>
+                      <button
+                        onClick={() => handleApproveUser(user.id)}
+                        style={{ background: '#2e7d32', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '12px' }}
+                      >
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => handleRejectUser(user.id)}
+                        style={{ background: '#c62828', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '12px' }}
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                ))}
               </div>
-              <div className="alert-item success">
-                <p>New Supplier Application</p>
-                <p>Fresh Farms Ltd. has submitted a new supplier application</p>
+            ) : (
+              <div className="alerts-list">
+                <div className="alert-item success">
+                  <p>All Cleared</p>
+                  <small>No pending registration requests</small>
+                </div>
+                {/* Keep only critical alerts if no users */}
+                <div className="alert-item warning">
+                  <p>Low Stock Alert</p>
+                  <small>Mango Cordial stock is running low (5 bottles remaining)</small>
+                </div>
               </div>
-              <div className="alert-item alert-info">
-                <h4>Expiry Notice</h4>
-                <p>3 products expiring within next 7 days</p>
-              </div>
-            </div>
+            )}
           </div>
         </div>
 

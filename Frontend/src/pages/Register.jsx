@@ -97,8 +97,6 @@ function Register() {
       if (data.requiresVerification) {
         setRegisteredEmail(formData.email)
         setStep(2) // Move to OTP verification step
-
-        alert('OTP sent to your email! Please check your inbox.')
       }
     } catch (err) {
       setError(err.message || 'Registration failed. Please try again.')
@@ -146,7 +144,18 @@ function Register() {
       }
 
       // Show success message
-      alert('Email verified successfully! Registration complete.')
+      if (data.user.status === 'pending' || data.user.userType === 'employee') {
+        alert('Verification successful! Your employee account is pending Admin approval. You will be notified via email once approved.');
+        navigate('/login');
+        return;
+      }
+
+      // Show success message
+      if (data.user.status === 'pending' || data.user.userType === 'employee') {
+        alert('Verification successful! Your employee account is pending Admin approval. You will be notified via email once approved.');
+        navigate('/login');
+        return;
+      }
 
       // Redirect based on user type
       switch (data.user.userType) {
@@ -157,6 +166,7 @@ function Register() {
           navigate('/farmer/dashboard')
           break
         case 'employee':
+          // Should effectively be unreachable if 'pending' logic above works, but kept for safety if active immediately
           navigate('/employee/dashboard')
           break
         case 'admin':

@@ -54,7 +54,17 @@ exports.getAnalyticsDashboard = async (req, res) => {
       JOIN order_statuses os ON o.order_status_id = os.id
       ORDER BY o.order_date DESC LIMIT 5`);
 
-    res.json({ success: true, dashboard: { users: userStats, orders: orderStats, recentOrders } });
+    // Fetch pending user registrations
+    const [pendingUsers] = await db.query(`
+      SELECT u.id, u.full_name, u.email, u.join_date, r.role_name as user_type 
+      FROM users u
+      JOIN user_roles r ON u.role_id = r.id
+      JOIN account_statuses s ON u.status_id = s.id
+      WHERE s.status_name = 'pending'
+      ORDER BY u.join_date DESC LIMIT 5
+    `);
+
+    res.json({ success: true, dashboard: { users: userStats, orders: orderStats, recentOrders, pendingUsers } });
   } catch (error) {
     res.status(500).json({ message: 'Analytics failed', error: error.message });
   }

@@ -143,21 +143,54 @@ exports.verifyOTP = async (req, res) => {
       return res.status(400).json({ message: 'OTP has expired' });
     }
 
-    const userData = JSON.parse(otpRecord.user_data_json);
-    const activeStatusId = await getStatusId('active');
+    // Handle potential double-parsing or JSON column auto-parsing
+    let userData;
+    try {
+      userData = typeof otpRecord.user_data_json === 'string'
+        ? JSON.parse(otpRecord.user_data_json)
+        : otpRecord.user_data_json;
+    } catch (parseError) {
+      console.error('Error parsing user_data_json:', parseError);
+      return res.status(500).json({ message: 'Stored registration data is corrupt' });
+    }
+
+    const isEmployee = userData.roleId === 3; // 3 = employee
+    // For employees, set to 'pending' (3), for others 'active' (1)
+    const targetStatusId = isEmployee ? 3 : 1;
+
+    // Verify status exists
+    const [statusCheck] = await db.query('SELECT id FROM account_statuses WHERE id = ?', [targetStatusId]);
+    if (statusCheck.length === 0) {
+      console.error(`CRITICAL: Status ID ${targetStatusId} not found`);
+      return res.status(500).json({ message: 'System configuration error: Status not found' });
+    }
 
     const [result] = await db.query(
       'INSERT INTO users (full_name, email, phone, password_hash, role_id, status_id, address) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [userData.fullName, email, userData.phone, userData.passwordHash, userData.roleId, activeStatusId, userData.address]
+      [userData.fullName, email, userData.phone, userData.passwordHash, userData.roleId, targetStatusId, userData.address]
     );
 
     await db.query('UPDATE otp_verifications SET verified = TRUE WHERE id = ?', [otpRecord.id]);
 
     // Get role name for response
     const [roles] = await db.query('SELECT role_name FROM user_roles WHERE id = ?', [userData.roleId]);
-    const roleName = roles[0].role_name;
+    const roleName = roles.length > 0 ? roles[0].role_name : 'customer';
 
-    await sendWelcomeEmail(email, userData.fullName, roleName);
+    try {
+      if (!isEmployee) {
+        await sendWelcomeEmail(email, userData.fullName, roleName);
+      } else {
+        // Send "Pending Approval" email to employee
+        await sendGenericEmail(
+          email,
+          'Registration Pending Approval',
+          'Registration Under Review',
+          `<p>Hi ${userData.fullName},</p><p>Your employee registration has been verified successfully. Your account is currently <strong>pending administrator approval</strong>.</p><p>You will receive another email once your account has been activated.</p>`
+        );
+      }
+    } catch (emailError) {
+      console.error('Email sending failed (non-blocking):', emailError.message);
+    }
 
     const token = jwt.sign(
       { userId: result.insertId, userType: roleName },
@@ -166,13 +199,23 @@ exports.verifyOTP = async (req, res) => {
     );
 
     res.status(201).json({
-      message: 'Registration complete',
+      message: isEmployee ? 'Registration pending approval' : 'Registration complete',
       token,
-      user: { id: result.insertId, name: userData.fullName, email, userType: roleName }
+      user: {
+        id: result.insertId,
+        name: userData.fullName,
+        email,
+        userType: roleName,
+        status: isEmployee ? 'pending' : 'active'
+      }
     });
   } catch (error) {
-    console.error('OTP verification error:', error);
-    res.status(500).json({ message: 'Verification failed', error: error.message });
+    console.error('OTP verification error DETAIL:', error);
+    res.status(500).json({
+      message: 'Verification failed',
+      error: error.message,
+      detail: 'Please check server logs for more information'
+    });
   }
 };
 
