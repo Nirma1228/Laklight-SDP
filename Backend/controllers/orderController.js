@@ -31,15 +31,14 @@ exports.placeOrder = async (req, res) => {
       processedItems.push({ ...item, name: product.name, price: discountedPrice, subtotal: itemSubtotal });
     }
 
-    const orderNumber = `ORD-${Date.now()}`;
     const [pendingStatuses] = await connection.query('SELECT order_status_id FROM order_statuses WHERE status_name = "Pending"');
     const [unpaidStatuses] = await connection.query('SELECT payment_status_id FROM payment_statuses WHERE status_name = "unpaid"');
     const pendingStatusId = pendingStatuses[0].order_status_id;
     const unpaidStatusId = unpaidStatuses[0].payment_status_id;
 
     const [orderResult] = await connection.query(
-      'INSERT INTO orders (order_number, customer_id, total_amount, net_amount, payment_status_id, order_status_id, payment_method, delivery_address) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [orderNumber, req.user.userId, subtotal, subtotal, unpaidStatusId, pendingStatusId, paymentMethod, deliveryAddress]
+      'INSERT INTO orders (customer_id, total_amount, net_amount, payment_status_id, order_status_id, payment_method, delivery_address) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [req.user.userId, subtotal, subtotal, unpaidStatusId, pendingStatusId, paymentMethod, deliveryAddress]
     );
 
     const orderId = orderResult.insertId;
@@ -52,7 +51,7 @@ exports.placeOrder = async (req, res) => {
     }
 
     await connection.commit();
-    res.status(201).json({ success: true, orderNumber });
+    res.status(201).json({ success: true, orderId });
   } catch (error) {
     await connection.rollback();
     res.status(500).json({ message: 'Order failed', error: error.message });

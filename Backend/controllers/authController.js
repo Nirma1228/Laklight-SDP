@@ -109,10 +109,13 @@ exports.login = async (req, res) => {
 
     await db.query('UPDATE users SET last_login = NOW() WHERE user_id = ?', [user.user_id]);
 
+    // Role-based expiration: Customer/Farmer: 2h, Employee/Admin: 24h
+    const expiration = (user.role_name === 'customer' || user.role_name === 'farmer') ? '2h' : '24h';
+
     const token = jwt.sign(
       { userId: user.user_id, userType: user.role_name },
       JWT_SECRET,
-      { expiresIn: '24h' }
+      { expiresIn: expiration }
     );
 
     res.json({
@@ -201,10 +204,13 @@ exports.verifyOTP = async (req, res) => {
       console.error('Email sending failed (non-blocking):', emailError.message);
     }
 
+    // Role-based expiration: Customer/Farmer: 2h, Employee/Admin: 24h
+    const expiration = (roleName === 'customer' || roleName === 'farmer') ? '2h' : '24h';
+
     const token = jwt.sign(
       { userId: result.insertId, userType: roleName },
       JWT_SECRET,
-      { expiresIn: '24h' }
+      { expiresIn: expiration }
     );
 
     res.status(201).json({

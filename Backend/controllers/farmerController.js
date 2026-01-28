@@ -188,3 +188,48 @@ exports.deleteSubmission = async (req, res) => {
     res.json({ success: true, message: 'Deleted' });
   } catch (error) { res.status(500).json({ message: 'Delete failed', error: error.message }); }
 };
+
+// Bank Details Management
+exports.saveBankDetails = async (req, res) => {
+  try {
+    const farmerId = req.user.userId;
+    const { accountHolderName, bankName, branchName, accountNumber } = req.body;
+
+    if (!accountHolderName || !bankName || !branchName || !accountNumber) {
+      return res.status(400).json({ message: 'All fields are required' });
+    }
+
+    // Use INSERT ... ON DUPLICATE KEY UPDATE for easy upsert
+    await db.query(
+      `INSERT INTO farmer_bank_details 
+       (farmer_id, account_holder_name, bank_name, branch_name, account_number) 
+       VALUES (?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE 
+       account_holder_name = VALUES(account_holder_name),
+       bank_name = VALUES(bank_name),
+       branch_name = VALUES(branch_name),
+       account_number = VALUES(account_number)`,
+      [farmerId, accountHolderName, bankName, branchName, accountNumber]
+    );
+
+    res.json({ success: true, message: 'Bank details saved successfully' });
+  } catch (error) {
+    console.error('Save bank details error:', error);
+    res.status(500).json({ message: 'Failed to save bank details', error: error.message });
+  }
+};
+
+exports.getBankDetails = async (req, res) => {
+  try {
+    const farmerId = req.user.userId;
+    const [rows] = await db.query(
+      'SELECT * FROM farmer_bank_details WHERE farmer_id = ?',
+      [farmerId]
+    );
+
+    res.json({ success: true, bankDetails: rows.length > 0 ? rows[0] : null });
+  } catch (error) {
+    console.error('Get bank details error:', error);
+    res.status(500).json({ message: 'Failed to fetch bank details', error: error.message });
+  }
+};

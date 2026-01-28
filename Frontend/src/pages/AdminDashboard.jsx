@@ -11,9 +11,17 @@ function AdminDashboard() {
   const [dashboardData, setDashboardData] = useState(null)
   const [recentOrders, setRecentOrders] = useState([])
   const [pendingUsers, setPendingUsers] = useState([])
+  const [customerFeedback, setCustomerFeedback] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   const [adminName, setAdminName] = useState(localStorage.getItem('userName') || 'Administrator');
+  const [confirmModal, setConfirmModal] = useState({
+    show: false,
+    title: '',
+    message: '',
+    userId: null,
+    status: ''
+  })
 
   // Get token from localStorage
   const getAuthToken = () => {
@@ -93,6 +101,33 @@ function AdminDashboard() {
     fetchDashboardData()
   }, [navigate])
 
+  // Fetch feedback data
+  useEffect(() => {
+    const fetchFeedback = async () => {
+      try {
+        const token = getAuthToken()
+        if (!token) return
+
+        const response = await fetch(`${config.API_BASE_URL}/feedback/all`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+
+        if (response.ok) {
+          const data = await response.json()
+          if (data.success) {
+            setCustomerFeedback(data.feedback)
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching feedback:', error)
+      }
+    }
+
+    fetchFeedback()
+  }, [])
+
   const handleLogout = () => {
     localStorage.removeItem('token')
     sessionStorage.removeItem('token')
@@ -117,36 +152,45 @@ function AdminDashboard() {
     })
   }
 
-  const handleApproveUser = async (userId) => {
-    if (!confirm('Approve this user?')) return;
-    try {
-      const token = getAuthToken();
-      const response = await fetch(`${config.API_BASE_URL}/admin/users/${userId}/status`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ status: 'active' })
-      });
-      if (response.ok) {
-        setPendingUsers(prev => prev.filter(u => u.id !== userId));
-        // Optionally show success toast
-      }
-    } catch (err) { console.error(err); alert('Action failed'); }
+  const handleApproveUser = (userId) => {
+    setConfirmModal({
+      show: true,
+      title: 'Approve User',
+      message: 'Are you sure you want to approve this user? They will gain access to the platform immediately.',
+      userId,
+      status: 'active'
+    });
   };
 
-  const handleRejectUser = async (userId) => {
-    if (!confirm('Reject this user request?')) return;
+  const handleRejectUser = (userId) => {
+    setConfirmModal({
+      show: true,
+      title: 'Reject User',
+      message: 'Are you sure you want to reject this registration request? This action cannot be easily undone.',
+      userId,
+      status: 'inactive'
+    });
+  };
+
+  const executeStatusUpdate = async () => {
+    const { userId, status } = confirmModal;
     try {
       const token = getAuthToken();
-      // Set to inactive or delete. Using status update to 'inactive'
       const response = await fetch(`${config.API_BASE_URL}/admin/users/${userId}/status`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ status: 'inactive' })
+        body: JSON.stringify({ status })
       });
       if (response.ok) {
         setPendingUsers(prev => prev.filter(u => u.id !== userId));
+        setConfirmModal({ ...confirmModal, show: false });
+      } else {
+        alert('Action failed');
       }
-    } catch (err) { console.error(err); alert('Action failed'); }
+    } catch (err) {
+      console.error(err);
+      alert('Action failed');
+    }
   };
 
   return (
@@ -298,6 +342,77 @@ function AdminDashboard() {
               </div>
             )}
           </div>
+        </div>
+
+        {/* Customer Feedback Section */}
+        <div className="feedback-summary-section" style={{ marginTop: '2.5rem' }}>
+          <div className="section-header">
+            <h3>Customer Feedback</h3>
+            <span className="feedback-count">{customerFeedback.length} Reviews</span>
+          </div>
+
+          <div className="feedback-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1.5rem', marginTop: '1.5rem' }}>
+            {customerFeedback.length > 0 ? (
+              customerFeedback.slice(0, 6).map((item) => (
+                <div key={item.feedback_id} className="feedback-card-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', border: '1px solid #f1f5f9' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                    <div>
+                      <h4 style={{ margin: 0, color: 'var(--text-dark)' }}>{item.customer_name}</h4>
+                      <small style={{ color: 'var(--text-light)' }}>{formatDate(item.created_at)}</small>
+                    </div>
+                    <div className="overall-rating-badge" style={{ background: '#fef3c7', color: '#92400e', padding: '4px 10px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: '700' }}>
+                      ★ {((item.product_quality + item.packaging + item.delivery_time + item.customer_service + item.value_for_money) / 5).toFixed(1)}
+                    </div>
+                  </div>
+
+                  <p style={{ fontStyle: 'italic', color: '#4b5563', marginBottom: '1.25rem', fontSize: '0.95rem' }}>
+                    "{item.feedback_text || 'No comment provided'}"
+                  </p>
+
+                  <div className="feedback-details-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.85rem' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Quality:</span>
+                      <span style={{ fontWeight: 600 }}>{item.product_quality}/5</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Packaging:</span>
+                      <span style={{ fontWeight: 600 }}>{item.packaging}/5</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Delivery:</span>
+                      <span style={{ fontWeight: 600 }}>{item.delivery_time}/5</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span>Support:</span>
+                      <span style={{ fontWeight: 600 }}>{item.customer_service}/5</span>
+                    </div>
+                  </div>
+
+                  {item.improvements && JSON.parse(item.improvements).length > 0 && (
+                    <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }}>
+                      <small style={{ fontWeight: 700, color: 'var(--text-dark)', display: 'block', marginBottom: '0.5rem' }}>Suggested Improvements:</small>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                        {JSON.parse(item.improvements).map((imp, idx) => (
+                          <span key={idx} style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem' }}>{imp}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : (
+              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem', background: '#f8fafc', borderRadius: '16px', color: 'var(--text-light)' }}>
+                No customer feedback received yet.
+              </div>
+            )}
+          </div>
+          {customerFeedback.length > 6 && (
+            <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+              <button className="btn-view-all" style={{ background: 'none', border: '1px solid var(--primary-premium)', color: 'var(--primary-premium)', padding: '0.75rem 2rem', borderRadius: '50px', fontWeight: '600', cursor: 'pointer' }}>
+                View All Feedback
+              </button>
+            </div>
+          )}
         </div>
 
         {/* System Management Section */}
@@ -465,6 +580,31 @@ function AdminDashboard() {
       </main>
 
       <Footer />
+
+      {/* Custom Confirmation Modal */}
+      {confirmModal.show && (
+        <div className="confirm-modal-overlay">
+          <div className="confirm-modal-content">
+            <div className="confirm-modal-icon">⚠️</div>
+            <h3>{confirmModal.title}</h3>
+            <p>{confirmModal.message}</p>
+            <div className="confirm-modal-actions">
+              <button
+                className="btn-modal-cancel"
+                onClick={() => setConfirmModal({ ...confirmModal, show: false })}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-modal-confirm"
+                onClick={executeStatusUpdate}
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

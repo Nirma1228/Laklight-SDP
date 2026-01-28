@@ -135,7 +135,6 @@ CREATE TABLE cart (
 
 CREATE TABLE orders (
     order_id INT PRIMARY KEY AUTO_INCREMENT,
-    order_number VARCHAR(50) UNIQUE NOT NULL,
     customer_id INT NOT NULL,
     total_amount DECIMAL(10, 2) NOT NULL,
     discount_amount DECIMAL(10, 2) DEFAULT 0.00,
@@ -184,6 +183,18 @@ CREATE TABLE farmer_profiles (
     location VARCHAR(255) NOT NULL,
     rating DECIMAL(3, 2) DEFAULT 5.00,
     is_verified BOOLEAN DEFAULT FALSE,
+    FOREIGN KEY (farmer_id) REFERENCES users(user_id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE farmer_bank_details (
+    bank_detail_id INT PRIMARY KEY AUTO_INCREMENT,
+    farmer_id INT NOT NULL UNIQUE,
+    account_holder_name VARCHAR(100) NOT NULL,
+    bank_name VARCHAR(100) NOT NULL,
+    branch_name VARCHAR(100) NOT NULL,
+    account_number VARCHAR(50) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (farmer_id) REFERENCES users(user_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 

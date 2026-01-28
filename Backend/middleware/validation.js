@@ -17,7 +17,15 @@ exports.registerValidation = [
   body('fullName').notEmpty().trim().withMessage('Full name is required'),
   body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
   body('phone').notEmpty().withMessage('Phone number is required'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('password')
+    .isStrongPassword({
+      minLength: 8,
+      minLowercase: 1,
+      minUppercase: 1,
+      minNumbers: 1,
+      minSymbols: 1
+    })
+    .withMessage('Password must be at least 8 characters long and include uppercase, lowercase, numbers, and symbols.'),
   body('userType').isIn(['customer', 'farmer', 'employee', 'admin']).withMessage('Invalid user type')
 ];
 

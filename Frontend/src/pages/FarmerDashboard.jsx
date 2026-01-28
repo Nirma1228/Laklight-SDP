@@ -59,6 +59,15 @@ function FarmerDashboard() {
   const [selectedDelivery, setSelectedDelivery] = useState(null)
   const [newDeliveryDate, setNewDeliveryDate] = useState('')
   const [notifications, setNotifications] = useState([])
+  const [isBankModalOpen, setIsBankModalOpen] = useState(false)
+  const [bankDetails, setBankDetails] = useState({
+    accountHolderName: '',
+    bankName: '',
+    branchName: '',
+    accountNumber: ''
+  })
+  const [isBankLoading, setIsBankLoading] = useState(false)
+  const [isBankWarningDismissed, setIsBankWarningDismissed] = useState(false)
 
   const [farmerProfile, setFarmerProfile] = useState({
     fullName: 'Loading...',
@@ -105,6 +114,63 @@ function FarmerDashboard() {
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
+    }
+  };
+
+  // Fetch bank details
+  const fetchBankDetails = async () => {
+    try {
+      const token = getAuthToken();
+      if (!token) return;
+
+      const response = await fetch(`${config.API_BASE_URL}/farmer/bank-details`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.bankDetails) {
+          setBankDetails({
+            accountHolderName: data.bankDetails.account_holder_name,
+            bankName: data.bankDetails.bank_name,
+            branchName: data.bankDetails.branch_name,
+            accountNumber: data.bankDetails.account_number
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching bank details:', error);
+    }
+  };
+
+  const handleBankSubmit = async (e) => {
+    e.preventDefault();
+    setIsBankLoading(true);
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${config.API_BASE_URL}/farmer/bank-details`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(bankDetails)
+      });
+
+      if (response.ok) {
+        toast.success('Bank details saved successfully!');
+        setIsBankModalOpen(false);
+      } else {
+        const data = await response.json();
+        toast.error(data.message || 'Failed to save bank details');
+      }
+    } catch (error) {
+      console.error('Error saving bank details:', error);
+      toast.error('Connection error');
+    } finally {
+      setIsBankLoading(false);
     }
   };
 
@@ -279,6 +345,7 @@ function FarmerDashboard() {
   // Check for notifications and fetch profile on mount
   useEffect(() => {
     fetchProfile();
+    fetchBankDetails();
 
     const newNotifs = submissions
       .filter(sub => sub.status === 'selected' || sub.status === 'not-selected')
@@ -557,9 +624,42 @@ function FarmerDashboard() {
           { label: 'Dashboard', onClick: () => scrollToSection('dashboard') },
           { label: 'My Products', onClick: () => scrollToSection('products-submissions-title') },
           { label: 'Deliveries', onClick: () => scrollToSection('deliveries-management-title') },
+          { label: 'Bank Details', onClick: () => setIsBankModalOpen(true) },
           { label: 'Profile', onClick: () => setIsProfileModalOpen(true) }
         ]}
       />
+
+      {/* Bank Details Warning */}
+      {!bankDetails.accountNumber && !isBankWarningDismissed && (
+        <div className="notifications-section" style={{ marginBottom: '0' }}>
+          <div className="notification notification-warning" style={{ borderRadius: '0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingRight: '15px' }}>
+            <span>🔔 <strong>Payment Setup Required:</strong> Please enter your bank details to ensure you can receive payments for your deliveries.</span>
+            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+              <button className="btn btn-primary btn-small" onClick={() => setIsBankModalOpen(true)}>Setup Now</button>
+              <button
+                className="dismiss-btn"
+                onClick={() => setIsBankWarningDismissed(true)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '1.5rem',
+                  lineHeight: '1',
+                  cursor: 'pointer',
+                  color: '#856404',
+                  padding: '0',
+                  opacity: '0.6',
+                  transition: 'opacity 0.2s'
+                }}
+                onMouseOver={(e) => e.target.style.opacity = '1'}
+                onMouseOut={(e) => e.target.style.opacity = '0.6'}
+                aria-label="Dismiss"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Dashboard Content */}
       <div className="dashboard" id="dashboard">
@@ -1150,7 +1250,71 @@ function FarmerDashboard() {
             <p>&copy; 2024 Laklight Food Products. All rights reserved.</p>
           </div>
         </div>
+        {/* Adjacent JSX fix with fragment closure */}
       </>
+
+      {/* Bank Details Modal */}
+      {isBankModalOpen && (
+        <div className="modal-overlay" onClick={() => setIsBankModalOpen(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Bank Details for Payments</h3>
+              <button className="modal-close" onClick={() => setIsBankModalOpen(false)}>×</button>
+            </div>
+            <form onSubmit={handleBankSubmit}>
+              <div className="modal-body">
+                <p className="reschedule-note">Enter your bank account information to receive secure payments from Laklight.</p>
+                <div className="form-group">
+                  <label>Account Holder Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={bankDetails.accountHolderName}
+                    onChange={(e) => setBankDetails({ ...bankDetails, accountHolderName: e.target.value })}
+                    placeholder="Exact name as in bank book"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Bank Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={bankDetails.bankName}
+                    onChange={(e) => setBankDetails({ ...bankDetails, bankName: e.target.value })}
+                    placeholder="e.g., Bank of Ceylon"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Branch Name *</label>
+                  <input
+                    type="text"
+                    required
+                    value={bankDetails.branchName}
+                    onChange={(e) => setBankDetails({ ...bankDetails, branchName: e.target.value })}
+                    placeholder="e.g., Colombo Main"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Account Number *</label>
+                  <input
+                    type="text"
+                    required
+                    value={bankDetails.accountNumber}
+                    onChange={(e) => setBankDetails({ ...bankDetails, accountNumber: e.target.value })}
+                    placeholder="Your account number"
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button type="button" className="btn btn-secondary" onClick={() => setIsBankModalOpen(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary" disabled={isBankLoading}>
+                  {isBankLoading ? 'Saving...' : 'Save Bank Details'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

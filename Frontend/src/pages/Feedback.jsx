@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { config } from '../config'
 import './Feedback.css'
 
 function Feedback() {
@@ -14,6 +15,8 @@ function Feedback() {
   const [feedback, setFeedback] = useState('')
   const [improvements, setImprovements] = useState([])
   const [submitted, setSubmitted] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
 
   const improvementOptions = [
     'Faster Delivery',
@@ -36,9 +39,10 @@ function Feedback() {
     }
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    
+    setError('')
+
     // Check if at least one rating is provided
     const hasRating = Object.values(ratings).some(rating => rating > 0)
     if (!hasRating) {
@@ -46,12 +50,48 @@ function Feedback() {
       return
     }
 
-    // Simulate submission
-    setSubmitted(true)
-    
-    setTimeout(() => {
-      navigate('/customer/dashboard')
-    }, 3000)
+    setLoading(true)
+
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+      if (!token) {
+        throw new Error('You must be logged in to submit feedback')
+      }
+
+      const response = await fetch(`${config.API_BASE_URL}/feedback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          productQuality: ratings.productQuality,
+          packaging: ratings.packaging,
+          deliveryTime: ratings.deliveryTime,
+          customerService: ratings.customerService,
+          valueForMoney: ratings.valueForMoney,
+          feedbackText: feedback,
+          improvements: improvements
+        })
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Failed to submit feedback')
+      }
+
+      setSubmitted(true)
+
+      setTimeout(() => {
+        navigate('/customer/dashboard')
+      }, 3000)
+    } catch (err) {
+      setError(err.message)
+      console.error('Feedback submission error:', err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   const renderStars = (category) => {
@@ -104,7 +144,7 @@ function Feedback() {
           </div>
 
           <div className="order-summary">
-            <h3>📦 Order Information</h3>
+            <h3>Order Information</h3>
             <div className="order-details">
               <div className="order-detail-item">
                 <label>Order ID</label>
@@ -133,9 +173,11 @@ function Feedback() {
           </div>
 
           <form onSubmit={handleSubmit}>
+            {error && <div className="error-message" style={{ color: 'red', marginBottom: '1rem' }}>{error}</div>}
+
             <div className="feedback-section">
               <div className="section-header">
-                <div className="section-icon">⭐</div>
+                <div className="section-icon"></div>
                 <h3>Rate Your Experience</h3>
               </div>
 
@@ -177,7 +219,7 @@ function Feedback() {
 
             <div className="feedback-section">
               <div className="section-header">
-                <div className="section-icon">💬</div>
+                <div className="section-icon"></div>
                 <h3>Additional Comments</h3>
               </div>
 
@@ -196,7 +238,7 @@ function Feedback() {
 
             <div className="feedback-section">
               <div className="section-header">
-                <div className="section-icon">🎯</div>
+                <div className="section-icon"></div>
                 <h3>Areas for Improvement</h3>
               </div>
 
@@ -215,8 +257,8 @@ function Feedback() {
               </div>
             </div>
 
-            <button type="submit" className="btn btn-primary">
-              Submit Feedback
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? 'Submitting...' : 'Submit Feedback'}
             </button>
           </form>
         </div>

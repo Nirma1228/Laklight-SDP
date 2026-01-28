@@ -38,7 +38,7 @@ exports.processPayment = async (req, res) => {
 exports.getPaymentHistory = async (req, res) => {
   try {
     const [payments] = await db.query(`
-      SELECT p.*, o.order_number, s.status_name as status 
+      SELECT p.*, o.order_id, s.status_name as status 
       FROM payments p
       JOIN orders o ON p.order_id = o.order_id
       JOIN payment_statuses s ON p.status_id = s.payment_status_id

@@ -384,11 +384,26 @@ const CustomerDashboard = () => {
                     <div>{order.items}</div>
                     <div>Total: LKR {order.total.toFixed(2)} {order.discount && '(10% discount applied)'}</div>
                   </div>
-                  <div className="order-actions-status">
+                  <div className="order-actions-status" style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
                     {order.status.toLowerCase() === 'completed' ? (
-                      <span className="order-status status-completed">✅ Delivered</span>
+                      <>
+                        <span className="order-status status-completed">✅ Delivered</span>
+                        <Link
+                          to="/feedback"
+                          className="feedback-link"
+                          style={{
+                            fontSize: '0.85rem',
+                            color: '#1a5d1a',
+                            fontWeight: '600',
+                            textDecoration: 'underline',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Rate this order
+                        </Link>
+                      </>
                     ) : order.status.toLowerCase() === 'packing' ? (
-                      <span className="order-status" style={{ background: '#fff3cd', color: '#856404' }}>📦 Packing</span>
+                      <span className="order-status" style={{ background: '#fff3cd', color: '#856404' }}>Packing</span>
                     ) : order.status.toLowerCase() === 'delivering' ? (
                       <span className="order-status" style={{ background: '#e3f2fd', color: '#0d47a1' }}>🚚 Delivering</span>
                     ) : (

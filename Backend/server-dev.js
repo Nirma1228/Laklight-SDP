@@ -81,7 +81,6 @@ const mockDashboard = {
   recentOrders: [
     {
       id: 1,
-      order_number: 'ORD-001',
       customer_name: 'John Doe',
       total_amount: 5400,
       payment_status: 'Paid',
@@ -90,7 +89,6 @@ const mockDashboard = {
     },
     {
       id: 2,
-      order_number: 'ORD-002',
       customer_name: 'Jane Smith',
       total_amount: 3200,
       payment_status: 'Paid',
@@ -105,8 +103,8 @@ app.post('/api/auth/login', async (req, res) => {
   try {
     const { email, password, userType } = req.body;
 
-    const user = mockUsers.find(u => 
-      u.email === email && 
+    const user = mockUsers.find(u =>
+      u.email === email &&
       u.user_type === userType &&
       u.password === password
     );
@@ -116,8 +114,8 @@ app.post('/api/auth/login', async (req, res) => {
     }
 
     if (user.status !== 'active') {
-      return res.status(403).json({ 
-        message: `Account is ${user.status}. Please contact administrator.` 
+      return res.status(403).json({
+        message: `Account is ${user.status}. Please contact administrator.`
       });
     }
 
@@ -148,7 +146,7 @@ app.post('/api/auth/login', async (req, res) => {
 // Verify token middleware
 const verifyToken = (req, res, next) => {
   const token = req.headers.authorization?.split(' ')[1];
-  
+
   if (!token) {
     return res.status(401).json({ message: 'No token provided' });
   }

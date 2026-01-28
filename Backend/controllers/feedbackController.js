@@ -183,3 +183,23 @@ exports.getFeedbackStats = async (req, res) => {
     res.status(500).json({ message: 'Failed to fetch feedback statistics', error: error.message });
   }
 };
+// Get all feedback (Admin only)
+exports.getAllFeedback = async (req, res) => {
+  try {
+    const [feedback] = await db.query(`
+      SELECT f.*, u.full_name as customer_name, u.email as customer_email
+      FROM feedback f
+      JOIN users u ON f.customer_id = u.user_id
+      ORDER BY f.created_at DESC
+    `);
+
+    res.json({
+      success: true,
+      count: feedback.length,
+      feedback
+    });
+  } catch (error) {
+    console.error('Get all feedback error:', error);
+    res.status(500).json({ message: 'Failed to fetch feedback', error: error.message });
+  }
+};

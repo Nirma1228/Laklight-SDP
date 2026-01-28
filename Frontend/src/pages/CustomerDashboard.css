@@ -116,6 +116,10 @@
   font-size: 1rem;
 }
 
+.header.scrolled .cart-label {
+  color: #000000;
+}
+
 @media (max-width: 500px) {
   .cart-label {
     display: none;
@@ -129,6 +133,14 @@
 
 .cart-icon i {
   color: white;
+}
+
+.header.scrolled .cart-icon i {
+  color: #000000;
+}
+
+.header.scrolled .cart-icon:hover {
+  background-color: rgba(0, 0, 0, 0.05);
 }
 
 #cart-count {
@@ -661,6 +673,11 @@
 .status-completed {
   background: #d4edda;
   color: #155724;
+}
+
+.feedback-link:hover {
+  color: #2e7d32 !important;
+  text-decoration: none !important;
 }
 
 /* Modal Styles */

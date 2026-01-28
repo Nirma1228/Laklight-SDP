@@ -1,5 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons'
 import { config } from '../config'
 import './Register.css'
 
@@ -22,6 +24,18 @@ function Register() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [resendLoading, setResendLoading] = useState(false)
+  const [showSuccessModal, setShowSuccessModal] = useState(false)
+  const [modalMessage, setModalMessage] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+
+  const passwordRequirements = [
+    { label: 'At least 8 characters', test: (p) => p.length >= 8 },
+    { label: 'At least one uppercase letter', test: (p) => /[A-Z]/.test(p) },
+    { label: 'At least one lowercase letter', test: (p) => /[a-z]/.test(p) },
+    { label: 'At least one number', test: (p) => /\d/.test(p) },
+    { label: 'At least one special character', test: (p) => /[!@#$%^&*(),.?":{}|<>]/.test(p) }
+  ]
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -42,8 +56,10 @@ function Register() {
       return
     }
 
-    if (formData.password.length < 6) {
-      setError('Password must be at least 6 characters long')
+    // Strong Password Validation
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/
+    if (!passwordRegex.test(formData.password)) {
+      setError('Password must be at least 8 characters long and include uppercase, lowercase, numbers, and symbols.')
       return
     }
 
@@ -147,15 +163,8 @@ function Register() {
 
       // Show success message
       if (data.user.status === 'pending' || data.user.userType === 'employee') {
-        alert('Verification successful! Your employee account is pending Admin approval. You will be notified via email once approved.');
-        navigate('/login');
-        return;
-      }
-
-      // Show success message
-      if (data.user.status === 'pending' || data.user.userType === 'employee') {
-        alert('Verification successful! Your employee account is pending Admin approval. You will be notified via email once approved.');
-        navigate('/login');
+        setModalMessage('Verification successful! Your employee account is pending Admin approval. You will be notified via email once approved.');
+        setShowSuccessModal(true);
         return;
       }
 
@@ -279,13 +288,60 @@ function Register() {
               </div>
 
               <div className="form-row">
-                <div className="form-group">
+                <div className="form-group password-group">
                   <label htmlFor="password">Password</label>
-                  <input type="password" id="password" name="password" value={formData.password} onChange={handleChange} required />
+                  <div className="password-input-wrapper">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      id="password"
+                      name="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle"
+                      onClick={() => setShowPassword(!showPassword)}
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+                    </button>
+                  </div>
+
+                  {/* Password Strength Indicator */}
+                  <div className="password-requirements">
+                    {passwordRequirements.map((req, index) => {
+                      const isMet = req.test(formData.password);
+                      return (
+                        <div key={index} className={`requirement-item ${formData.password ? (isMet ? 'met' : 'not-met') : ''}`}>
+                          <span className="dot"></span>
+                          {req.label}
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
-                <div className="form-group">
+                <div className="form-group password-group">
                   <label htmlFor="confirmPassword">Confirm Password</label>
-                  <input type="password" id="confirmPassword" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} required />
+                  <div className="password-input-wrapper">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      id="confirmPassword"
+                      name="confirmPassword"
+                      value={formData.confirmPassword}
+                      onChange={handleChange}
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="password-toggle"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                    >
+                      <FontAwesomeIcon icon={showConfirmPassword ? faEyeSlash : faEye} />
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -353,6 +409,22 @@ function Register() {
           )}
         </div>
       </div>
+      {/* Success Modal */}
+      {showSuccessModal && (
+        <div className="modal-overlay">
+          <div className="success-modal">
+            <div className="modal-icon">✓</div>
+            <h2>Success!</h2>
+            <p>{modalMessage}</p>
+            <button
+              onClick={() => navigate('/login')}
+              className="modal-btn"
+            >
+              Back to Login
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
