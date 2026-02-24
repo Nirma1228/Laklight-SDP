@@ -23,4 +23,10 @@ router.put('/inventory/:id', verifyToken, checkRole('employee', 'administrator')
 // Alert routes
 router.get('/alerts', verifyToken, checkRole('employee', 'administrator'), employeeController.getAlerts);
 
+// Delivery routes
+router.get('/deliveries', verifyToken, checkRole('employee', 'administrator'), employeeController.getDeliveries);
+router.put('/deliveries/:id/reschedule', verifyToken, checkRole('employee', 'administrator'), employeeController.rescheduleDelivery);
+router.put('/deliveries/:id/approve-reschedule', verifyToken, checkRole('employee', 'administrator'), employeeController.approveReschedule);
+router.put('/deliveries/:id/complete', verifyToken, checkRole('employee', 'administrator'), employeeController.completeDelivery);
+
 module.exports = router;

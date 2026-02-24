@@ -171,60 +171,7 @@ const EmployeeDashboard = () => {
     }
   ])
 
-  const [supplierApplications, setSupplierApplications] = useState(() => {
-    const saved = localStorage.getItem('supplier_applications')
-    if (saved) return JSON.parse(saved)
-    return [
-      {
-        id: 1,
-        farmerName: 'Mountain Fresh Farm - Badulla',
-        product: 'Fresh Mango - Grade A',
-        quantity: '200kg',
-        price: 'LKR 180.00/kg',
-        harvestDate: '2025-09-20',
-        qualityGrade: 'Grade A',
-        license: 'AG2025078',
-        submitted: '2025-09-21',
-        transport: 'Self Transport',
-        date: '2025-09-25',
-        images: ['Mango+1', 'Mango+2', 'Quality+Cert'],
-        category: 'raw',
-        status: 'under-review'
-      },
-      {
-        id: 2,
-        farmerName: 'Sunrise Plantation - Matale',
-        product: 'Strawberry - Grade B',
-        quantity: '80kg',
-        price: 'LKR 350.00/kg',
-        harvestDate: '2025-09-22',
-        qualityGrade: 'Grade B',
-        license: 'AG2025045',
-        submitted: '2025-09-20',
-        transport: 'Company Truck Pickup',
-        date: '2025-09-25',
-        images: ['Strawberry+1', 'Strawberry+2', 'Farm+View'],
-        category: 'raw',
-        status: 'under-review'
-      },
-      {
-        id: 3,
-        farmerName: 'Golden Valley Farms - Nuwara Eliya',
-        product: 'Passion Fruit - Grade A',
-        quantity: '60kg',
-        price: 'LKR 450.00/kg',
-        harvestDate: '2025-09-23',
-        qualityGrade: 'Grade A',
-        license: 'AG2025123',
-        submitted: '2025-09-22',
-        transport: 'Self Transport',
-        date: '2025-09-26',
-        images: ['Passion+Fruit', 'Quality+Check', 'Packaging'],
-        category: 'raw',
-        status: 'under-review'
-      }
-    ]
-  })
+  const [supplierApplications, setSupplierApplications] = useState([])
 
   // Load reschedule notifications from localStorage
   useEffect(() => {
@@ -571,31 +518,103 @@ const EmployeeDashboard = () => {
     }
   }
 
-  const [deliveries, setDeliveries] = useState(() => {
-    const defaultDeliveries = [
-      { id: 'DEL-1001', farmer: 'Green Valley Farm', product: 'Fresh Mango - Grade A', quantity: '100kg', proposedDate: '2025-10-22', scheduleDate: '-', transport: 'Company Truck Pickup', status: 'pending' },
-      { id: 'DEL-1004', farmer: 'Sunrise Organic Farm', product: 'Papaya - Grade A', quantity: '80kg', proposedDate: '2025-10-23', scheduleDate: '-', transport: 'Self Transport', status: 'pending' },
-      { id: 'DEL-1010', farmer: 'Highland Farms - Nuwara Eliya', product: 'Strawberry - Grade A', quantity: '50kg', proposedDate: '2025-10-25', scheduleDate: '2025-10-27', transport: 'Self Transport', status: 'pending-confirmation' },
-      { id: 'DEL-1015', farmer: 'Golden Valley - Matale', product: 'Passion Fruit - Grade A', quantity: '40kg', proposedDate: '2025-10-28', scheduleDate: '-', transport: 'Company Truck Pickup', status: 'pending' },
-      { id: 'DEL-1020', farmer: 'Mountain Oasis - Badulla', product: 'Papaya - Grade A', quantity: '120kg', proposedDate: '2025-10-20', scheduleDate: '2025-10-22', transport: 'Self Transport', status: 'pending-confirmation' },
-      { id: 'DEL-1025', farmer: 'Valley Greens - Nuwara Eliya', product: 'Pineapple - Grade B', quantity: '90kg', proposedDate: '2025-10-25', scheduleDate: '2025-10-26', transport: 'Company Truck Pickup', status: 'pending-confirmation' }
-    ]
+  const [deliveries, setDeliveries] = useState([])
 
-    const saved = localStorage.getItem('delivery_list')
-    if (saved) {
-      const parsed = JSON.parse(saved)
-      // Merge: keep all saved, but ensure the new sample IDs are there if missing
-      const existingIds = new Set(parsed.map(d => d.id))
-      const newItems = defaultDeliveries.filter(d => !existingIds.has(d.id))
-      return [...parsed, ...newItems]
+  // Fetch supplier applications from database
+  const fetchSupplierApplications = async () => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch(`${config.API_BASE_URL}/employee/applications`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const formattedApplications = data.applications.map(app => ({
+          id: app.submission_id || app.id,
+          farmerName: app.farmer_name,
+          product: `${app.product_name} - ${app.grade || 'N/A'}`,
+          quantity: `${app.quantity}${app.unit || 'kg'}`,
+          price: app.custom_price ? `LKR ${app.custom_price}/kg` : 'N/A',
+          harvestDate: app.harvest_date ? new Date(app.harvest_date).toISOString().split('T')[0] : '',
+          qualityGrade: app.grade || 'N/A',
+          license: app.license || 'N/A',
+          submitted: app.created_at ? new Date(app.created_at).toISOString().split('T')[0] : '',
+          transport: app.transport_method || app.transport || 'N/A',
+          date: app.delivery_date ? new Date(app.delivery_date).toISOString().split('T')[0] : '',
+          images: app.images || [],
+          category: app.category || 'raw',
+          status: app.status || 'under-review'
+        }));
+        setSupplierApplications(formattedApplications);
+        // Backup to localStorage
+        localStorage.setItem('supplier_applications', JSON.stringify(formattedApplications));
+      }
+    } catch (error) {
+      console.error('Error fetching applications:', error);
+      // Fallback to localStorage if fetch fails
+      const saved = localStorage.getItem('supplier_applications');
+      if (saved) {
+        setSupplierApplications(JSON.parse(saved));
+      }
     }
-    return defaultDeliveries
-  })
+  };
 
-  // Auto-save deliveries
+  // Fetch deliveries from database
+  const fetchDeliveries = async () => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch(`${config.API_BASE_URL}/employee/deliveries`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const formattedDeliveries = data.deliveries.map(del => ({
+          id: del.delivery_id || del.id,
+          farmer: del.farmer_name,
+          product: `${del.product_name} - ${del.grade || 'N/A'}`,
+          quantity: `${del.quantity}${del.unit || 'kg'}`,
+          proposedDate: del.delivery_date ? new Date(del.delivery_date).toISOString().split('T')[0] : '',
+          scheduleDate: del.scheduled_date ? new Date(del.scheduled_date).toISOString().split('T')[0] : '-',
+          transport: del.transport_method || 'N/A',
+          status: del.status || 'pending',
+          proposed_reschedule_date: del.proposed_reschedule_date ? new Date(del.proposed_reschedule_date).toISOString().split('T')[0] : null
+        }));
+        setDeliveries(formattedDeliveries);
+        // Backup to localStorage
+        localStorage.setItem('delivery_list', JSON.stringify(formattedDeliveries));
+      }
+    } catch (error) {
+      console.error('Error fetching deliveries:', error);
+      // Fallback to localStorage if fetch fails
+      const saved = localStorage.getItem('delivery_list');
+      if (saved) {
+        setDeliveries(JSON.parse(saved));
+      }
+    }
+  };
+
+  // Fetch data on component mount
   useEffect(() => {
-    localStorage.setItem('delivery_list', JSON.stringify(deliveries))
-  }, [deliveries])
+    fetchSupplierApplications();
+    fetchDeliveries();
+  }, []);
+
+  // Auto-save to localStorage as backup
+  useEffect(() => {
+    if (deliveries.length > 0) {
+      localStorage.setItem('delivery_list', JSON.stringify(deliveries));
+    }
+  }, [deliveries]);
 
   const showTab = (tabName) => {
     setActiveTab(tabName)
@@ -634,54 +653,96 @@ const EmployeeDashboard = () => {
     setIsApproveModalOpen(true)
   }
 
-  const confirmApproveWithDate = () => {
+  const confirmApproveWithDate = async () => {
     if (!selectedApp || !customScheduleDate) {
       alert('Please provide a valid schedule date.')
       return
     }
 
-    const updatedApplications = supplierApplications.map(a =>
-      a.id === selectedApp.id ? {
-        ...a,
-        status: 'selected',
-        scheduleDate: customScheduleDate,
-        originalProposedDate: a.date
-      } : a
-    )
-    setSupplierApplications(updatedApplications)
-    localStorage.setItem('supplier_applications', JSON.stringify(updatedApplications))
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      if (!token) {
+        alert('Authentication required');
+        return;
+      }
 
-    // Also create a entry in Deliveries tab for negotiation
-    const newDelivery = {
-      id: `DEL-${Date.now()}`,
-      farmer: selectedApp.farmerName,
-      product: selectedApp.product,
-      quantity: selectedApp.quantity,
-      proposedDate: selectedApp.date,
-      scheduleDate: customScheduleDate,
-      transport: selectedApp.transport,
-      status: customScheduleDate !== selectedApp.date ? 'pending-confirmation' : 'confirmed'
+      // Check if employee is using farmer's proposed date or rescheduling
+      const isUsingFarmerDate = customScheduleDate === selectedApp.date;
+
+      // Call backend API to approve application
+      const response = await fetch(`${config.API_BASE_URL}/employee/applications/${selectedApp.id}/approve`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          scheduledDate: customScheduleDate,
+          notes: 'Approved by employee',
+          isUsingFarmerDate: isUsingFarmerDate
+        })
+      });
+
+      if (response.ok) {
+        setIsApproveModalOpen(false)
+        if (isUsingFarmerDate) {
+          showNotification(`Application approved with farmer's proposed date!`)
+        } else {
+          showNotification(`Application approved with reschedule date. Waiting for farmer confirmation.`)
+        }
+        setSelectedApp(null)
+        
+        // Refresh data from database
+        fetchSupplierApplications();
+        fetchDeliveries();
+      } else {
+        const data = await response.json();
+        alert(data.message || 'Failed to approve application');
+      }
+    } catch (error) {
+      console.error('Error approving application:', error);
+      alert('Connection error. Please try again.');
     }
-    setDeliveries(prev => [...prev, newDelivery])
-
-    setIsApproveModalOpen(false)
-    showNotification(`Application from ${selectedApp.farmerName} approved!`)
-    setSelectedApp(null)
   }
 
-  const rejectApplication = (id) => {
+  const rejectApplication = async (id) => {
     const app = supplierApplications.find(a => a.id === id);
     if (!app) return;
 
     const reason = window.prompt(`Reject application for ${app.product}?\n\nPlease provide reason for rejection:`)
     if (reason && reason.trim()) {
-      showNotification(`Application rejected.`)
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        if (!token) {
+          alert('Authentication required');
+          return;
+        }
 
-      const updatedApplications = supplierApplications.map(a =>
-        a.id === id ? { ...a, status: 'not-selected', rejectionReason: reason } : a
-      )
-      setSupplierApplications(updatedApplications)
-      localStorage.setItem('supplier_applications', JSON.stringify(updatedApplications))
+        // Call backend API to reject application
+        const response = await fetch(`${config.API_BASE_URL}/employee/applications/${id}/reject`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            rejectionReason: reason
+          })
+        });
+
+        if (response.ok) {
+          showNotification(`Application rejected.`)
+          
+          // Refresh data from database
+          fetchSupplierApplications();
+        } else {
+          const data = await response.json();
+          alert(data.message || 'Failed to reject application');
+        }
+      } catch (error) {
+        console.error('Error rejecting application:', error);
+        alert('Connection error. Please try again.');
+      }
     }
   }
 
@@ -707,18 +768,44 @@ const EmployeeDashboard = () => {
     }
   }
 
-  const requestScheduleChange = () => {
+  const requestScheduleChange = async () => {
     if (currentDelivery) {
       const newDate = window.prompt('Enter the new proposed date (YYYY-MM-DD):', currentDelivery.proposedDate)
       if (newDate) {
-        setDeliveries(prev => prev.map(d =>
-          d.id === currentDelivery.id
-            ? { ...d, status: 'pending-confirmation', scheduleDate: newDate }
-            : d
-        ))
-        showNotification(`Proposed date updated to ${newDate}`)
-        setIsReviewDeliveryOpen(false)
-        setCurrentDelivery(null)
+        try {
+          const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+          if (!token) {
+            alert('Authentication required');
+            return;
+          }
+
+          // Call backend API to update delivery schedule
+          const response = await fetch(`${config.API_BASE_URL}/employee/deliveries/${currentDelivery.id}/reschedule`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              scheduledDate: newDate
+            })
+          });
+
+          if (response.ok) {
+            showNotification(`Proposed date updated to ${newDate}`)
+            setIsReviewDeliveryOpen(false)
+            setCurrentDelivery(null)
+            
+            // Refresh deliveries from database
+            fetchDeliveries();
+          } else {
+            const data = await response.json();
+            alert(data.message || 'Failed to update schedule');
+          }
+        } catch (error) {
+          console.error('Error updating schedule:', error);
+          alert('Connection error. Please try again.');
+        }
       }
     }
   }
@@ -768,14 +855,41 @@ const EmployeeDashboard = () => {
     }
   }
 
-  const rescheduleDelivery = (deliveryId) => {
-    const newDate = window.prompt('Enter new delivery date (e.g., Oct 26, 2025):')
+  const rescheduleDelivery = async (deliveryId) => {
+    const newDate = window.prompt('Enter new delivery date (YYYY-MM-DD):')
     if (newDate && newDate.trim() !== '') {
-      alert(`📅 Delivery rescheduled!\n\nDelivery ID: ${deliveryId}\nNew Date: ${newDate}\n\nThe farmer has been notified of the new delivery date.`)
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        if (!token) {
+          alert('Authentication required');
+          return;
+        }
 
-      setDeliveries(prev => prev.map(d =>
-        d.id === deliveryId ? { ...d, scheduleDate: newDate } : d
-      ))
+        // Call backend API to reschedule delivery
+        const response = await fetch(`${config.API_BASE_URL}/employee/deliveries/${deliveryId}/reschedule`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            scheduledDate: newDate
+          })
+        });
+
+        if (response.ok) {
+          alert(`📅 Delivery rescheduled!\n\nDelivery ID: ${deliveryId}\nNew Date: ${newDate}\n\nThe farmer has been notified of the new delivery date.`)
+          
+          // Refresh deliveries from database
+          fetchDeliveries();
+        } else {
+          const data = await response.json();
+          alert(data.message || 'Failed to reschedule delivery');
+        }
+      } catch (error) {
+        console.error('Error rescheduling delivery:', error);
+        alert('Connection error. Please try again.');
+      }
     }
   }
 
@@ -835,8 +949,21 @@ const EmployeeDashboard = () => {
 
   const filterDeliveries = () => {
     return deliveries.filter(delivery => {
-      if (deliveryStatusFilter === 'all') return true
-      return delivery.status === deliveryStatusFilter
+      // Show deliveries in these statuses:
+      // 1. 'scheduled delivery' or 'confirmed' - Employee approved with farmer's date (no farmer action needed)
+      // 2. 'pending' - Employee rescheduled, waiting for farmer OR farmer counter-proposed
+      // 3. 'confirmed schedule' - Farmer confirmed employee's reschedule
+      // 4. 'completed' - Delivery done
+      
+      const validStatuses = ['pending', 'scheduled delivery', 'confirmed', 'confirmed schedule', 'completed'];
+      
+      // If a specific status filter is selected
+      if (deliveryStatusFilter !== 'all') {
+        return delivery.status === deliveryStatusFilter && validStatuses.includes(delivery.status);
+      }
+      
+      // If 'all' is selected, show all valid statuses
+      return validStatuses.includes(delivery.status);
     })
   }
 
@@ -1422,6 +1549,9 @@ const EmployeeDashboard = () => {
                   <div className="card-icon">🚚</div>
                   <h2>Farmer Delivery Schedule Requests</h2>
                 </div>
+                <p className="card-subtitle" style={{ marginTop: '0.5rem', color: '#666' }}>
+                  Manage delivery schedules - scheduled deliveries, pending farmer responses, and confirmed schedules
+                </p>
               </div>
 
               <div className="inventory-filters" style={{ marginBottom: '1rem' }}>
@@ -1430,11 +1560,11 @@ const EmployeeDashboard = () => {
                   value={deliveryStatusFilter}
                   onChange={(e) => setDeliveryStatusFilter(e.target.value)}
                 >
-                  <option value="all">All Status</option>
-                  <option value="pending">Pending Review</option>
-                  <option value="confirmed">Confirmed</option>
+                  <option value="all">All Delivery Schedules</option>
+                  <option value="scheduled delivery">Scheduled Delivery</option>
+                  <option value="pending">Pending Farmer Response</option>
+                  <option value="confirmed schedule">Confirmed Schedule</option>
                   <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
                 </select>
               </div>
 
@@ -1454,7 +1584,16 @@ const EmployeeDashboard = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {filterDeliveries().map(delivery => (
+                    {filterDeliveries().length === 0 ? (
+                      <tr>
+                        <td colSpan="9" style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
+                          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📦</div>
+                          <p style={{ fontWeight: '500', marginBottom: '0.5rem' }}>No delivery schedules</p>
+                          <p style={{ fontSize: '0.9rem' }}>Deliveries will appear here after you approve supplier applications.</p>
+                        </td>
+                      </tr>
+                    ) : (
+                      filterDeliveries().map(delivery => (
                       <tr key={delivery.id} data-status={delivery.status}>
                         <td>{delivery.id}</td>
                         <td>{delivery.farmer}</td>
@@ -1465,40 +1604,118 @@ const EmployeeDashboard = () => {
                         <td>{delivery.transport}</td>
                         <td>
                           <span className={`status-badge status-${delivery.status}`}>
-                            {delivery.status === 'pending' && 'Pending Review'}
-                            {delivery.status === 'pending-confirmation' && 'Pending Date Confirmation'}
+                            {delivery.status === 'scheduled delivery' && 'Scheduled Delivery'}
+                            {delivery.status === 'pending' && delivery.proposed_reschedule_date && 'Farmer Counter-Proposed Date'}
+                            {delivery.status === 'pending' && !delivery.proposed_reschedule_date && 'Pending Farmer Response'}
                             {delivery.status === 'confirmed' && 'Confirmed'}
+                            {delivery.status === 'confirmed schedule' && 'Confirmed Schedule'}
                             {delivery.status === 'completed' && 'Completed'}
                             {delivery.status === 'cancelled' && 'Cancelled'}
                           </span>
                         </td>
                         <td>
-                          {delivery.status === 'pending' && (
+                          {delivery.status === 'scheduled delivery' && (
                             <div className="action-btn-group">
                               <button
                                 className="btn-action btn-confirm"
-                                onClick={() => reviewDelivery(delivery.id)}
+                                onClick={async () => {
+                                  if (window.confirm(`Mark delivery ${delivery.id} as completed?`)) {
+                                    try {
+                                      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+                                      const response = await fetch(`${config.API_BASE_URL}/employee/deliveries/${delivery.id}/complete`, {
+                                        method: 'PUT',
+                                        headers: {
+                                          'Content-Type': 'application/json',
+                                          'Authorization': `Bearer ${token}`
+                                        }
+                                      });
+                                      if (response.ok) {
+                                        showNotification('Delivery marked as completed!');
+                                        fetchDeliveries();
+                                      }
+                                    } catch (error) {
+                                      console.error('Error:', error);
+                                    }
+                                  }
+                                }}
                               >
-                                Review
+                                Mark Complete
                               </button>
                             </div>
                           )}
-                          {delivery.status === 'pending-confirmation' && (
+                          {delivery.status === 'pending' && !delivery.proposed_reschedule_date && (
+                            <div className="action-btn-group">
+                              <button
+                                className="btn-action btn-secondary"
+                                style={{ cursor: 'default', opacity: '0.7', pointerEvents: 'none' }}
+                              >
+                                Waiting for Farmer Response
+                              </button>
+                            </div>
+                          )}
+                          {delivery.status === 'pending' && delivery.proposed_reschedule_date && (
                             <div className="action-btn-group">
                               <button
                                 className="btn-action btn-confirm"
-                                onClick={() => {
-                                  setDeliveries(prev => prev.map(d => d.id === delivery.id ? { ...d, status: 'confirmed', scheduleDate: d.scheduleDate } : d))
-                                  showNotification('Schedule accepted!')
+                                onClick={async () => {
+                                  if (window.confirm(`Mark delivery ${delivery.id} as completed?`)) {
+                                    try {
+                                      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+                                      const response = await fetch(`${config.API_BASE_URL}/employee/deliveries/${delivery.id}/complete`, {
+                                        method: 'PUT',
+                                        headers: {
+                                          'Content-Type': 'application/json',
+                                          'Authorization': `Bearer ${token}`
+                                        }
+                                      });
+                                      if (response.ok) {
+                                        showNotification('Delivery marked as completed!');
+                                        fetchDeliveries();
+                                      }
+                                    } catch (error) {
+                                      console.error('Error:', error);
+                                    }
+                                  }
                                 }}
+                                title="Mark delivery as completed"
                               >
-                                Accept
+                                Mark Complete
                               </button>
                               <button
                                 className="btn-action btn-reschedule"
-                                onClick={() => reviewDelivery(delivery.id)}
+                                onClick={() => rescheduleDelivery(delivery.id)}
+                                title="Propose a different date"
                               >
-                                Date Reschedule
+                                Reschedule
+                              </button>
+                            </div>
+                          )}
+                          {delivery.status === 'confirmed schedule' && (
+                            <div className="action-btn-group">
+                              <button
+                                className="btn-action btn-confirm"
+                                onClick={async () => {
+                                  if (window.confirm(`Mark delivery ${delivery.id} as completed?`)) {
+                                    try {
+                                      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+                                      const response = await fetch(`${config.API_BASE_URL}/employee/deliveries/${delivery.id}/complete`, {
+                                        method: 'PUT',
+                                        headers: {
+                                          'Content-Type': 'application/json',
+                                          'Authorization': `Bearer ${token}`
+                                        }
+                                      });
+                                      if (response.ok) {
+                                        showNotification('Delivery marked as completed!');
+                                        fetchDeliveries();
+                                      }
+                                    } catch (error) {
+                                      console.error('Error:', error);
+                                    }
+                                  }
+                                }}
+                              >
+                                Mark Complete
                               </button>
                             </div>
                           )}
@@ -1506,15 +1723,28 @@ const EmployeeDashboard = () => {
                             <div className="action-btn-group">
                               <button
                                 className="btn-action btn-confirm"
-                                onClick={() => acceptDate(delivery.id)}
+                                onClick={async () => {
+                                  if (window.confirm(`Mark delivery ${delivery.id} as completed?`)) {
+                                    try {
+                                      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+                                      const response = await fetch(`${config.API_BASE_URL}/employee/deliveries/${delivery.id}/complete`, {
+                                        method: 'PUT',
+                                        headers: {
+                                          'Content-Type': 'application/json',
+                                          'Authorization': `Bearer ${token}`
+                                        }
+                                      });
+                                      if (response.ok) {
+                                        showNotification('Delivery marked as completed!');
+                                        fetchDeliveries();
+                                      }
+                                    } catch (error) {
+                                      console.error('Error:', error);
+                                    }
+                                  }
+                                }}
                               >
-                                Accept Date
-                              </button>
-                              <button
-                                className="btn-action btn-reschedule"
-                                onClick={() => rescheduleDelivery(delivery.id)}
-                              >
-                                Reschedule
+                                Mark Complete
                               </button>
                             </div>
                           )}
@@ -1530,7 +1760,7 @@ const EmployeeDashboard = () => {
                           )}
                         </td>
                       </tr>
-                    ))}
+                    )))}
                   </tbody>
                 </table>
               </div>

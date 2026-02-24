@@ -28,9 +28,13 @@ exports.approveApplication = async (req, res) => {
   const connection = await db.getConnection();
   try {
     await connection.beginTransaction();
-    const { scheduledDate, notes } = req.body;
+    const { scheduledDate, notes, isUsingFarmerDate } = req.body;
     const statusId = await getId('submission_statuses', 'submission_status_id', 'status_name', 'selected');
-    const deliveryStatusId = await getId('delivery_statuses', 'delivery_status_id', 'status_name', 'confirmed');
+    
+    // If employee uses farmer's proposed date → 'scheduled delivery' (confirmed immediately)
+    // If employee reschedules → 'pending' (waiting for farmer to confirm)
+    let deliveryStatusName = isUsingFarmerDate ? 'confirmed' : 'pending';
+    const deliveryStatusId = await getId('delivery_statuses', 'delivery_status_id', 'status_name', deliveryStatusName);
 
     await connection.query('UPDATE farmer_submissions SET status_id = ?, notes = ? WHERE submission_id = ?', [statusId, notes, req.params.id]);
 
@@ -110,9 +114,9 @@ exports.getApplicationDetails = async (req, res) => {
 
 exports.rejectApplication = async (req, res) => {
   try {
-    const { reason } = req.body;
+    const { rejectionReason } = req.body;
     const statusId = await getId('submission_statuses', 'submission_status_id', 'status_name', 'not-selected');
-    await db.query('UPDATE farmer_submissions SET status_id = ?, rejection_reason = ? WHERE submission_id = ?', [statusId, reason, req.params.id]);
+    await db.query('UPDATE farmer_submissions SET status_id = ?, rejection_reason = ? WHERE submission_id = ?', [statusId, rejectionReason, req.params.id]);
     res.json({ success: true, message: 'Application rejected' });
   } catch (error) { res.status(500).json({ message: 'Update failed', error: error.message }); }
 };
@@ -161,3 +165,87 @@ exports.getAlerts = async (req, res) => {
     res.json({ success: true, alerts });
   } catch (error) { res.status(500).json({ message: 'Alerts failed', error: error.message }); }
 };
+
+// Get all deliveries for employee dashboard
+exports.getDeliveries = async (req, res) => {
+  try {
+    const [deliveries] = await db.query(`
+      SELECT d.*, d.delivery_id, d.proposed_reschedule_date, fs.product_name, fs.quantity, u.full_name as farmer_name,
+             mu.unit_name as unit, qg.grade_name as grade, ds.status_name as status,
+             tm.method_name as transport_method, fs.delivery_date
+      FROM deliveries d
+      JOIN farmer_submissions fs ON d.submission_id = fs.submission_id
+      JOIN users u ON fs.farmer_id = u.user_id
+      LEFT JOIN measurement_units mu ON fs.unit_id = mu.unit_id
+      LEFT JOIN quality_grades qg ON fs.grade_id = qg.grade_id
+      JOIN delivery_statuses ds ON d.status_id = ds.delivery_status_id
+      LEFT JOIN transport_methods tm ON d.transport_method_id = tm.transport_method_id
+      ORDER BY d.created_at DESC
+    `);
+    res.json({ success: true, count: deliveries.length, deliveries });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch deliveries', error: error.message });
+  }
+};
+
+// Reschedule delivery
+exports.rescheduleDelivery = async (req, res) => {
+  try {
+    const { scheduledDate } = req.body;
+    const deliveryId = req.params.id;
+    
+    if (!scheduledDate) {
+      return res.status(400).json({ message: 'Scheduled date is required' });
+    }
+
+    await db.query(
+      'UPDATE deliveries SET scheduled_date = ?, updated_at = NOW() WHERE delivery_id = ?',
+      [scheduledDate, deliveryId]
+    );
+
+    res.json({ success: true, message: 'Delivery rescheduled successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to reschedule delivery', error: error.message });
+  }
+};
+
+// Approve farmer's reschedule request
+exports.approveReschedule = async (req, res) => {
+  try {
+    const { scheduledDate } = req.body;
+    const deliveryId = req.params.id;
+    
+    if (!scheduledDate) {
+      return res.status(400).json({ message: 'Scheduled date is required' });
+    }
+
+    // Update scheduled_date and clear proposed_reschedule_date
+    await db.query(
+      'UPDATE deliveries SET scheduled_date = ?, proposed_reschedule_date = NULL, updated_at = NOW() WHERE delivery_id = ?',
+      [scheduledDate, deliveryId]
+    );
+
+    res.json({ success: true, message: 'Farmer\'s reschedule request approved' });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to approve reschedule', error: error.message });
+  }
+};
+
+// Mark delivery as complete
+exports.completeDelivery = async (req, res) => {
+  try {
+    const deliveryId = req.params.id;
+    const statusId = await getId('delivery_statuses', 'delivery_status_id', 'status_name', 'completed');
+
+    await db.query(
+      'UPDATE deliveries SET status_id = ?, updated_at = NOW() WHERE delivery_id = ?',
+      [statusId, deliveryId]
+    );
+
+    res.json({ success: true, message: 'Delivery marked as completed' });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to complete delivery', error: error.message });
+  }
+};
+
+

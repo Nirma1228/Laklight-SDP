@@ -127,15 +127,28 @@ exports.getMySubmissions = async (req, res) => {
 exports.getDeliveries = async (req, res) => {
   try {
     const [deliveries] = await db.query(`
-      SELECT d.*, d.delivery_id as id, ds.status_name as status, fs.product_name, tm.method_name as transport
+      SELECT d.*, d.delivery_id as id, ds.status_name as status, fs.product_name, tm.method_name as transport,
+             d.proposed_reschedule_date,
+             DATE_FORMAT(d.scheduled_date, '%Y-%m-%d') as scheduleDate,
+             DATE_FORMAT(fs.delivery_date, '%Y-%m-%d') as proposedDate,
+             fs.quantity, qg.grade_name,
+             CONCAT(fs.product_name, ' (', qg.grade_name, ')') as product
       FROM deliveries d
       JOIN delivery_statuses ds ON d.status_id = ds.delivery_status_id
       JOIN farmer_submissions fs ON d.submission_id = fs.submission_id
       LEFT JOIN transport_methods tm ON d.transport_method_id = tm.transport_method_id
+      LEFT JOIN quality_grades qg ON fs.grade_id = qg.grade_id
       WHERE fs.farmer_id = ?
       ORDER BY d.scheduled_date DESC`, [req.user.userId]);
 
-    res.json({ success: true, deliveries });
+    // Format the proposed_reschedule_date for frontend
+    const formatted = deliveries.map(d => ({
+      ...d,
+      proposedRescheduleDate: d.proposed_reschedule_date ? 
+        new Date(d.proposed_reschedule_date).toISOString().split('T')[0] : null
+    }));
+
+    res.json({ success: true, deliveries: formatted });
   } catch (error) {
     res.status(500).json({ message: 'Fetch failed', error: error.message });
   }
@@ -146,20 +159,37 @@ exports.updateDelivery = async (req, res) => {
   try {
     const { rescheduleDate, status } = req.body;
     let statusId = null;
-    if (status) {
+    
+    // If farmer is confirming the schedule (not requesting reschedule)
+    if (status === 'confirmed') {
+      // Use 'confirmed schedule' status name
+      const [statusRows] = await db.query('SELECT delivery_status_id FROM delivery_statuses WHERE status_name = ?', ['confirmed']);
+      if (statusRows.length > 0) statusId = statusRows[0].delivery_status_id;
+    } else if (status) {
       const [statusRows] = await db.query('SELECT delivery_status_id FROM delivery_statuses WHERE status_name = ?', [status]);
       if (statusRows.length > 0) statusId = statusRows[0].delivery_status_id;
     }
 
     const updates = [];
     const params = [];
-    if (rescheduleDate) { updates.push('proposed_reschedule_date = ?'); params.push(rescheduleDate); }
-    if (statusId) { updates.push('status_id = ?'); params.push(statusId); }
+    
+    // If farmer is requesting a reschedule
+    if (rescheduleDate) { 
+      updates.push('proposed_reschedule_date = ?'); 
+      params.push(rescheduleDate); 
+      // Status remains 'pending' - don't change it
+    }
+    
+    // If farmer is confirming (no reschedule date, just status change)
+    if (statusId && !rescheduleDate) { 
+      updates.push('status_id = ?'); 
+      params.push(statusId); 
+    }
 
     if (updates.length === 0) return res.status(400).json({ message: 'Nothing to update' });
 
     params.push(req.params.id);
-    await db.query(`UPDATE deliveries SET ${updates.join(', ')} WHERE delivery_id = ?`, params);
+    await db.query(`UPDATE deliveries SET ${updates.join(', ')}, updated_at = NOW() WHERE delivery_id = ?`, params);
 
     res.json({ success: true, message: 'Delivery updated' });
   } catch (error) {
