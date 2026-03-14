@@ -5,6 +5,7 @@ import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
 import LoggedHome from './pages/LoggedHome'
 import ProductCatalog from './pages/ProductCatalog'
+import PublicProductCatalog from './pages/PublicProductCatalog'
 import AdminDashboard from './pages/AdminDashboard'
 import CustomerDashboard from './pages/CustomerDashboard'
 import EmployeeDashboard from './pages/EmployeeDashboard'
@@ -33,6 +34,7 @@ function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/home" element={<LoggedHome />} />
       <Route path="/products" element={<ProductCatalog />} />
+      <Route path="/shop" element={<PublicProductCatalog />} />
       <Route path="/payment" element={<OnlinePayment />} />
       <Route path="/feedback" element={<Feedback />} />
       

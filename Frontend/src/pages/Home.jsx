@@ -90,7 +90,7 @@ function Home() {
               <h1>Premium Food Products <br />Direct From <span>Nature's Heart</span></h1>
               <p>Bringing the freshest harvest from Sri Lanka's finest farms directly to your doorstep. Quality you can taste, freshness you can trust.</p>
               <div className="hero-cta">
-                <Link to="/login" className="btn btn-primary-premium">
+                <Link to="/shop" className="btn btn-primary-premium">
                   Explore Shop <FontAwesomeIcon icon={faShoppingBasket} />
                 </Link>
                 <Link to="/login" className="btn btn-outline-premium">

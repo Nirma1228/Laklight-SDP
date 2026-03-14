@@ -118,11 +118,16 @@ exports.getOrderDetails = async (req, res) => {
 exports.getAllOrders = async (req, res) => {
   try {
     const [orders] = await db.query(`
-      SELECT o.*, o.order_id as id, os.status_name as order_status, ps.status_name as payment_status, u.full_name as customer_name
+      SELECT o.*, o.order_id as id, os.status_name as order_status, ps.status_name as payment_status, 
+             u.full_name as customer_name, u.phone, u.email,
+             GROUP_CONCAT(CONCAT(p.name, ' (', oi.quantity, ')') SEPARATOR ', ') as product_summary
       FROM orders o
       JOIN order_statuses os ON o.order_status_id = os.order_status_id
       JOIN payment_statuses ps ON o.payment_status_id = ps.payment_status_id
       JOIN users u ON o.customer_id = u.user_id
+      LEFT JOIN order_items oi ON o.order_id = oi.order_id
+      LEFT JOIN products p ON oi.product_id = p.product_id
+      GROUP BY o.order_id
       ORDER BY o.order_date DESC`);
     res.json({ success: true, orders });
   } catch (error) {

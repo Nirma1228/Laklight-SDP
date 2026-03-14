@@ -18,9 +18,40 @@ exports.getSalesReport = async (req, res) => {
 // FR17: Inventory Report
 exports.getInventoryReport = async (req, res) => {
   try {
-    const [raw] = await db.query('SELECT ir.*, COALESCE(fs.product_name, ir.material_name) as material_name FROM inventory_raw ir LEFT JOIN farmer_submissions fs ON ir.submission_id = fs.submission_id');
-    const [finished] = await db.query('SELECT ifin.*, p.name FROM inventory_finished ifin JOIN products p ON ifin.product_id = p.product_id');
-    res.json({ success: true, reportType: 'inventory', raw, finished });
+    const [rawInventory] = await db.query(`
+      SELECT
+        ir.raw_inventory_id AS id,
+        COALESCE(fs.product_name, ir.material_name) AS material_name,
+        mu.unit_name,
+        ir.quantity_units,
+        ir.storage_location,
+        ir.expiry_date,
+        ir.received_date,
+        qg.grade_name
+      FROM inventory_raw ir
+      LEFT JOIN farmer_submissions fs ON ir.submission_id = fs.submission_id
+      LEFT JOIN measurement_units mu ON ir.unit_id = mu.unit_id
+      LEFT JOIN quality_grades qg ON ir.grade_id = qg.grade_id
+    `);
+
+    const [finishedInventory] = await db.query(`
+      SELECT
+        ifin.finished_inventory_id AS id,
+        p.name,
+        ifin.batch_number,
+        ifin.quantity_units,
+        ifin.storage_location,
+        ifin.expiry_date,
+        ifin.manufactured_date
+      FROM inventory_finished ifin
+      JOIN products p ON ifin.product_id = p.product_id
+    `);
+
+    res.json({
+      success: true,
+      reportType: 'inventory',
+      report: { rawInventory, finishedInventory }
+    });
   } catch (error) {
     res.status(500).json({ message: 'Report failed', error: error.message });
   }

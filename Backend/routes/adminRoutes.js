@@ -27,4 +27,8 @@ router.get('/feedback/:id', verifyToken, checkRole('admin'), adminController.get
 router.get('/complaints', verifyToken, checkRole('admin'), adminController.getComplaints);
 router.get('/compliments', verifyToken, checkRole('admin'), adminController.getCompliments);
 
+// System settings routes
+router.get('/settings', verifyToken, checkRole('admin'), adminController.getSystemSettings);
+router.put('/settings', verifyToken, checkRole('admin'), adminController.updateSystemSettings);
+
 module.exports = router;

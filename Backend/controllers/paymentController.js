@@ -1,4 +1,6 @@
 const db = require('../config/database');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
 
 const getStatusId = async (table, col, name) => {
   const [rows] = await db.query(`SELECT id FROM ${table} WHERE ${col} = ?`, [name]);
@@ -75,4 +77,98 @@ exports.processCardPayment = async (req, res) => {
 
     res.json({ success: true, transactionId: txnId });
   } catch (error) { res.status(500).json({ message: 'Card processing failed', error: error.message }); }
+};
+
+// FR07: Create Stripe Checkout Session
+exports.createCheckoutSession = async (req, res) => {
+  try {
+    const { amount, orderId } = req.body;
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'lkr',
+            product_data: {
+              name: 'Laklight Food Products Order',
+              description: orderId ? `Payment for Order #${orderId}` : 'Bulk Purchase',
+            },
+            unit_amount: Math.round(amount * 100), // Stripe expects amount in cents
+          },
+          quantity: 1,
+        },
+      ],
+      mode: 'payment',
+      success_url: `${process.env.STRIPE_SUCCESS_URL}&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: process.env.STRIPE_CANCEL_URL,
+      metadata: { orderId: orderId?.toString() }
+    });
+
+    res.json({
+      sessionId: session.id,
+      publishableKey: process.env.STRIPE_PUBLISHABLE_KEY
+    });
+  } catch (error) {
+    console.error('Stripe Error:', error);
+    res.status(500).json({ message: 'Stripe session creation failed', error: error.message });
+  }
+};
+
+// New: Confirm Stripe Payment
+exports.confirmStripePayment = async (req, res) => {
+  const connection = await db.getConnection();
+  try {
+    await connection.beginTransaction();
+    const { sessionId } = req.body;
+
+    if (!sessionId) return res.status(400).json({ message: 'Session ID is required' });
+
+    // Retrieve session from Stripe
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    if (session.payment_status !== 'paid') {
+      return res.status(400).json({ success: false, message: 'Payment not completed' });
+    }
+
+    const orderId = session.metadata.orderId;
+    const amount = session.amount_total / 100;
+
+    // Check if payment already recorded
+    const [existing] = await connection.query('SELECT * FROM payments WHERE transaction_id = ?', [sessionId]);
+    if (existing.length > 0) {
+      return res.json({ success: true, message: 'Payment already recorded', transactionId: sessionId });
+    }
+
+    // Status IDs
+    const [paidStatus] = await connection.query('SELECT payment_status_id FROM payment_statuses WHERE status_name = "paid"');
+    const [processingStatus] = await connection.query('SELECT order_status_id FROM order_statuses WHERE status_name = "Processing"');
+
+    const pStatusId = paidStatus[0].payment_status_id;
+    const oStatusId = processingStatus[0].order_status_id;
+
+    // Insert into payments
+    await connection.query(
+      'INSERT INTO payments (order_id, transaction_id, amount, status_id, payment_method) VALUES (?, ?, ?, ?, ?)',
+      [orderId, sessionId, amount, pStatusId, 'Stripe Card']
+    );
+
+    // Update order
+    await connection.query(
+      'UPDATE orders SET payment_status_id = ?, order_status_id = ? WHERE order_id = ?',
+      [pStatusId, oStatusId, orderId]
+    );
+
+    // Get customer_id to clear cart
+    const [[order]] = await connection.query('SELECT customer_id FROM orders WHERE order_id = ?', [orderId]);
+    if (order) {
+      await connection.query('DELETE FROM cart WHERE user_id = ?', [order.customer_id]);
+    }
+
+    await connection.commit();
+    res.json({ success: true, transactionId: sessionId });
+  } catch (error) {
+    await connection.rollback();
+    console.error('Confirmation Error:', error);
+    res.status(500).json({ message: 'Payment confirmation failed', error: error.message });
+  } finally { connection.release(); }
 };

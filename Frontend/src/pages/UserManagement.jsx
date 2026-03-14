@@ -104,14 +104,62 @@ function UserManagement() {
     setShowModal(true)
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (editingUser) {
-      setUsers(users.map(u => u.id === editingUser.id ? { ...formData, id: u.id } : u))
-    } else {
-      setUsers([...users, { ...formData, id: Date.now() }])
+    setLoading(true)
+    try {
+      const token = localStorage.getItem('token')
+      let response;
+      if (editingUser) {
+        // Update existing user
+        response = await fetch(`${config.API_BASE_URL}/admin/users/${editingUser.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            fullName: formData.name,
+            phone: formData.phone
+          })
+        })
+      } else {
+        // Add new user
+        const password = prompt('Enter password for new user:');
+        if (!password) {
+          setLoading(false);
+          return;
+        }
+        response = await fetch(`${config.API_BASE_URL}/admin/users`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            fullName: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            password: password,
+            role: formData.role
+          })
+        })
+      }
+
+      const data = await response.json()
+      if (data.success) {
+        alert(editingUser ? 'User updated successfully' : 'User created successfully')
+        setShowModal(false)
+        fetchUsers() // Refresh list
+      } else {
+        alert(data.message || 'Action failed')
+      }
+    } catch (err) {
+      console.error('Submit user error:', err)
+      alert('Error saving user')
+    } finally {
+      setLoading(false)
     }
-    setShowModal(false)
   }
 
   const handleApprove = async (id) => {

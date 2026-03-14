@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
+import { config } from '../config'
 import './SupplierReport.css'
 
 function SupplierReport() {
@@ -11,17 +12,37 @@ function SupplierReport() {
     rating: 'all',
     region: 'all'
   })
+  const [suppliers, setSuppliers] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  const suppliers = [
-    { id: 'SUP-001', name: 'Green Valley Farm', address: '123 Green Valley Road, Kandy', products: 'Mango, Strawberry', rating: '4.8/5.0', deliveries: 45, status: 'active', ratingClass: 'excellent' },
-    { id: 'SUP-002', name: 'Sunrise Organic Farm', address: '45 Sunrise Lane, Matale', products: 'Papaya, Pineapple', rating: '4.2/5.0', deliveries: 38, status: 'active', ratingClass: 'good' },
-    { id: 'SUP-003', name: 'Tropical Harvest Ltd', address: '78 Harvest Street, Colombo', products: 'Coconut, Banana', rating: '4.7/5.0', deliveries: 52, status: 'active', ratingClass: 'excellent' },
-    { id: 'SUP-004', name: 'Mountain Fresh Produce', address: '12 Mountain View, Nuwara Eliya', products: 'Avocado, Passion Fruit', rating: '4.0/5.0', deliveries: 15, status: 'pending', ratingClass: 'good' },
-    { id: 'SUP-005', name: 'Coastal Growers Co-op', address: '56 Coastal Road, Galle', products: 'Lime, Orange', rating: '3.8/5.0', deliveries: 28, status: 'active', ratingClass: 'average' },
-    { id: 'SUP-006', name: 'Highland Orchards', address: '89 Highland Avenue, Badulla', products: 'Tomato', rating: '4.6/5.0', deliveries: 41, status: 'active', ratingClass: 'excellent' },
-    { id: 'SUP-007', name: 'Valley View Farms', address: '34 Valley Road, Negombo', products: 'Watermelon, Melon', rating: '4.3/5.0', deliveries: 33, status: 'active', ratingClass: 'good' },
-    { id: 'SUP-008', name: 'Riverside Agriculture', address: '67 Riverside Drive, Matara', products: 'Dragon Fruit, Guava', rating: '3.5/5.0', deliveries: 22, status: 'active', ratingClass: 'average' }
-  ]
+  useEffect(() => {
+    const fetchReport = async () => {
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        const res = await fetch(`${config.API_BASE_URL}/reports/supplier`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setSuppliers(data.report.suppliers.map(s => ({
+            id: `SUP-${s.supplier_id}`,
+            name: s.farm_name,
+            address: s.location || 'N/A',
+            products: s.product_types || 'Produce',
+            rating: `${s.rating}/5.0`,
+            deliveries: s.delivery_count || 0,
+            status: s.status.toLowerCase(),
+            ratingClass: s.rating >= 4.5 ? 'excellent' : s.rating >= 3.5 ? 'good' : 'average'
+          })));
+        }
+      } catch (err) {
+        console.error('Fetch supplier report error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchReport();
+  }, [])
 
   const filteredSuppliers = suppliers.filter(supplier => {
     if (filters.status !== 'all' && supplier.status !== filters.status) return false
@@ -79,11 +100,13 @@ function SupplierReport() {
 
         <div className="stats-grid">
           <div className="stat-card">
-            <div className="stat-number">45</div>
+            <div className="stat-number">{suppliers.length}</div>
             <div className="stat-label">Total Suppliers</div>
           </div>
           <div className="stat-card">
-            <div className="stat-number">4.2</div>
+            <div className="stat-number">
+              {(suppliers.reduce((sum, s) => sum + parseFloat(s.rating), 0) / (suppliers.length || 1)).toFixed(1)}
+            </div>
             <div className="stat-label">Average Rating</div>
           </div>
           <div className="stat-card">
@@ -99,7 +122,7 @@ function SupplierReport() {
             <button className="btn-action btn-export" onClick={() => handleExport('PDF')}>Export to PDF</button>
             <button className="btn-action" onClick={() => navigate('/admin/generate-reports')}>Back to Reports</button>
           </div>
-          
+
           <div className="table-container">
             <table>
               <thead>

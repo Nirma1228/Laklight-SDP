@@ -70,17 +70,24 @@ exports.getAnalyticsDashboard = async (req, res) => {
   }
 };
 
-// System Settings
+// --- System Settings ---
+exports.getSystemSettings = async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT setting_key as `key`, setting_value as value FROM system_settings');
+    const settings = {};
+    rows.forEach(r => { settings[r.key] = r.value; });
+    res.json({ success: true, settings });
+  } catch (error) { res.status(500).json({ message: 'Fetch failed', error: error.message }); }
+};
+
 exports.updateSystemSettings = async (req, res) => {
   try {
-    const { settings } = req.body; // { key1: val1, key2: val2 }
+    const { settings } = req.body;
     for (const [key, value] of Object.entries(settings)) {
       await db.query('INSERT INTO system_settings (setting_key, setting_value) VALUES (?, ?) ON DUPLICATE KEY UPDATE setting_value = ?', [key, value, value]);
     }
     res.json({ success: true, message: 'Settings updated' });
-  } catch (error) {
-    res.status(500).json({ message: 'Update failed', error: error.message });
-  }
+  } catch (error) { res.status(500).json({ message: 'Update failed', error: error.message }); }
 };
 
 exports.deleteUser = async (req, res) => {

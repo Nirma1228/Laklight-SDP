@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { config } from '../config';
 import './SupplierRelations.css';
 
 function SupplierRelations() {
@@ -9,124 +10,135 @@ function SupplierRelations() {
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedSupplier, setSelectedSupplier] = useState(null);
   const [editForm, setEditForm] = useState({});
+  const [suppliers, setSuppliers] = useState([]);
+  const [applications, setApplications] = useState([]);
+  const [supplyHistory, setSupplyHistory] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-
-  const suppliers = [
-    {
-      id: 1,
-      name: 'Mountain Fresh Farm',
-      owner: 'Lakshman Bandara',
-      location: 'Badulla District',
-      phone: '0771234567',
-      product: 'Fresh Mango - Grade A',
-      license: 'AG2025078',
-      rating: 4.8,
-      deliveries: 24,
-      status: 'Active',
-      email: 'lakshman@mountainfresh.lk',
-      address: 'Mahiyanganaya Road, Badulla',
-      farmSize: '10 Acres'
-    },
-    {
-      id: 2,
-      name: 'Sunrise Plantation',
-      owner: 'Nimal Perera',
-      location: 'Matale District',
-      phone: '0779876543',
-      product: 'Strawberry - Grade A & B',
-      license: 'AG2025045',
-      rating: 4.2,
-      deliveries: 18,
-      status: 'Active',
-      email: 'nimal@sunrisefarm.lk',
-      address: 'Ukkuwela, Matale',
-      farmSize: '7 Acres'
-    },
-    {
-      id: 3,
-      name: 'Golden Valley Farms',
-      owner: 'Kumara Silva',
-      location: 'Nuwara Eliya',
-      phone: '0763456789',
-      product: 'Passion Fruit - Grade A',
-      license: 'AG2025123',
-      rating: 4.9,
-      deliveries: 32,
-      status: 'Active',
-      email: 'kumara@goldenvalley.lk',
-      address: 'Ambewela, Nuwara Eliya',
-      farmSize: '15 Acres'
+  const fetchSuppliers = async () => {
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const res = await fetch(`${config.API_BASE_URL}/suppliers`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSuppliers(data.suppliers.filter(s => s.status === 'Active'));
+        setApplications(data.suppliers.filter(s => s.status === 'Pending'));
+      }
+    } catch (err) {
+      console.error('Fetch suppliers error:', err);
+    } finally {
+      setIsLoading(false);
     }
-  ];
-
-  const applications = [
-    {
-      id: 1,
-      farmName: 'Highland Fruit Growers',
-      owner: 'Priyantha Jayasinghe',
-      location: 'Bandarawela, Badulla',
-      phone: '0778765432',
-      product: 'Fresh Avocado - Grade A',
-      farmSize: '5 Acres',
-      capacity: '500 kg',
-      appliedDate: 'January 15, 2025'
-    },
-    {
-      id: 2,
-      farmName: 'Tropical Paradise Farms',
-      owner: 'Sanduni Wickramasinghe',
-      location: 'Kurunegala District',
-      phone: '0771122334',
-      product: 'Papaya - Grade A',
-      farmSize: '8 Acres',
-      capacity: '800 kg',
-      appliedDate: 'January 18, 2025'
-    }
-  ];
-
-  const supplyHistory = [
-    { date: 'Jan 10, 2025', product: 'Fresh Mango - Grade A', supplier: 'Mountain Fresh Farm', quantity: '250 kg', price: 75000 },
-    { date: 'Jan 12, 2025', product: 'Passion Fruit - Grade A', supplier: 'Golden Valley Farms', quantity: '180 kg', price: 54000 },
-    { date: 'Jan 14, 2025', product: 'Pineapple - Grade A', supplier: 'Green Valley Estates', quantity: '300 kg', price: 60000 }
-  ];
-
-  const handleViewDetails = (supplier) => {
-    setSelectedSupplier(supplier);
-    setShowViewModal(true);
   };
 
+  useEffect(() => {
+    fetchSuppliers();
+  }, []);
 
+  const handleViewDetails = async (supplier) => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const res = await fetch(`${config.API_BASE_URL}/suppliers/${supplier.id}/performance`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSelectedSupplier({ ...supplier, deliveries: data.deliveries.length });
+        setSupplyHistory(data.deliveries);
+        setShowViewModal(true);
+      }
+    } catch (err) {
+      console.error('Fetch performance error:', err);
+      setSelectedSupplier(supplier);
+      setShowViewModal(true);
+    }
+  };
 
   const handleEdit = (supplier) => {
     setSelectedSupplier(supplier);
-    setEditForm(supplier);
+    setEditForm({
+      name: supplier.farm_name,
+      owner: supplier.owner_name,
+      phone: supplier.phone,
+      email: supplier.email,
+      location: supplier.location,
+      product: supplier.product_types,
+      license: supplier.license_number,
+      farmSize: supplier.farm_size,
+      status: supplier.status
+    });
     setShowEditModal(true);
   };
 
-
-
-  const handleEditSubmit = (e) => {
+  const handleEditSubmit = async (e) => {
     e.preventDefault();
-    alert(`Supplier ${editForm.name} updated successfully!`);
-    setShowEditModal(false);
-  };
-
-  const handleApprove = (farmName) => {
-    if (window.confirm(`Approve application from ${farmName}?`)) {
-      alert(`✓ Application from ${farmName} approved!`);
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const res = await fetch(`${config.API_BASE_URL}/suppliers/${selectedSupplier.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          farmName: editForm.name,
+          ownerName: editForm.owner,
+          location: editForm.location,
+          phone: editForm.phone,
+          email: editForm.email,
+          productTypes: editForm.product,
+          licenseNumber: editForm.license,
+          status: editForm.status
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('Supplier updated successfully!');
+        setShowEditModal(false);
+        fetchSuppliers();
+      } else {
+        alert(data.message || 'Update failed');
+      }
+    } catch (err) {
+      console.error('Update supplier error:', err);
+      alert('Error updating supplier');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleReject = (farmName) => {
-    const reason = window.prompt(`Enter rejection reason for ${farmName}:`);
-    if (reason) {
-      alert(`✗ Application from ${farmName} rejected. Reason: ${reason}`);
+  const handleStatusUpdate = async (id, newStatus) => {
+    if (!window.confirm(`Are you sure you want to set status to ${newStatus}?`)) return;
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      // For status update, we can use the same PUT /:id since it accepts status
+      const res = await fetch(`${config.API_BASE_URL}/suppliers/${id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(`Supplier status updated to ${newStatus}!`);
+        fetchSuppliers();
+      }
+    } catch (err) {
+      console.error('Status update error:', err);
+      alert('Error updating status');
     }
   };
 
   const getRatingClass = (rating) => {
-    if (rating >= 4.5) return 'rating-excellent';
-    if (rating >= 3.5) return 'rating-good';
+    const r = parseFloat(rating);
+    if (r >= 4.5) return 'rating-excellent';
+    if (r >= 3.5) return 'rating-good';
     return 'rating-average';
   };
 
@@ -196,7 +208,7 @@ function SupplierRelations() {
                 <div key={supplier.id} className="supplier-card">
                   <div className="supplier-header">
                     <div>
-                      <div className="supplier-name">{supplier.name}</div>
+                      <div className="supplier-name">{supplier.farm_name}</div>
                       <div className="supplier-location"> {supplier.location}</div>
                     </div>
                     <span className="status-badge status-active">{supplier.status}</span>
@@ -204,7 +216,7 @@ function SupplierRelations() {
                   <div className="supplier-info">
                     <div className="info-row">
                       <span className="info-label"> Owner</span>
-                      <span className="info-value">{supplier.owner}</span>
+                      <span className="info-value">{supplier.owner_name}</span>
                     </div>
                     <div className="info-row">
                       <span className="info-label"> Phone</span>
@@ -212,21 +224,17 @@ function SupplierRelations() {
                     </div>
                     <div className="info-row">
                       <span className="info-label"> Main Product</span>
-                      <span className="info-value">{supplier.product}</span>
+                      <span className="info-value">{supplier.product_types}</span>
                     </div>
                     <div className="info-row">
                       <span className="info-label"> License</span>
-                      <span className="info-value">{supplier.license}</span>
+                      <span className="info-value">{supplier.license_number}</span>
                     </div>
                     <div className="info-row">
                       <span className="info-label"> Rating</span>
                       <span className={`rating-badge ${getRatingClass(supplier.rating)}`}>
-                        ★ {supplier.rating} {supplier.rating >= 4.5 ? 'Excellent' : 'Good'}
+                        ★ {supplier.rating}
                       </span>
-                    </div>
-                    <div className="info-row">
-                      <span className="info-label"> Total Supplies</span>
-                      <span className="info-value">{supplier.deliveries} Deliveries</span>
                     </div>
                   </div>
                   <div className="supplier-actions">
@@ -247,7 +255,7 @@ function SupplierRelations() {
               <div key={app.id} className="application-card">
                 <div className="application-header">
                   <div>
-                    <div className="supplier-name">{app.farmName}</div>
+                    <div className="supplier-name">{app.farm_name}</div>
                     <div className="supplier-location"> {app.location}</div>
                   </div>
                   <span className="status-badge status-pending">Pending Review</span>
@@ -255,7 +263,7 @@ function SupplierRelations() {
                 <div className="application-info">
                   <div className="detail-item">
                     <span className="detail-label">Owner Name</span>
-                    <span className="detail-value">{app.owner}</span>
+                    <span className="detail-value">{app.owner_name}</span>
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Contact</span>
@@ -263,15 +271,15 @@ function SupplierRelations() {
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Product Type</span>
-                    <span className="detail-value">{app.product}</span>
+                    <span className="detail-value">{app.product_types}</span>
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Farm Size</span>
-                    <span className="detail-value">{app.farmSize}</span>
+                    <span className="detail-value">{app.farm_size}</span>
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Applied Date</span>
-                    <span className="detail-value">{app.appliedDate}</span>
+                    <span className="detail-value">{new Date(app.applied_date).toLocaleDateString()}</span>
                   </div>
                   <div className="detail-item">
                     <span className="detail-label">Expected Capacity</span>
@@ -279,13 +287,13 @@ function SupplierRelations() {
                   </div>
                 </div>
                 <div className="supplier-actions">
-                  <button className="btn btn-success btn-small" onClick={() => handleApprove(app.farmName)}>
+                  <button className="btn btn-success btn-small" onClick={() => handleStatusUpdate(app.id, 'Active')}>
                     ✓ Approve
                   </button>
-                  <button className="btn btn-danger btn-small" onClick={() => handleReject(app.farmName)}>
+                  <button className="btn btn-danger btn-small" onClick={() => handleStatusUpdate(app.id, 'Rejected')}>
                     ✗ Reject
                   </button>
-                  <button className="btn btn-info btn-small">View Full Details</button>
+                  <button className="btn btn-info btn-small" onClick={() => handleViewDetails(app)}>View Full Details</button>
                 </div>
               </div>
             ))}
@@ -299,10 +307,10 @@ function SupplierRelations() {
             <div className="supply-history">
               {supplyHistory.map((item, index) => (
                 <div key={index} className="history-item">
-                  <div className="history-date">{item.date}</div>
-                  <div className="history-product">{item.product} ({item.supplier})</div>
-                  <div className="history-quantity">{item.quantity}</div>
-                  <div className="history-price">Rs. {item.price.toLocaleString()}</div>
+                  <div className="history-date">{new Date(item.supply_date).toLocaleDateString()}</div>
+                  <div className="history-product">{item.material_name}</div>
+                  <div className="history-quantity">{item.quantity} {item.unit_name}</div>
+                  <div className="history-price">Rs. {Number(item.total_price).toLocaleString()}</div>
                 </div>
               ))}
             </div>

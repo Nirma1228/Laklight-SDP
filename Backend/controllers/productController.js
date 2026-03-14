@@ -67,15 +67,15 @@ exports.searchProducts = async (req, res) => {
 // FR22: Add (Admin)
 exports.addProduct = async (req, res) => {
   try {
-    const { name, category, description, price, unit, stock, is_featured } = req.body;
+    const { name, category, description, price, unit, stock } = req.body;
     const categoryId = await getCategoryId(category);
     const unitId = await getUnitId(unit);
 
     if (!categoryId || !unitId) return res.status(400).json({ message: 'Invalid category or unit' });
 
     const [result] = await db.query(
-      'INSERT INTO products (name, category_id, description, price, unit_id, stock_quantity, is_featured) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [name, categoryId, description, price, unitId, stock || 0, is_featured || false]
+      'INSERT INTO products (name, category_id, description, price, unit_id, stock_quantity) VALUES (?, ?, ?, ?, ?, ?)',
+      [name, categoryId, description, price, unitId, stock || 0]
     );
 
     res.status(201).json({ success: true, productId: result.insertId });
@@ -87,7 +87,7 @@ exports.addProduct = async (req, res) => {
 // FR22: Update (Admin)
 exports.updateProduct = async (req, res) => {
   try {
-    const { name, category, description, price, unit, stock, availability, is_featured } = req.body;
+    const { name, category, description, price, unit, stock, availability } = req.body;
     const items = [];
     const params = [];
 
@@ -98,7 +98,6 @@ exports.updateProduct = async (req, res) => {
     if (stock !== undefined) { items.push('stock_quantity = ?'); params.push(stock); }
     if (description) { items.push('description = ?'); params.push(description); }
     if (availability !== undefined) { items.push('is_available = ?'); params.push(availability === 'In Stock'); }
-    if (is_featured !== undefined) { items.push('is_featured = ?'); params.push(is_featured); }
 
     if (items.length === 0) return res.status(400).json({ message: 'No fields to update' });
 

@@ -19,6 +19,7 @@ router.get('/inventory/stats', verifyToken, checkRole('employee', 'administrator
 router.get('/inventory/location/:location', verifyToken, checkRole('employee', 'administrator'), employeeController.getByLocation);
 router.get('/inventory/:id', verifyToken, checkRole('employee', 'administrator'), employeeController.getInventoryItem);
 router.put('/inventory/:id', verifyToken, checkRole('employee', 'administrator'), employeeController.updateInventory);
+router.delete('/inventory/:id', verifyToken, checkRole('employee', 'administrator'), employeeController.deleteInventoryItem);
 
 // Alert routes
 router.get('/alerts', verifyToken, checkRole('employee', 'administrator'), employeeController.getAlerts);

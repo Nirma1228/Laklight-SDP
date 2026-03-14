@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
+import { config } from '../config'
 import './InventoryReport.css'
 
 function InventoryReport() {
@@ -11,19 +12,51 @@ function InventoryReport() {
     status: 'all',
     location: 'all'
   })
+  const [inventory, setInventory] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  const inventory = [
-    { id: 'INV-001', name: 'Mango Cordial', category: 'Processed Products', quantity: 500, unit: 'bottles', location: 'Warehouse A', expiry: '2025-11-15', status: 'good' },
-    { id: 'INV-002', name: 'Lime Mix', category: 'Processed Products', quantity: 250, unit: 'bottles', location: 'Warehouse A', expiry: '2025-10-30', status: 'good' },
-    { id: 'INV-003', name: 'Papaya Jam', category: 'Processed Products', quantity: 320, unit: 'jars', location: 'Warehouse B', expiry: '2025-12-20', status: 'good' },
-    { id: 'INV-004', name: 'Avocado Spread', category: 'Processed Products', quantity: 150, unit: 'jars', location: 'Cold Storage', expiry: '2025-11-05', status: 'low' },
-    { id: 'INV-005', name: 'Orange Cordial', category: 'Processed Products', quantity: 95, unit: 'bottles', location: 'Warehouse A', expiry: '2025-10-25', status: 'low' },
-    { id: 'INV-006', name: 'Mango Jam', category: 'Processed Products', quantity: 95, unit: 'jars', location: 'Warehouse B', expiry: '2025-12-10', status: 'low' },
-    { id: 'INV-007', name: 'Lime Cordial', category: 'Processed Products', quantity: 420, unit: 'bottles', location: 'Warehouse A', expiry: '2025-11-22', status: 'good' },
-    { id: 'INV-008', name: 'Mixed Fruit Jam', category: 'Processed Products', quantity: 280, unit: 'jars', location: 'Warehouse B', expiry: '2025-12-15', status: 'good' },
-    { id: 'INV-009', name: 'Pineapple Cordial', category: 'Processed Products', quantity: 180, unit: 'bottles', location: 'Warehouse A', expiry: '2025-11-18', status: 'low' },
-    { id: 'INV-010', name: 'Strawberry Jam', category: 'Processed Products', quantity: 0, unit: 'jars', location: 'Warehouse B', expiry: 'N/A', status: 'out' }
-  ]
+  useEffect(() => {
+    const fetchReport = async () => {
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        const res = await fetch(`${config.API_BASE_URL}/reports/inventory`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          // Map backend data to frontend model
+          const mapped = [
+            ...data.report.rawInventory.map(item => ({
+              id: `RAW-${item.id}`,
+              name: item.material_name,
+              category: 'Raw Materials',
+              quantity: item.quantity_units,
+              unit: item.unit_name,
+              location: item.storage_location,
+              expiry: item.expiry_date ? new Date(item.expiry_date).toLocaleDateString() : 'N/A',
+              status: item.quantity_units < 20 ? 'low' : 'good'
+            })),
+            ...data.report.finishedInventory.map(item => ({
+              id: `FIN-${item.id}`,
+              name: item.name,
+              category: 'Processed Products',
+              quantity: item.quantity_units,
+              unit: 'units',
+              location: item.storage_location,
+              expiry: item.expiry_date ? new Date(item.expiry_date).toLocaleDateString() : 'N/A',
+              status: item.quantity_units < 10 ? 'low' : 'good'
+            }))
+          ];
+          setInventory(mapped);
+        }
+      } catch (err) {
+        console.error('Fetch inventory report error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchReport();
+  }, [])
 
   const filteredInventory = inventory.filter(item => {
     if (filters.category !== 'all' && !item.category.toLowerCase().includes(filters.category)) return false
@@ -81,19 +114,19 @@ function InventoryReport() {
 
         <div className="stats-grid">
           <div className="stat-card">
-            <div className="stat-number">156</div>
+            <div className="stat-number">{inventory.length}</div>
             <div className="stat-label">Total Items</div>
           </div>
           <div className="stat-card">
-            <div className="stat-number">142</div>
+            <div className="stat-number">{inventory.filter(i => i.status === 'good').length}</div>
             <div className="stat-label">In Stock</div>
           </div>
           <div className="stat-card warning">
-            <div className="stat-number">10</div>
+            <div className="stat-number">{inventory.filter(i => i.status === 'low').length}</div>
             <div className="stat-label">Low Stock</div>
           </div>
           <div className="stat-card danger">
-            <div className="stat-number">4</div>
+            <div className="stat-number">{inventory.filter(i => i.quantity === 0).length}</div>
             <div className="stat-label">Out of Stock</div>
           </div>
         </div>
@@ -105,7 +138,7 @@ function InventoryReport() {
             <button className="btn-action btn-export" onClick={() => handleExport('PDF')}>Export to PDF</button>
             <button className="btn-action" onClick={() => navigate('/admin/generate-reports')}>Back to Reports</button>
           </div>
-          
+
           <div className="table-container">
             <table>
               <thead>

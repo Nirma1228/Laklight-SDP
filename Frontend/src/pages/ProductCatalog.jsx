@@ -185,9 +185,9 @@ function ProductCatalog() {
                     </span>
                   </div>
                   <div className="product-detail-row">
-                    <span className="detail-label">Status:</span>
-                    <span className={`status-${product.availability === 'in-stock' ? 'active' : 'inactive'}`}>
-                      {product.availability === 'in-stock' ? 'In Stock' : 'Low Stock'}
+                    <span className="detail-label">Available:</span>
+                    <span className={product.availability === 'in-stock' ? 'status-active' : 'status-inactive'}>
+                      {product.availability === 'in-stock' ? 'Yes' : 'No'}
                     </span>
                   </div>
                 </div>

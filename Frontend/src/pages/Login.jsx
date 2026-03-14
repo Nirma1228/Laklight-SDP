@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons'
 import { config } from '../config'
@@ -8,6 +8,8 @@ import './Login.css'
 
 function Login() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectPath = searchParams.get('redirect');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -62,6 +64,12 @@ function Login() {
         // Store user info
         localStorage.setItem('userType', data.user.userType);
         localStorage.setItem('userName', data.user.name || data.user.email);
+
+        // Check if there's a redirect path (e.g., from add to cart)
+        if (redirectPath && data.user.userType === 'customer') {
+          navigate(redirectPath);
+          return;
+        }
 
         // Navigate based on user type from response
         const userType = data.user.userType;

@@ -30,7 +30,7 @@ exports.approveApplication = async (req, res) => {
     await connection.beginTransaction();
     const { scheduledDate, notes, isUsingFarmerDate } = req.body;
     const statusId = await getId('submission_statuses', 'submission_status_id', 'status_name', 'selected');
-    
+
     // If employee uses farmer's proposed date → 'scheduled delivery' (confirmed immediately)
     // If employee reschedules → 'pending' (waiting for farmer to confirm)
     let deliveryStatusName = isUsingFarmerDate ? 'confirmed' : 'pending';
@@ -155,10 +155,30 @@ exports.getInventoryItem = async (req, res) => {
 };
 
 exports.updateInventory = async (req, res) => {
-  res.status(501).json({ message: 'Update item not implemented yet' });
+  try {
+    const { quantity, location, type } = req.body;
+    const table = type === 'raw' ? 'inventory_raw' : 'inventory_finished';
+    const pk = type === 'raw' ? 'raw_inventory_id' : 'finished_inventory_id';
+
+    await db.query(`UPDATE ${table} SET quantity_units = ?, storage_location = ? WHERE ${pk} = ?`, [quantity, location, req.params.id]);
+    res.json({ success: true, message: 'Stock updated' });
+  } catch (error) {
+    res.status(500).json({ message: 'Update failed', error: error.message });
+  }
 };
 
-const alertService = require('../services/alertService');
+exports.deleteInventoryItem = async (req, res) => {
+  try {
+    const { type } = req.query;
+    const table = type === 'raw' ? 'inventory_raw' : 'inventory_finished';
+    const pk = type === 'raw' ? 'raw_inventory_id' : 'finished_inventory_id';
+
+    await db.query(`DELETE FROM ${table} WHERE ${pk} = ?`, [req.params.id]);
+    res.json({ success: true, message: 'Item deleted' });
+  } catch (error) {
+    res.status(500).json({ message: 'Delete failed', error: error.message });
+  }
+};
 exports.getAlerts = async (req, res) => {
   try {
     const alerts = await alertService.getCurrentAlerts();
@@ -193,7 +213,7 @@ exports.rescheduleDelivery = async (req, res) => {
   try {
     const { scheduledDate } = req.body;
     const deliveryId = req.params.id;
-    
+
     if (!scheduledDate) {
       return res.status(400).json({ message: 'Scheduled date is required' });
     }
@@ -214,7 +234,7 @@ exports.approveReschedule = async (req, res) => {
   try {
     const { scheduledDate } = req.body;
     const deliveryId = req.params.id;
-    
+
     if (!scheduledDate) {
       return res.status(400).json({ message: 'Scheduled date is required' });
     }

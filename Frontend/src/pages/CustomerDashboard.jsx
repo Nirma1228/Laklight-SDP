@@ -4,12 +4,11 @@ import Header from '../components/Header'
 import Footer from '../components/Footer'
 import { config } from '../config'
 import StripeCheckoutButton from '../components/StripeCheckoutButton'
-import CardPaymentForm from '../components/CardPaymentForm'
+import { useToast } from '../components/ToastNotification'
 import './CustomerDashboard.css'
 
 // Product Card Component
-const ProductCard = ({ productKey, product, onAddToCart }) => {
-
+const ProductCard = ({ product, onAddToCart }) => {
   const [quantity, setQuantity] = useState(1)
   const [added, setAdded] = useState(false)
 
@@ -18,29 +17,27 @@ const ProductCard = ({ productKey, product, onAddToCart }) => {
   }
 
   const handleAddToCart = () => {
-    onAddToCart(productKey, quantity)
+    onAddToCart(product, quantity)
     setQuantity(1)
     setAdded(true)
     setTimeout(() => setAdded(false), 400)
   }
 
   return (
-    <div className="product-card" data-key={productKey}>
+    <div className="product-card">
       <div className="product-img" style={{ height: '200px', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <img
-          src={product.image}
+          src={product.image_url || '/images/placeholder.png'}
           alt={product.name}
           style={{ height: '100%', width: 'auto', objectFit: 'contain', borderRadius: '8px' }}
         />
       </div>
       <div className="product-info">
         <div className="product-name">{product.name}</div>
-        <div className="product-price">LKR {product.price.toFixed(2)}</div>
+        <div className="product-price">LKR {(parseFloat(product.price) || 0).toFixed(2)}</div>
         <div className="product-description">{product.description}</div>
-        <div className={`product-availability availability-${product.availability}`}>
-          {product.availability === 'in-stock' && 'In Stock'}
-          {product.availability === 'low-stock' && 'Low Stock'}
-          {product.availability === 'out-of-stock' && 'Out of Stock'}
+        <div className={`product-availability availability-${product.is_available ? 'in-stock' : 'out-of-stock'}`}>
+          {product.is_available ? 'Available' : 'Out of Stock'}
         </div>
         <div className="product-actions">
           <div className="quantity-controls">
@@ -58,7 +55,7 @@ const ProductCard = ({ productKey, product, onAddToCart }) => {
           <button
             className={`btn btn-primary btn-small add-to-cart-btn${added ? ' added' : ''}`}
             onClick={handleAddToCart}
-            disabled={product.availability === 'out-of-stock'}
+            disabled={!product.is_available}
           >
             {added ? 'Added!' : 'Add to Cart'}
           </button>
@@ -70,28 +67,15 @@ const ProductCard = ({ productKey, product, onAddToCart }) => {
 
 const CustomerDashboard = () => {
   const navigate = useNavigate()
+  const toast = useToast()
   const [cart, setCart] = useState([])
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false)
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
   const [isPaymentOpen, setIsPaymentOpen] = useState(false)
-  const [showCardForm, setShowCardForm] = useState(false)
   const [featuredSearch, setFeaturedSearch] = useState('')
   const [featuredCategory, setFeaturedCategory] = useState('')
   const [featuredSort, setFeaturedSort] = useState('')
-
-  const [profileData, setProfileData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    address: '',
-    city: '',
-    postalCode: '',
-    district: '',
-    notifications: 'all',
-    language: 'en'
-  })
 
   // Load user data from localStorage and Database
   useEffect(() => {
@@ -139,6 +123,18 @@ const CustomerDashboard = () => {
     fetchRealProfile();
   }, []);
 
+  const [profileData, setProfileData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: '',
+    postalCode: '',
+    district: '',
+    notifications: 'all',
+    language: 'en'
+  })
   const [checkoutData, setCheckoutData] = useState({
     firstName: '',
     lastName: '',
@@ -148,79 +144,72 @@ const CustomerDashboard = () => {
     orderNotes: ''
   })
   const [paymentMethod, setPaymentMethod] = useState('visa') // default to VISA
+  const [dbProducts, setDbProducts] = useState([])
+  const [dbOrders, setDbOrders] = useState([])
+  const [activeOrderId, setActiveOrderId] = useState(null)
 
-  const products = {
-    'lime': {
-      name: 'Lime Mix',
-      price: 150.00,
-      image: '/images/Lime Mix.png',
-      description: 'Refreshing lime cordial made from fresh lime extracts. Perfect for mixing with water or soda. 350ml bottle.',
-      availability: 'in-stock',
-      category: 'juice'
-    },
-    'woodapple': {
-      name: 'Wood Apple Juice',
-      price: 100.00,
-      image: '/images/Wood Apple Juice.png',
-      description: 'Traditional Sri Lankan wood apple juice rich in nutrients. Naturally sweet and tangy. 200ml liter bottle.',
-      availability: 'in-stock',
-      category: 'juice'
-    },
-    'mangojelly': {
-      name: 'Mango Jelly',
-      price: 200.00,
-      image: '/images/Mango Jelly.png',
-      description: 'Premium mango jelly made from fresh mangoes. Great for desserts and breakfast spreads. 100g pack.',
-      availability: 'out-of-stock',
-      category: 'jam'
-    },
-    'custard': {
-      name: 'Custard powder',
-      price: 300.00,
-      image: '/images/Custard powder.png',
-      description: 'High-quality custard powder for delicious desserts. Rich vanilla flavor. Perfect for puddings and trifles. 100g pack.',
-      availability: 'in-stock',
-      category: 'preserves'
-    }
-  }
+  // Fetch products from DB
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch(`${config.API_BASE_URL}/products`);
+        const data = await res.json();
+        if (data.success) {
+          setDbProducts(data.products);
+        }
+      } catch (err) { console.error('Product fetch failed:', err); }
+    };
+    fetchProducts();
+  }, []);
 
-  const [orders, setOrders] = useState(() => {
-    const saved = localStorage.getItem('order_list')
-    if (saved) {
-      // For demo, we filter orders for "Asoka Perera" (Customer C001)
-      const allOrders = JSON.parse(saved)
-      return allOrders.filter(o => o.customer === 'Asoka Perera' || o.id === 'O001' || o.id === 'O002')
-    }
-    return [
-      {
-        id: 'O001',
-        items: '15x Fresh Mango Drink',
-        total: 3375.00,
-        discount: true,
-        status: 'processing'
-      },
-      {
-        id: 'O002',
-        items: '8x Mixed Jam Collection',
-        total: 2400.00,
-        discount: false,
-        status: 'completed'
+  // Fetch orders from DB
+  const fetchOrders = async () => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      if (!token) return;
+      const res = await fetch(`${config.API_BASE_URL}/orders`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setDbOrders(data.orders);
       }
-    ]
-  })
+    } catch (err) { console.error('Order fetch failed:', err); }
+  };
 
-  // Load cart from localStorage on mount
   useEffect(() => {
-    const savedCart = localStorage.getItem('laklight_customer_cart_v1')
-    if (savedCart) {
-      setCart(JSON.parse(savedCart))
-    }
-  }, [])
+    fetchOrders();
+    const interval = setInterval(fetchOrders, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
-  // Save cart to localStorage whenever it changes
+  // Fetch cart from Backend on mount
   useEffect(() => {
-    localStorage.setItem('laklight_customer_cart_v1', JSON.stringify(cart))
-  }, [cart])
+    const fetchCart = async () => {
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        if (!token) return;
+
+        const res = await fetch(`${config.API_BASE_URL}/cart`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setCart(data.items.map(item => ({
+            id: item.product_id,
+            cart_id: item.cart_id,
+            name: item.name,
+            price: parseFloat(item.price),
+            image: item.image_url,
+            quantity: item.quantity
+          })));
+        }
+      } catch (err) {
+        console.error('Cart fetch failed:', err);
+      }
+    };
+    fetchCart();
+  }, []);
 
   // Poll for order status updates
   useEffect(() => {
@@ -236,44 +225,186 @@ const CustomerDashboard = () => {
     return () => clearInterval(interval)
   }, [])
 
-  const addToCart = (productKey, quantity = 1) => {
-    const product = products[productKey]
-    if (!product) return
+  // Handle Stripe Success/Cancel URLs
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const status = params.get('payment')
+    const sessionId = params.get('session_id')
 
-    setCart(prevCart => {
-      const existingItem = prevCart.find(item => item.key === productKey)
-      if (existingItem) {
-        return prevCart.map(item =>
-          item.key === productKey
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
-        )
-      } else {
-        return [...prevCart, {
-          key: productKey,
-          name: product.name,
-          price: product.price,
-          image: product.image,
-          quantity: quantity
-        }]
-      }
-    })
-  }
+    const confirmPaymentOnBackend = async (id) => {
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        const response = await fetch(`${config.API_BASE_URL}/payments/confirm-stripe`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ sessionId: id })
+        });
 
-  const removeFromCart = (productKey) => {
-    setCart(prevCart => prevCart.filter(item => item.key !== productKey))
-  }
-
-  const updateQuantity = (productKey, change) => {
-    setCart(prevCart => {
-      return prevCart.map(item => {
-        if (item.key === productKey) {
-          const newQuantity = item.quantity + change
-          return newQuantity <= 0 ? null : { ...item, quantity: newQuantity }
+        if (response.ok) {
+          setCart([])
+          localStorage.removeItem('laklight_customer_cart_v1')
+          toast.success('Payment successful and recorded! Your order has been placed.')
+        } else {
+          const data = await response.json();
+          toast.error(`Payment verification failed: ${data.message}`)
         }
-        return item
-      }).filter(Boolean)
-    })
+      } catch (err) {
+        console.error('Confirmation error:', err);
+        toast.error('Failed to confirm payment with the server.')
+      } finally {
+        // Clear URL params
+        window.history.replaceState({}, document.title, window.location.pathname)
+      }
+    };
+
+    if (status === 'success' && sessionId) {
+      confirmPaymentOnBackend(sessionId)
+    } else if (status === 'success') {
+      // Fallback if session_id is missing but status is success
+      setCart([])
+      localStorage.removeItem('laklight_customer_cart_v1')
+      toast.success('Payment successful! Your order has been placed.')
+      window.history.replaceState({}, document.title, window.location.pathname)
+    } else if (status === 'cancel') {
+      toast.error('Payment cancelled.')
+      window.history.replaceState({}, document.title, window.location.pathname)
+    }
+  }, [toast])
+
+  const handleCheckoutSubmit = async (e) => {
+    e.preventDefault()
+
+    // Create order in DB first
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const orderData = {
+        items: cart.map(item => ({
+          productId: item.id,
+          quantity: item.quantity
+        })),
+        deliveryAddress: `${checkoutData.deliveryAddress}, ${checkoutData.postalCode}`,
+        paymentMethod: paymentMethod === 'cod' ? 'Cash on Delivery' : 'Stripe Card'
+      };
+
+      const res = await fetch(`${config.API_BASE_URL}/orders/place`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(orderData)
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setActiveOrderId(data.orderId);
+        setIsCheckoutOpen(false);
+        setIsPaymentOpen(true);
+      } else {
+        toast.error(`Order failed: ${data.message}`);
+      }
+    } catch (err) {
+      console.error('Order creation error:', err);
+      toast.error('Failed to place order. Please try again.');
+    }
+  }
+
+  const addToCart = async (product, quantity = 1) => {
+    // Check if user is logged in
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+    if (!token) {
+      toast.warning('Please login to add items to your cart')
+      setTimeout(() => {
+        navigate('/login?redirect=/customer/dashboard')
+      }, 1500)
+      return
+    }
+
+    try {
+      const res = await fetch(`${config.API_BASE_URL}/cart/add`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ productId: product.product_id, quantity })
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Refresh cart from backend
+        const cartRes = await fetch(`${config.API_BASE_URL}/cart`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const cartData = await cartRes.json();
+        if (cartData.success) {
+          setCart(cartData.items.map(item => ({
+            id: item.product_id,
+            cart_id: item.cart_id,
+            name: item.name,
+            price: parseFloat(item.price),
+            image: item.image_url,
+            quantity: item.quantity
+          })));
+          toast.success('Product added to cart');
+        }
+      } else {
+        toast.error(`Added to cart failed: ${data.message}`);
+      }
+    } catch (err) {
+      console.error('Cart add error:', err);
+      toast.error('Failed to update cart on server');
+    }
+  }
+
+  const removeFromCart = async (cartId) => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const res = await fetch(`${config.API_BASE_URL}/cart/remove/${cartId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCart(prevCart => prevCart.filter(item => item.cart_id !== cartId));
+        toast.success('Item removed from cart');
+      }
+    } catch (err) {
+      console.error('Cart remove error:', err);
+    }
+  }
+
+  const updateQuantity = async (cartId, change) => {
+    const item = cart.find(i => i.cart_id === cartId);
+    if (!item) return;
+    const newQuantity = item.quantity + change;
+
+    if (newQuantity <= 0) {
+      removeFromCart(cartId);
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const res = await fetch(`${config.API_BASE_URL}/cart/update/${cartId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ quantity: newQuantity })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCart(prevCart => prevCart.map(i =>
+          i.cart_id === cartId ? { ...i, quantity: newQuantity } : i
+        ));
+      }
+    } catch (err) {
+      console.error('Cart update error:', err);
+    }
   }
 
   const toggleCart = () => {
@@ -292,11 +423,6 @@ const CustomerDashboard = () => {
     setIsEditProfileOpen(false)
   }
 
-  const handleCheckoutSubmit = (e) => {
-    e.preventDefault()
-    setIsCheckoutOpen(false)
-    setIsPaymentOpen(true)
-  }
 
   const calculateTotals = () => {
     const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -309,7 +435,7 @@ const CustomerDashboard = () => {
 
   const { subtotal, totalItems, discount, total, qualifiesForDiscount } = calculateTotals()
 
-  const filteredProducts = Object.entries(products).filter(([key, product]) => {
+  const filteredProducts = dbProducts.filter(product => {
     const matchesSearch = !featuredSearch ||
       product.name.toLowerCase().includes(featuredSearch.toLowerCase()) ||
       product.description.toLowerCase().includes(featuredSearch.toLowerCase())
@@ -318,18 +444,15 @@ const CustomerDashboard = () => {
 
     return matchesSearch && matchesCategory
   }).sort((a, b) => {
-    const [keyA, productA] = a
-    const [keyB, productB] = b
-
     switch (featuredSort) {
       case 'price-low':
-        return productA.price - productB.price
+        return a.price - b.price
       case 'price-high':
-        return productB.price - productA.price
+        return b.price - a.price
       case 'popular':
-        return productA.name.localeCompare(productB.name)
+        return a.name.localeCompare(b.name)
       case 'newest':
-        return productB.name.localeCompare(productA.name)
+        return b.name.localeCompare(a.name)
       default:
         return 0
     }
@@ -377,43 +500,27 @@ const CustomerDashboard = () => {
               <h2 className="card-title">Recent Orders</h2>
             </div>
             <div id="recent-orders">
-              {orders.map(order => (
-                <div key={order.id} className="order-item">
-                  <div className="order-details">
-                    <div className="order-id">Order #{order.id}</div>
-                    <div>{order.items}</div>
-                    <div>Total: LKR {order.total.toFixed(2)} {order.discount && '(10% discount applied)'}</div>
-                  </div>
-                  <div className="order-actions-status" style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
-                    {order.status.toLowerCase() === 'completed' ? (
-                      <>
-                        <span className="order-status status-completed">✅ Delivered</span>
-                        <Link
-                          to="/feedback"
-                          className="feedback-link"
-                          style={{
-                            fontSize: '0.85rem',
-                            color: '#1a5d1a',
-                            fontWeight: '600',
-                            textDecoration: 'underline',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          Rate this order
-                        </Link>
-                      </>
-                    ) : order.status.toLowerCase() === 'packing' ? (
-                      <span className="order-status" style={{ background: '#fff3cd', color: '#856404' }}>Packing</span>
-                    ) : order.status.toLowerCase() === 'delivering' ? (
-                      <span className="order-status" style={{ background: '#e3f2fd', color: '#0d47a1' }}>🚚 Delivering</span>
-                    ) : (
-                      <span className={`order-status status-${order.status.toLowerCase()}`}>
-                        {order.status === 'Ready' ? 'Processing' : order.status}
+              {dbOrders.length === 0 ? (
+                <p>No orders found yet.</p>
+              ) : (
+                dbOrders.slice(0, 5).map(order => (
+                  <div key={order.order_id} className="order-item">
+                    <div className="order-details">
+                      <div className="order-id">Order #{order.order_number || order.order_id}</div>
+                      <div>{order.order_date ? new Date(order.order_date).toLocaleDateString() : 'N/A'}</div>
+                      <div>Total: LKR {(parseFloat(order.net_amount) || 0).toFixed(2)}</div>
+                    </div>
+                    <div className="order-actions-status" style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
+                      <span className={`order-status status-${(order.order_status || '').toLowerCase()}`}>
+                        {order.order_status}
                       </span>
-                    )}
+                      <span className={`payment-status status-${(order.payment_status || '').toLowerCase()}`}>
+                        {order.payment_status}
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
             <button
               onClick={() => document.getElementById('recent-orders')?.scrollIntoView({ behavior: 'smooth' })}
@@ -484,10 +591,9 @@ const CustomerDashboard = () => {
             <div className="no-results">No featured products found matching your criteria.</div>
           ) : (
             <div className="products-grid">
-              {filteredProducts.map(([key, product]) => (
+              {filteredProducts.map(product => (
                 <ProductCard
-                  key={key}
-                  productKey={key}
+                  key={product.product_id}
                   product={product}
                   onAddToCart={addToCart}
                 />
@@ -523,7 +629,7 @@ const CustomerDashboard = () => {
             ) : (
               <>
                 {cart.map(item => (
-                  <div key={item.key} className="cart-item">
+                  <div key={item.cart_id} className="cart-item">
                     <div className="cart-item-image">
                       {item.image ? (
                         <img src={item.image} alt={item.name} />
@@ -535,13 +641,13 @@ const CustomerDashboard = () => {
                       <div className="cart-item-name">{item.name}</div>
                       <div className="cart-item-price">LKR {item.price.toFixed(2)}</div>
                       <div className="cart-item-quantity">
-                        <button className="quantity-btn" onClick={() => updateQuantity(item.key, -1)}>-</button>
+                        <button className="quantity-btn" onClick={() => updateQuantity(item.cart_id, -1)}>-</button>
                         <span style={{ padding: '0 1rem' }}>{item.quantity}</span>
-                        <button className="quantity-btn" onClick={() => updateQuantity(item.key, 1)}>+</button>
+                        <button className="quantity-btn" onClick={() => updateQuantity(item.cart_id, 1)}>+</button>
                         <button
                           className="btn btn-danger btn-small"
                           style={{ marginLeft: '1rem' }}
-                          onClick={() => removeFromCart(item.key)}
+                          onClick={() => removeFromCart(item.cart_id)}
                         >
                           Remove
                         </button>
@@ -838,57 +944,36 @@ const CustomerDashboard = () => {
         <div className="modal" style={{ display: 'block' }}>
           <div className="modal-content" style={{ maxWidth: '500px' }}>
             <div className="modal-header">
-              <h2 className="modal-title">{showCardForm ? 'Enter Card Details' : 'Select Payment Method'}</h2>
-              <span className="close" onClick={() => { setIsPaymentOpen(false); setShowCardForm(false); }}>×</span>
+              <h2 className="modal-title">Select Payment Method</h2>
+              <span className="close" onClick={() => setIsPaymentOpen(false)}>×</span>
             </div>
             <div className="modal-body">
-              {!showCardForm ? (
-                <>
-                  <p>Total: <strong>LKR {total.toFixed(2)}</strong></p>
-                  <div className="form-group">
-                    <label>Payment Method *</label>
-                    <select
-                      value={paymentMethod}
-                      onChange={e => setPaymentMethod(e.target.value)}
-                      required
-                    >
-                      <option value="visa">VISA</option>
-                      <option value="mastercard">MasterCard</option>
-                      <option value="cod">Cash on Delivery</option>
-                    </select>
-                  </div>
-                  {['visa', 'mastercard'].includes(paymentMethod) ? (
-                    <button
-                      className="btn btn-primary"
-                      style={{ width: '100%' }}
-                      onClick={() => setShowCardForm(true)}
-                    >
-                      Pay Securely Online
-                    </button>
-                  ) : (
-                    <>
-                      <p>You selected <strong>Cash on Delivery</strong>. Your order will be placed and you can pay upon delivery.</p>
-                      <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => {
-                        setIsPaymentOpen(false);
-                        setCart([]);
-                        alert('Order placed! Please pay cash upon delivery.');
-                      }}>
-                        Place Order (Cash on Delivery)
-                      </button>
-                    </>
-                  )}
-                </>
+              <p>Total: <strong>LKR {total.toFixed(2)}</strong></p>
+              <div className="form-group">
+                <label>Payment Method *</label>
+                <select
+                  value={paymentMethod}
+                  onChange={e => setPaymentMethod(e.target.value)}
+                  required
+                >
+                  <option value="visa">VISA</option>
+                  <option value="mastercard">MasterCard</option>
+                  <option value="cod">Cash on Delivery</option>
+                </select>
+              </div>
+              {['visa', 'mastercard'].includes(paymentMethod) ? (
+                <StripeCheckoutButton amount={total} orderId={activeOrderId} />
               ) : (
-                <CardPaymentForm
-                  amount={total}
-                  onSuccess={() => {
+                <>
+                  <p>You selected <strong>Cash on Delivery</strong>. Your order will be placed and you can pay upon delivery.</p>
+                  <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => {
                     setIsPaymentOpen(false);
-                    setShowCardForm(false);
                     setCart([]);
-                    alert('Payment successful! Your order has been placed.');
-                  }}
-                  onCancel={() => setShowCardForm(false)}
-                />
+                    alert('Order placed! Please pay cash upon delivery.');
+                  }}>
+                    Place Order (Cash on Delivery)
+                  </button>
+                </>
               )}
             </div>
           </div>

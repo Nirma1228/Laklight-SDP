@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
+import { config } from '../config'
 import './CustomerReport.css'
 
 function CustomerReport() {
@@ -11,19 +12,38 @@ function CustomerReport() {
     loyalty: 'all',
     region: 'all'
   })
+  const [customers, setCustomers] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  const customers = [
-    { id: 'CUST-001', name: 'Asoka Perera', region: 'Colombo', orders: 45, spent: 'LKR 285,000', avgOrder: 'LKR 63,333', status: 'active', loyalty: 'platinum' },
-    { id: 'CUST-002', name: 'Nimal Silva', region: 'Kandy', orders: 32, spent: 'LKR 178,000', avgOrder: 'LKR 55,625', status: 'active', loyalty: 'gold' },
-    { id: 'CUST-003', name: 'Kasun Fernando', region: 'Colombo', orders: 58, spent: 'LKR 325,000', avgOrder: 'LKR 56,034', status: 'active', loyalty: 'platinum' },
-    { id: 'CUST-004', name: 'Dilini Jayawardena', region: 'Galle', orders: 18, spent: 'LKR 82,500', avgOrder: 'LKR 45,833', status: 'active', loyalty: 'silver' },
-    { id: 'CUST-005', name: 'Rajitha Wickramasinghe', region: 'Jaffna', orders: 8, spent: 'LKR 35,000', avgOrder: 'LKR 43,750', status: 'inactive', loyalty: 'bronze' },
-    { id: 'CUST-006', name: 'Samantha Kumara', region: 'Colombo', orders: 28, spent: 'LKR 145,000', avgOrder: 'LKR 51,786', status: 'active', loyalty: 'gold' },
-    { id: 'CUST-007', name: 'Priyanka De Silva', region: 'Kandy', orders: 22, spent: 'LKR 98,000', avgOrder: 'LKR 44,545', status: 'active', loyalty: 'silver' },
-    { id: 'CUST-008', name: 'Chaminda Ranasinghe', region: 'Galle', orders: 12, spent: 'LKR 52,000', avgOrder: 'LKR 43,333', status: 'active', loyalty: 'bronze' },
-    { id: 'CUST-009', name: 'Malini Gunasekara', region: 'Colombo', orders: 52, spent: 'LKR 298,000', avgOrder: 'LKR 57,308', status: 'active', loyalty: 'platinum' },
-    { id: 'CUST-010', name: 'Ruwan Wijesinghe', region: 'Kandy', orders: 35, spent: 'LKR 168,000', avgOrder: 'LKR 48,000', status: 'active', loyalty: 'gold' }
-  ]
+  useEffect(() => {
+    const fetchReport = async () => {
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        const res = await fetch(`${config.API_BASE_URL}/reports/customer`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setCustomers(data.report.customers.map(c => ({
+            id: `CUST-${c.user_id}`,
+            name: c.full_name,
+            region: c.address ? c.address.split(',').pop().trim() : 'N/A',
+            orders: c.order_count || 0,
+            spent: `LKR ${Number(c.total_spent).toLocaleString()}`,
+            avgOrder: `LKR ${Number(c.avg_order_value).toLocaleString()}`,
+            spentNum: Number(c.total_spent),
+            status: c.status.toLowerCase(),
+            loyalty: c.order_count > 10 ? 'platinum' : c.order_count > 5 ? 'gold' : 'silver'
+          })));
+        }
+      } catch (err) {
+        console.error('Fetch customer report error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchReport();
+  }, [])
 
   const filteredCustomers = customers.filter(customer => {
     if (filters.status !== 'all' && customer.status !== filters.status) return false
@@ -82,15 +102,17 @@ function CustomerReport() {
 
         <div className="stats-grid">
           <div className="stat-card">
-            <div className="stat-number">1,248</div>
+            <div className="stat-number">{customers.length}</div>
             <div className="stat-label">Total Customers</div>
           </div>
           <div className="stat-card">
-            <div className="stat-number">1,156</div>
+            <div className="stat-number">{customers.filter(c => c.status === 'active').length}</div>
             <div className="stat-label">Active Customers</div>
           </div>
           <div className="stat-card">
-            <div className="stat-number">LKR 45K</div>
+            <div className="stat-number">
+              LKR {Math.round(customers.reduce((sum, c) => sum + (c.spentNum || 0), 0) / (customers.reduce((sum, c) => sum + (c.orders || 0), 0) || 1)).toLocaleString()}
+            </div>
             <div className="stat-label">Avg Order Value</div>
           </div>
           <div className="stat-card">
@@ -106,7 +128,7 @@ function CustomerReport() {
             <button className="btn-action btn-export" onClick={() => handleExport('PDF')}>Export to PDF</button>
             <button className="btn-action" onClick={() => navigate('/admin/generate-reports')}>Back to Reports</button>
           </div>
-          
+
           <div className="table-container">
             <table>
               <thead>

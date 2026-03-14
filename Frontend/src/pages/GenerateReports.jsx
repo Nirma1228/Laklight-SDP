@@ -25,20 +25,20 @@ function GenerateReports() {
       alert('Please select a report type')
       return
     }
-    
+
     // Navigate to the specific report page
-    switch(selectedReport) {
+    switch (selectedReport) {
       case 'inventory':
-        navigate('/admin/inventory-report')
+        navigate('/admin/reports/inventory')
         break
       case 'sales':
-        navigate('/admin/sales-report')
+        navigate('/admin/reports/sales')
         break
       case 'supplier':
-        navigate('/admin/supplier-report')
+        navigate('/admin/reports/supplier')
         break
       case 'customer':
-        navigate('/admin/customer-report')
+        navigate('/admin/reports/customer')
         break
       default:
         alert('Report type not found')
@@ -60,12 +60,12 @@ function GenerateReports() {
         <div className="report-container">
           <div className="report-selector">
             <h2 className="section-title">Report Configuration</h2>
-            
+
             <div className="form-group">
               <label htmlFor="reportType">Report Type *</label>
-              <select 
-                id="reportType" 
-                value={selectedReport} 
+              <select
+                id="reportType"
+                value={selectedReport}
                 onChange={(e) => handleReportSelect(e.target.value)}
                 className="form-control"
               >
@@ -78,9 +78,9 @@ function GenerateReports() {
 
             <div className="form-group">
               <label htmlFor="dateRange">Date Range *</label>
-              <select 
-                id="dateRange" 
-                value={dateRange} 
+              <select
+                id="dateRange"
+                value={dateRange}
                 onChange={(e) => setDateRange(e.target.value)}
                 className="form-control"
               >
@@ -102,8 +102,8 @@ function GenerateReports() {
               </select>
             </div>
 
-            <button 
-              className="btn btn-primary" 
+            <button
+              className="btn btn-primary"
               onClick={handleGenerate}
               disabled={!selectedReport}
             >
@@ -113,10 +113,10 @@ function GenerateReports() {
 
           <div className="report-preview">
             <h2 className="section-title">Report Types</h2>
-            
+
             <div className="report-types-grid">
               {reports.map(report => (
-                <div 
+                <div
                   key={report.id}
                   className={`report-type-card ${selectedReport === report.id ? 'selected' : ''}`}
                   onClick={() => handleReportSelect(report.id)}
