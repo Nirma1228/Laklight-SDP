@@ -92,7 +92,7 @@ function ForgotPassword() {
 
   return (
     <div className="forgot-password-page">
-      <Link to="/login" className="back-link">← Back to Login</Link>
+      <Link to="/login" className="back-link">&larr; Back to Login</Link>
 
       {/* Success Modal */}
       {showSuccessModal && (

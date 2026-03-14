@@ -32,14 +32,14 @@ function OnlinePayment() {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    
+
     if (paymentMethod === 'card' && (!formData.cardNumber || !formData.expiryDate || !formData.cvv || !formData.cardName)) {
       alert('Please fill in all card details')
       return
     }
 
     setLoading(true)
-    
+
     // Simulate payment processing
     setTimeout(() => {
       setLoading(false)
@@ -53,7 +53,7 @@ function OnlinePayment() {
       <header className="header">
         <nav className="nav-container">
           <div className="logo">Laklight Food Products</div>
-          <button className="back-btn" onClick={() => navigate(-1)}>← Back to Cart</button>
+          <button onClick={() => navigate(-1)} className="back-btn">&larr; Back</button>
         </nav>
       </header>
 
@@ -62,14 +62,14 @@ function OnlinePayment() {
           <h2 className="section-title">Payment Details</h2>
 
           <div className="payment-methods">
-            <div 
+            <div
               className={`payment-method ${paymentMethod === 'card' ? 'selected' : ''}`}
               onClick={() => setPaymentMethod('card')}
             >
               <div className="payment-method-icon">💳</div>
               <div>Credit/Debit Card</div>
             </div>
-            <div 
+            <div
               className={`payment-method ${paymentMethod === 'cod' ? 'selected' : ''}`}
               onClick={() => setPaymentMethod('cod')}
             >
@@ -84,38 +84,38 @@ function OnlinePayment() {
                 <div className="form-group">
                   <label>Select Card Type</label>
                   <div className="card-type-selection">
-                    <div 
+                    <div
                       className={`card-type-option ${cardType === 'visa' ? 'selected' : ''}`}
                       onClick={() => setCardType('visa')}
                     >
                       <div className="card-logo">
                         <svg width="48" height="32" viewBox="0 0 48 32" fill="none">
-                          <rect width="48" height="32" rx="4" fill="#1A1F71"/>
+                          <rect width="48" height="32" rx="4" fill="#1A1F71" />
                           <text x="24" y="20" textAnchor="middle" fill="white" fontSize="10" fontWeight="bold">VISA</text>
                         </svg>
                       </div>
                       <span>Visa</span>
                     </div>
-                    <div 
+                    <div
                       className={`card-type-option ${cardType === 'mastercard' ? 'selected' : ''}`}
                       onClick={() => setCardType('mastercard')}
                     >
                       <div className="card-logo">
                         <svg width="48" height="32" viewBox="0 0 48 32" fill="none">
-                          <rect width="48" height="32" rx="4" fill="#EB001B"/>
-                          <circle cx="18" cy="16" r="8" fill="#FF5F00"/>
-                          <circle cx="30" cy="16" r="8" fill="#F79E1B" opacity="0.9"/>
+                          <rect width="48" height="32" rx="4" fill="#EB001B" />
+                          <circle cx="18" cy="16" r="8" fill="#FF5F00" />
+                          <circle cx="30" cy="16" r="8" fill="#F79E1B" opacity="0.9" />
                         </svg>
                       </div>
                       <span>Mastercard</span>
                     </div>
-                    <div 
+                    <div
                       className={`card-type-option ${cardType === 'amex' ? 'selected' : ''}`}
                       onClick={() => setCardType('amex')}
                     >
                       <div className="card-logo">
                         <svg width="48" height="32" viewBox="0 0 48 32" fill="none">
-                          <rect width="48" height="32" rx="4" fill="#006FCF"/>
+                          <rect width="48" height="32" rx="4" fill="#006FCF" />
                           <text x="24" y="20" textAnchor="middle" fill="white" fontSize="8" fontWeight="bold">AMEX</text>
                         </svg>
                       </div>
@@ -126,53 +126,53 @@ function OnlinePayment() {
 
                 <div className="form-group">
                   <label htmlFor="cardNumber">Card Number</label>
-                  <input 
-                    type="text" 
-                    id="cardNumber" 
+                  <input
+                    type="text"
+                    id="cardNumber"
                     value={formData.cardNumber}
                     onChange={handleInputChange}
-                    placeholder="1234 5678 9012 3456" 
-                    maxLength="19" 
-                    required 
+                    placeholder="1234 5678 9012 3456"
+                    maxLength="19"
+                    required
                   />
                 </div>
 
                 <div className="form-row">
                   <div className="form-group">
                     <label htmlFor="expiryDate">Expiry Date</label>
-                    <input 
-                      type="text" 
-                      id="expiryDate" 
+                    <input
+                      type="text"
+                      id="expiryDate"
                       value={formData.expiryDate}
                       onChange={handleInputChange}
-                      placeholder="MM/YY" 
-                      maxLength="5" 
-                      required 
+                      placeholder="MM/YY"
+                      maxLength="5"
+                      required
                     />
                   </div>
                   <div className="form-group">
                     <label htmlFor="cvv">CVV</label>
-                    <input 
-                      type="text" 
-                      id="cvv" 
+                    <input
+                      type="text"
+                      id="cvv"
                       value={formData.cvv}
                       onChange={handleInputChange}
-                      placeholder="123" 
-                      maxLength="3" 
-                      required 
+                      placeholder="123"
+                      maxLength="3"
+                      required
                     />
                   </div>
                 </div>
 
                 <div className="form-group">
                   <label htmlFor="cardName">Name on Card</label>
-                  <input 
-                    type="text" 
-                    id="cardName" 
+                  <input
+                    type="text"
+                    id="cardName"
                     value={formData.cardName}
                     onChange={handleInputChange}
-                    placeholder="Asoka Perera" 
-                    required 
+                    placeholder="Asoka Perera"
+                    required
                   />
                 </div>
               </div>

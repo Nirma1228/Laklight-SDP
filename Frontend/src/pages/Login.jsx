@@ -104,7 +104,7 @@ function Login() {
 
   return (
     <div className="login-page">
-      <Link to="/" className="back-home">← Back to Home</Link>
+      <Link to="/" className="back-home">&larr; Back to Home</Link>
 
       <div className="login-container">
         <div className="login-right">

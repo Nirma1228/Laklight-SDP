@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
+import { useToast } from '../components/ToastNotification'
 import './GenerateReports.css'
 
 function GenerateReports() {
@@ -10,7 +11,8 @@ function GenerateReports() {
   const [dateRange, setDateRange] = useState('month')
 
   const reports = [
-    { id: 'inventory', name: 'Inventory Report', description: 'Stock levels, expiry alerts, and location mapping', icon: '📦' },
+    { id: 'inventory-raw', name: 'Raw Materials Inventory', description: 'Track fruits and other unprocessed stock', icon: '🍎' },
+    { id: 'inventory-finished', name: 'Finished Products Inventory', description: 'Monitor bottled juices and ready items', icon: '🧃' },
     { id: 'sales', name: 'Sales Report', description: 'Revenue analysis and order tracking', icon: '💰' },
     { id: 'supplier', name: 'Supplier Report', description: 'Supplier performance and quality ratings', icon: '🚚' },
     { id: 'customer', name: 'Customer Report', description: 'Customer analytics and loyalty metrics', icon: '👥' }
@@ -20,16 +22,21 @@ function GenerateReports() {
     setSelectedReport(reportId)
   }
 
+  const { warning, error } = useToast()
+
   const handleGenerate = () => {
     if (!selectedReport) {
-      alert('Please select a report type')
+      warning('Please select a report type before generating.')
       return
     }
 
     // Navigate to the specific report page
     switch (selectedReport) {
-      case 'inventory':
-        navigate('/admin/reports/inventory')
+      case 'inventory-raw':
+        navigate('/admin/reports/inventory?type=raw')
+        break
+      case 'inventory-finished':
+        navigate('/admin/reports/inventory?type=finished')
         break
       case 'sales':
         navigate('/admin/reports/sales')
@@ -41,7 +48,7 @@ function GenerateReports() {
         navigate('/admin/reports/customer')
         break
       default:
-        alert('Report type not found')
+        error('Report type configuration not found.')
     }
   }
 

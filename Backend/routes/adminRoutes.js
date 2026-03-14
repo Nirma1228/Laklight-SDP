@@ -31,4 +31,7 @@ router.get('/compliments', verifyToken, checkRole('admin'), adminController.getC
 router.get('/settings', verifyToken, checkRole('admin'), adminController.getSystemSettings);
 router.put('/settings', verifyToken, checkRole('admin'), adminController.updateSystemSettings);
 
+// Maintenance routes
+router.post('/maintenance/seed', verifyToken, checkRole('admin'), adminController.seedMaintenanceData);
+
 module.exports = router;

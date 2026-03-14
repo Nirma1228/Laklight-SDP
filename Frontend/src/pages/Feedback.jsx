@@ -132,7 +132,7 @@ function Feedback() {
       <header className="header">
         <nav className="nav-container">
           <div className="logo">Laklight Food Products</div>
-          <button className="back-btn" onClick={() => navigate(-1)}>← Back to Dashboard</button>
+          <button onClick={() => navigate(-1)} className="back-btn">&larr; Back</button>
         </nav>
       </header>
 

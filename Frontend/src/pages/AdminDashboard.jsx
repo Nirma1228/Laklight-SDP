@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom'
 import Header from '../components/Header'
 import { config } from '../config'
 import Footer from '../components/Footer'
+import { useToast } from '../components/ToastNotification'
 import './AdminDashboard.css'
 
 function AdminDashboard() {
@@ -172,6 +173,33 @@ function AdminDashboard() {
     });
   };
 
+  const { success, error: toastError } = useToast()
+
+  const handleResetDatabase = async () => {
+    if (!window.confirm('CRITICAL ACTION: This will delete ALL current transactions, users, and products, and reset IDs to start from 1. Proceed?')) return;
+
+    setIsLoading(true);
+    try {
+      const token = getAuthToken();
+      const response = await fetch(`${config.API_BASE_URL}/admin/maintenance/seed`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (data.success) {
+        success(data.message);
+        setTimeout(() => window.location.reload(), 2000); // Wait for toast
+      } else {
+        toastError('Reset failed: ' + data.message);
+      }
+    } catch (err) {
+      console.error(err);
+      toastError('Maintenance failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const executeStatusUpdate = async () => {
     const { userId, status } = confirmModal;
     try {
@@ -184,12 +212,13 @@ function AdminDashboard() {
       if (response.ok) {
         setPendingUsers(prev => prev.filter(u => u.id !== userId));
         setConfirmModal({ ...confirmModal, show: false });
+        success(`User ${status} successfully`);
       } else {
-        alert('Action failed');
+        toastError('Action failed');
       }
     } catch (err) {
       console.error(err);
-      alert('Action failed');
+      toastError('Action failed');
     }
   };
 
@@ -265,34 +294,25 @@ function AdminDashboard() {
                 </tr>
               </thead>
               <tbody>
-                <tr>
-                  <td>LF2025-1847</td>
-                  <td>Nimal Silva</td>
-                  <td>Rs. 3,450</td>
-                  <td><span className="status-badge delivered">Delivered</span></td>
-                  <td>Mar 20, 2025</td>
-                </tr>
-                <tr>
-                  <td>LF2025-1846</td>
-                  <td>Maria Fernando</td>
-                  <td>Rs. 1,280</td>
-                  <td><span className="status-badge processing">Processing</span></td>
-                  <td>Mar 20, 2025</td>
-                </tr>
-                <tr>
-                  <td>LF2025-1845</td>
-                  <td>ABC store</td>
-                  <td>Rs. 12,640</td>
-                  <td><span className="status-badge delivered">Delivered</span></td>
-                  <td>Mar 19, 2025</td>
-                </tr>
-                <tr>
-                  <td>LF2025-1844</td>
-                  <td>Colombo Restaurant</td>
-                  <td>Rs. 8,750</td>
-                  <td><span className="status-badge pending">Pending</span></td>
-                  <td>Mar 19, 2025</td>
-                </tr>
+                {recentOrders.length > 0 ? (
+                  recentOrders.map((order) => (
+                    <tr key={order.id}>
+                      <td>{order.order_number || `ORD-${order.id}`}</td>
+                      <td>{order.customer_name}</td>
+                      <td>{formatCurrency(order.net_amount || order.total_amount)}</td>
+                      <td>
+                        <span className={`status-badge ${order.status.toLowerCase()}`}>
+                          {order.status}
+                        </span>
+                      </td>
+                      <td>{formatDate(order.order_date)}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="5" style={{ textAlign: 'center' }}>No recent orders found</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -573,6 +593,17 @@ function AdminDashboard() {
                   <span className="management-stat-number green-text">Secure</span>
                   <span className="management-stat-label">Data Protection</span>
                 </div>
+              </div>
+            </div>
+
+            <div className="management-card" style={{ background: '#fffbeb', border: '1px solid #fef3c7' }} onClick={handleResetDatabase}>
+              <div className="management-icon yellow" style={{ background: '#fef3c7', color: '#92400e' }}>
+                <span>🛠️</span>
+              </div>
+              <h3 className="management-title">Database Maintenance</h3>
+              <p className="management-description">Clean up system data and reset IDs for report generation testing</p>
+              <div className="management-stats" style={{ color: '#92400e', fontWeight: '600', fontSize: '0.85rem' }}>
+                Click to Reset & Seed Report Data
               </div>
             </div>
           </div>

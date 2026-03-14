@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
+import { useToast } from '../components/ToastNotification'
 import { config } from '../config'
 import './SupplierReport.css'
 
@@ -55,8 +56,31 @@ function SupplierReport() {
     setFilters({ ...filters, [e.target.name]: e.target.value })
   }
 
+  const { success, info } = useToast()
+
   const handleExport = (format) => {
-    alert(`Exporting Supplier Report to ${format}...\n\nFile: Supplier_Report_${new Date().toISOString().split('T')[0]}.${format === 'Excel' ? 'xlsx' : 'pdf'}`)
+    info(`Preparing ${format} export...`)
+
+    setTimeout(() => {
+      if (format === 'PDF') {
+        window.print();
+        success('Supplier Report sent to printer/PDF generator');
+      } else {
+        const headers = ['"ID"', '"Farm Name"', '"Region"', '"Rating"', '"Deliveries"'];
+        const rows = filteredSuppliers.map(s =>
+          `"${s.id}","${s.name.replace(/"/g, '""')}","${s.address.replace(/"/g, '""')}","${s.rating}","${s.deliveries}"`
+        );
+        const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join('\n');
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `Supplier_Report_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        success('Supplier Report downloaded as CSV (Excel compatible)');
+      }
+    }, 1000)
   }
 
   return (
@@ -120,7 +144,7 @@ function SupplierReport() {
           <div className="action-buttons">
             <button className="btn-action btn-export" onClick={() => handleExport('Excel')}>Export to Excel</button>
             <button className="btn-action btn-export" onClick={() => handleExport('PDF')}>Export to PDF</button>
-            <button className="btn-action" onClick={() => navigate('/admin/generate-reports')}>Back to Reports</button>
+            <button className="btn-action" onClick={() => navigate('/generate-reports')}>Back to Reports</button>
           </div>
 
           <div className="table-container">
@@ -138,28 +162,34 @@ function SupplierReport() {
                 </tr>
               </thead>
               <tbody>
-                {filteredSuppliers.map(supplier => (
-                  <tr key={supplier.id}>
-                    <td>{supplier.id}</td>
-                    <td>{supplier.name}</td>
-                    <td>{supplier.address}</td>
-                    <td>{supplier.products}</td>
-                    <td>
-                      <span className={`rating-badge rating-${supplier.ratingClass}`}>
-                        {supplier.rating}
-                      </span>
-                    </td>
-                    <td>{supplier.deliveries}</td>
-                    <td>
-                      <span className={`status-badge status-${supplier.status}`}>
-                        {supplier.status === 'active' ? 'Active' : 'Pending Review'}
-                      </span>
-                    </td>
-                    <td>
-                      <button className="btn-action" onClick={() => alert(`Viewing details for ${supplier.id}`)}>View</button>
-                    </td>
+                {filteredSuppliers.length > 0 ? (
+                  filteredSuppliers.map(supplier => (
+                    <tr key={supplier.id}>
+                      <td>{supplier.id}</td>
+                      <td style={{ fontWeight: '600' }}>{supplier.name}</td>
+                      <td>{supplier.address}</td>
+                      <td>{supplier.products}</td>
+                      <td>
+                        <span className={`rating-badge rating-${supplier.ratingClass}`}>
+                          {supplier.rating}
+                        </span>
+                      </td>
+                      <td>{supplier.deliveries}</td>
+                      <td>
+                        <span className={`status-badge status-${supplier.status}`}>
+                          {supplier.status === 'active' ? 'Active' : 'Pending Review'}
+                        </span>
+                      </td>
+                      <td>
+                        <button className="btn-action" onClick={() => alert(`Viewing details for ${supplier.id}`)}>View</button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="8" style={{ textAlign: 'center', padding: '2rem' }}>No supplier performance data available. Please run Seed from Dashboard.</td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>

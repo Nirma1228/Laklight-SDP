@@ -3,14 +3,24 @@ const db = require('../config/database');
 // FR17: Sales Report
 exports.getSalesReport = async (req, res) => {
   try {
-    const [sales] = await db.query(`
-      SELECT DATE(order_date) as date, COUNT(*) as orders, SUM(net_amount) as revenue
+    const [orders] = await db.query(`
+      SELECT o.order_id, o.order_number, u.full_name as customer_name, o.order_date, 
+             o.total_amount, o.discount_amount, o.net_amount, ps.status_name as payment_status,
+             (SELECT GROUP_CONCAT(p.name SEPARATOR ', ') FROM order_items oi 
+              JOIN products p ON oi.product_id = p.product_id 
+              WHERE oi.order_id = o.order_id) as product_list
       FROM orders o
+      JOIN users u ON o.customer_id = u.user_id
       JOIN payment_statuses ps ON o.payment_status_id = ps.payment_status_id
-      WHERE ps.status_name = 'paid'
-      GROUP BY DATE(order_date) ORDER BY date DESC`);
-    res.json({ success: true, reportType: 'sales', sales });
+      ORDER BY o.order_date DESC`);
+
+    res.json({
+      success: true,
+      reportType: 'sales',
+      report: { orders }
+    });
   } catch (error) {
+    console.error('Sales report error:', error);
     res.status(500).json({ message: 'Report failed', error: error.message });
   }
 };
@@ -61,10 +71,9 @@ exports.getInventoryReport = async (req, res) => {
 exports.getSupplierReport = async (req, res) => {
   try {
     const [suppliers] = await db.query(`
-      SELECT fp.*, u.full_name as owner_name 
-      FROM farmer_profiles fp
-      JOIN users u ON fp.farmer_id = u.user_id`);
-    res.json({ success: true, reportType: 'supplier', suppliers });
+      SELECT s.*, (SELECT COUNT(*) FROM supply_history sh WHERE sh.supplier_id = s.supplier_id) as delivery_count
+      FROM suppliers s`);
+    res.json({ success: true, reportType: 'supplier', report: { suppliers } });
   } catch (error) {
     res.status(500).json({ message: 'Report failed', error: error.message });
   }
@@ -167,13 +176,17 @@ exports.downloadReport = async (req, res) => {
 exports.getCustomerReport = async (req, res) => {
   try {
     const [customers] = await db.query(`
-      SELECT u.*, COUNT(o.order_id) as order_count, SUM(o.net_amount) as total_spent
+      SELECT u.user_id, u.full_name, u.email, u.phone, u.address, s.status_name as status,
+             COUNT(o.order_id) as order_count, 
+             COALESCE(SUM(o.net_amount), 0) as total_spent,
+             COALESCE(AVG(o.net_amount), 0) as avg_order_value
       FROM users u
-      LEFT JOIN orders o ON u.user_id = o.customer_id
       JOIN user_roles r ON u.role_id = r.role_id
+      JOIN account_statuses s ON u.status_id = s.status_id
+      LEFT JOIN orders o ON u.user_id = o.customer_id
       WHERE r.role_name = 'customer'
       GROUP BY u.user_id`);
-    res.json({ success: true, reportType: 'customer', customers });
+    res.json({ success: true, reportType: 'customer', report: { customers } });
   } catch (error) {
     res.status(500).json({ message: 'Report failed', error: error.message });
   }

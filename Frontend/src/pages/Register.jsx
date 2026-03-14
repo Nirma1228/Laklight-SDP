@@ -2,11 +2,13 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons'
+import { useToast } from '../components/ToastNotification'
 import { config } from '../config'
 import './Register.css'
 
 function Register() {
   const navigate = useNavigate()
+  const { success, error: toastError, info } = useToast()
   const [step, setStep] = useState(1) // 1: Registration form, 2: OTP Verification
   const [registeredEmail, setRegisteredEmail] = useState('')
   const [otp, setOtp] = useState('')
@@ -22,10 +24,8 @@ function Register() {
     agreeToTerms: false
   })
   const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const [localError, setLocalError] = useState('')
   const [resendLoading, setResendLoading] = useState(false)
-  const [showSuccessModal, setShowSuccessModal] = useState(false)
-  const [modalMessage, setModalMessage] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
@@ -43,44 +43,43 @@ function Register() {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }))
-    setError('') // Clear error when user types
+    setLocalError('') // Clear error when user types
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    setError('')
+    setLocalError('')
 
     // Validation
     if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match!')
+      setLocalError('Passwords do not match!')
+      toastError('Passwords must match')
       return
     }
 
     // Strong Password Validation
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/
     if (!passwordRegex.test(formData.password)) {
-      setError('Password must be at least 8 characters long and include uppercase, lowercase, numbers, and symbols.')
+      setLocalError('Password must meet complexity requirements.')
+      toastError('Password is too weak')
       return
     }
 
     if (!formData.agreeToTerms) {
-      setError('Please agree to the Terms and Conditions')
+      setLocalError('Please agree to the Terms and Conditions')
       return
     }
 
     setLoading(true)
 
     try {
-      // Determine endpoint based on user type
       const endpoint = formData.userType === 'farmer'
         ? `${config.API_BASE_URL}/auth/farmer-register`
         : `${config.API_BASE_URL}/auth/register`
 
       const response = await fetch(endpoint, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fullName: formData.fullName,
           email: formData.email,
@@ -95,30 +94,17 @@ function Register() {
       const data = await response.json()
 
       if (!response.ok) {
-        let errorMsg = data.message || 'Registration failed';
-
-        // Handle Express-Validator errors array
-        if (data.errors && Array.isArray(data.errors)) {
-          const validationMessages = data.errors.map(e => e.msg).join(', ');
-          errorMsg = `Validation failed: ${validationMessages}`;
-        }
-
-        // Handle specific error detail
-        if (data.error) {
-          errorMsg += ` (${data.error})`;
-        }
-
-        throw new Error(errorMsg);
+        throw new Error(data.message || 'Registration failed');
       }
 
-      // If OTP verification is required
       if (data.requiresVerification) {
         setRegisteredEmail(formData.email)
-        setStep(2) // Move to OTP verification step
+        setStep(2)
+        success('Success! Please check your email for the OTP code.')
       }
     } catch (err) {
-      setError(err.message || 'Registration failed. Please try again.')
-      console.error('Registration error:', err)
+      setLocalError(err.message)
+      toastError(err.message)
     } finally {
       setLoading(false)
     }
@@ -126,10 +112,10 @@ function Register() {
 
   const handleVerifyOTP = async (e) => {
     e.preventDefault()
-    setError('')
+    setLocalError('')
 
     if (!otp || otp.length !== 6) {
-      setError('Please enter a valid 6-digit OTP')
+      setLocalError('Please enter a valid 6-digit OTP')
       return
     }
 
@@ -138,9 +124,7 @@ function Register() {
     try {
       const response = await fetch(`${config.API_BASE_URL}/auth/verify-otp`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: registeredEmail,
           otp: otp
@@ -153,7 +137,6 @@ function Register() {
         throw new Error(data.message || 'OTP verification failed')
       }
 
-      // Store token
       if (data.token) {
         localStorage.setItem('token', data.token)
         localStorage.setItem('user', JSON.stringify(data.user))
@@ -161,34 +144,25 @@ function Register() {
         localStorage.setItem('userType', data.user.userType)
       }
 
-      // Show success message
-      if (data.user.status === 'pending' || data.user.userType === 'employee') {
-        setModalMessage('Verification successful! Your employee account is pending Admin approval. You will be notified via email once approved.');
-        setShowSuccessModal(true);
-        return;
-      }
+      success('Registration verified successfully!')
 
       // Redirect based on user type
-      switch (data.user.userType) {
-        case 'customer':
-          navigate('/customer/dashboard')
-          break
-        case 'farmer':
-          navigate('/farmer/dashboard')
-          break
-        case 'employee':
-          // Should effectively be unreachable if 'pending' logic above works, but kept for safety if active immediately
-          navigate('/employee/dashboard')
-          break
-        case 'admin':
-          navigate('/admin/dashboard')
-          break
-        default:
-          navigate('/home')
+      const targetPath = {
+        'customer': '/customer/dashboard',
+        'farmer': '/farmer/dashboard',
+        'employee': '/login', // Employees wait for approval
+        'admin': '/admin/dashboard'
+      }[data.user.userType] || '/home'
+
+      if (data.user.status === 'pending' || data.user.userType === 'employee') {
+        info('Account pending admin approval. Redirecting to login...')
+        setTimeout(() => navigate('/login'), 3000)
+      } else {
+        navigate(targetPath)
       }
     } catch (err) {
-      setError(err.message || 'OTP verification failed. Please try again.')
-      console.error('OTP verification error:', err)
+      setLocalError(err.message)
+      toastError(err.message)
     } finally {
       setLoading(false)
     }
@@ -196,17 +170,13 @@ function Register() {
 
   const handleResendOTP = async () => {
     setResendLoading(true)
-    setError('')
+    setLocalError('')
 
     try {
       const response = await fetch(`${config.API_BASE_URL}/auth/resend-otp`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: registeredEmail
-        })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: registeredEmail })
       })
 
       const data = await response.json()
@@ -215,11 +185,11 @@ function Register() {
         throw new Error(data.message || 'Failed to resend OTP')
       }
 
-      alert('New OTP sent to your email!')
+      success('New OTP sent to your email!')
       setOtp('') // Clear OTP input
     } catch (err) {
-      setError(err.message || 'Failed to resend OTP. Please try again.')
-      console.error('Resend OTP error:', err)
+      setLocalError(err.message)
+      toastError(err.message)
     } finally {
       setResendLoading(false)
     }
@@ -227,18 +197,18 @@ function Register() {
 
   return (
     <div className="register-page">
-      <Link to="/" className="back-home">← Back to Home</Link>
+      <Link to="/" className="back-home">&larr; Back to Home</Link>
 
       <div className="register-container">
         <div className="register-right">
           <div className="register-header">
             <h1>{step === 1 ? 'Create Account' : 'Verify Email'}</h1>
-            <p>{step === 1 ? 'Start your journey with Laklight today' : 'We\'ve sent a code to your inbox'}</p>
+            <p>{step === 1 ? 'Start your journey with Laklight today' : "We've sent a code to your inbox"}</p>
           </div>
 
           {step === 1 ? (
             <form onSubmit={handleSubmit} className="register-form">
-              {error && <div className="error-message">{error}</div>}
+              {localError && <div className="error-message">{localError}</div>}
 
               <div className="form-group">
                 <label htmlFor="userType">I am a:</label>
@@ -309,7 +279,6 @@ function Register() {
                     </button>
                   </div>
 
-                  {/* Password Strength Indicator */}
                   <div className="password-requirements">
                     {passwordRequirements.map((req, index) => {
                       const isMet = req.test(formData.password);
@@ -362,7 +331,7 @@ function Register() {
             </form>
           ) : (
             <form onSubmit={handleVerifyOTP} className="register-form">
-              {error && <div className="error-message">{error}</div>}
+              {localError && <div className="error-message">{localError}</div>}
 
               <div className="otp-info">
                 <p>We've sent a 6-digit verification code to:</p>
@@ -402,29 +371,13 @@ function Register() {
 
               <div className="login-link">
                 <button type="button" onClick={() => setStep(1)} className="back-btn">
-                  ← Back to Registration
+                  &larr; Back to Registration
                 </button>
               </div>
             </form>
           )}
         </div>
       </div>
-      {/* Success Modal */}
-      {showSuccessModal && (
-        <div className="modal-overlay">
-          <div className="success-modal">
-            <div className="modal-icon">✓</div>
-            <h2>Success!</h2>
-            <p>{modalMessage}</p>
-            <button
-              onClick={() => navigate('/login')}
-              className="modal-btn"
-            >
-              Back to Login
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

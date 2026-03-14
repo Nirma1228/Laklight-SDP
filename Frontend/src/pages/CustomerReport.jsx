@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
+import { useToast } from '../components/ToastNotification'
 import { config } from '../config'
 import './CustomerReport.css'
 
@@ -56,8 +57,31 @@ function CustomerReport() {
     setFilters({ ...filters, [e.target.name]: e.target.value })
   }
 
+  const { success, info } = useToast()
+
   const handleExport = (format) => {
-    alert(`Exporting Customer Report to ${format}...\n\nFile: Customer_Report_${new Date().toISOString().split('T')[0]}.${format === 'Excel' ? 'xlsx' : 'pdf'}`)
+    info(`Preparing ${format} export...`)
+
+    setTimeout(() => {
+      if (format === 'PDF') {
+        window.print();
+        success('Customer Report sent to printer/PDF generator');
+      } else {
+        const headers = ['"ID"', '"Customer Name"', '"Region"', '"Orders"', '"Total Spent"'];
+        const rows = filteredCustomers.map(c =>
+          `"${c.id}","${c.name.replace(/"/g, '""')}","${c.region.replace(/"/g, '""')}","${c.orders}","${c.spent.replace(/"/g, '""')}"`
+        );
+        const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join('\n');
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `Customer_Report_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        success('Customer Report downloaded as CSV (Excel compatible)');
+      }
+    }, 1000)
   }
 
   return (
@@ -126,7 +150,7 @@ function CustomerReport() {
           <div className="action-buttons">
             <button className="btn-action btn-export" onClick={() => handleExport('Excel')}>Export to Excel</button>
             <button className="btn-action btn-export" onClick={() => handleExport('PDF')}>Export to PDF</button>
-            <button className="btn-action" onClick={() => navigate('/admin/generate-reports')}>Back to Reports</button>
+            <button className="btn-action" onClick={() => navigate('/generate-reports')}>Back to Reports</button>
           </div>
 
           <div className="table-container">

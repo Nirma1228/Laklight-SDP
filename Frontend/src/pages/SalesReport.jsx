@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
+import { useToast } from '../components/ToastNotification'
 import { config } from '../config'
 import './SalesReport.css'
 
@@ -42,11 +43,13 @@ function SalesReport() {
             id: `ORD-${o.order_id}`,
             customer: o.customer_name,
             date: new Date(o.order_date).toLocaleDateString(),
+            rawDate: new Date(o.order_date).toISOString().split('T')[0],
             products: o.product_list || 'Items',
             quantity: '-',
             subtotal: `LKR ${Number(o.total_amount).toLocaleString()}`,
             discount: o.discount_amount > 0 ? `LKR ${Number(o.discount_amount).toLocaleString()}` : '-',
             total: `LKR ${Number(o.net_amount).toLocaleString()}`,
+            netAmountRaw: Number(o.net_amount),
             payment: o.payment_status.toLowerCase(),
             type: o.customer_id ? 'regular' : 'guest',
             netAmountNum: Number(o.net_amount)
@@ -81,8 +84,32 @@ function SalesReport() {
     setFilters({ ...filters, [e.target.name]: e.target.value })
   }
 
+  const { success, info } = useToast()
+
   const handleExport = (format) => {
-    alert(`Exporting Sales Report to ${format}...\n\nFile: Sales_Report_${new Date().toISOString().split('T')[0]}.${format === 'Excel' ? 'xlsx' : 'pdf'}`)
+    info(`Preparing ${format} export...`)
+
+    setTimeout(() => {
+      if (format === 'PDF') {
+        window.print();
+        success('Sales Report sent to printer/PDF generator');
+      } else {
+        // IMPROVED CSV: Use quotes to prevent "hash marks" and column breaks
+        const headers = ['"Order ID"', '"Customer"', '"Date"', '"Total Amount (LKR)"'];
+        const rows = filteredSales.map(s =>
+          `"${s.id}","${s.customer.replace(/"/g, '""')}","${s.rawDate}","${s.netAmountRaw}"`
+        );
+        const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join('\n');
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `Sales_Report_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        success('Sales Report downloaded as CSV (Excel compatible)');
+      }
+    }, 1000)
   }
 
   return (
@@ -150,7 +177,7 @@ function SalesReport() {
           <div className="action-buttons">
             <button className="btn-action btn-export" onClick={() => handleExport('Excel')}>Export to Excel</button>
             <button className="btn-action btn-export" onClick={() => handleExport('PDF')}>Export to PDF</button>
-            <button className="btn-action" onClick={() => navigate('/admin/generate-reports')}>Back to Reports</button>
+            <button className="btn-action" onClick={() => navigate('/generate-reports')}>Back to Reports</button>
           </div>
 
           <div className="table-container">
