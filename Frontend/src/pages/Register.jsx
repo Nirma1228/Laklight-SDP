@@ -9,8 +9,9 @@ import './Register.css'
 function Register() {
   const navigate = useNavigate()
   const { success, error: toastError, info } = useToast()
-  const [step, setStep] = useState(1) // 1: Registration form, 2: OTP Verification
+  const [step, setStep] = useState(1) // 1: Registration form, 2: OTP Verification, 3: Success
   const [registeredEmail, setRegisteredEmail] = useState('')
+  const [registeredUser, setRegisteredUser] = useState(null) // { name, userType, dashboardPath, isPending }
   const [otp, setOtp] = useState('')
   const [formData, setFormData] = useState({
     userType: 'customer',
@@ -20,6 +21,9 @@ function Register() {
     password: '',
     confirmPassword: '',
     address: '',
+    city: '',
+    postalCode: '',
+    district: '',
     adminCode: '',
     agreeToTerms: false
   })
@@ -77,16 +81,22 @@ function Register() {
         ? `${config.API_BASE_URL}/auth/farmer-register`
         : `${config.API_BASE_URL}/auth/register`
 
+      // Normalize email to match backend's normalizeEmail() middleware
+      const normalizedEmail = formData.email.trim().toLowerCase()
+
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fullName: formData.fullName,
-          email: formData.email,
-          phone: formData.phone,
+          fullName: formData.fullName.trim(),
+          email: normalizedEmail,
+          phone: formData.phone.trim(),
           password: formData.password,
           userType: formData.userType,
-          address: formData.address,
+          address: formData.address.trim(),
+          city: formData.city.trim(),
+          postalCode: formData.postalCode.trim(),
+          district: formData.district,
           adminCode: formData.userType === 'admin' ? formData.adminCode : undefined
         })
       })
@@ -98,7 +108,7 @@ function Register() {
       }
 
       if (data.requiresVerification) {
-        setRegisteredEmail(formData.email)
+        setRegisteredEmail(normalizedEmail)
         setStep(2)
         success('Success! Please check your email for the OTP code.')
       }
@@ -126,8 +136,8 @@ function Register() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: registeredEmail,
-          otp: otp
+          email: registeredEmail.trim().toLowerCase(),
+          otp: otp.trim()
         })
       })
 
@@ -137,29 +147,40 @@ function Register() {
         throw new Error(data.message || 'OTP verification failed')
       }
 
-      if (data.token) {
+      const isPending = data.user.status === 'pending' || data.user.userType === 'employee'
+
+      if (data.token && !isPending) {
         localStorage.setItem('token', data.token)
         localStorage.setItem('user', JSON.stringify(data.user))
         localStorage.setItem('userName', data.user.name)
         localStorage.setItem('userType', data.user.userType)
       }
 
-      success('Registration verified successfully!')
-
-      // Redirect based on user type
-      const targetPath = {
+      // Dashboard paths per role
+      const dashboardPaths = {
         'customer': '/customer/dashboard',
         'farmer': '/farmer/dashboard',
-        'employee': '/login', // Employees wait for approval
+        'employee': '/login',
         'admin': '/admin/dashboard'
-      }[data.user.userType] || '/home'
-
-      if (data.user.status === 'pending' || data.user.userType === 'employee') {
-        info('Account pending admin approval. Redirecting to login...')
-        setTimeout(() => navigate('/login'), 3000)
-      } else {
-        navigate(targetPath)
       }
+      const dashboardPath = dashboardPaths[data.user.userType] || '/home'
+
+      // Role display labels
+      const roleLabels = {
+        'customer': 'Customer',
+        'farmer': 'Farmer',
+        'employee': 'Employee',
+        'admin': 'Administrator'
+      }
+
+      setRegisteredUser({
+        name: data.user.name,
+        userType: data.user.userType,
+        roleLabel: roleLabels[data.user.userType] || data.user.userType,
+        dashboardPath,
+        isPending
+      })
+      setStep(3)
     } catch (err) {
       setLocalError(err.message)
       toastError(err.message)
@@ -195,16 +216,78 @@ function Register() {
     }
   }
 
+  // Dashboard link labels
+  const dashboardLabels = {
+    'customer': '🛒 Go to Customer Dashboard',
+    'farmer': '🌾 Go to Farmer Dashboard',
+    'employee': '🔐 Go to Login Page',
+    'admin': '⚙️ Go to Admin Dashboard'
+  }
+
   return (
     <div className="register-page">
       <Link to="/" className="back-home">&larr; Back to Home</Link>
 
       <div className="register-container">
         <div className="register-right">
-          <div className="register-header">
-            <h1>{step === 1 ? 'Create Account' : 'Verify Email'}</h1>
-            <p>{step === 1 ? 'Start your journey with Laklight today' : "We've sent a code to your inbox"}</p>
-          </div>
+
+          {/* ── Step 3: Registration Complete ── */}
+          {step === 3 && registeredUser && (
+            <div className="registration-success">
+              <div className="success-checkmark">
+                <svg viewBox="0 0 52 52" className="checkmark-svg">
+                  <circle className="checkmark-circle" cx="26" cy="26" r="25" fill="none" />
+                  <path className="checkmark-check" fill="none" d="M14.1 27.2l7.1 7.2 16.7-16.8" />
+                </svg>
+              </div>
+
+              <h1 className="success-title">Registration Complete!</h1>
+              <p className="success-greeting">Welcome aboard, <strong>{registeredUser.name}</strong>!</p>
+
+              <div className={`role-badge role-badge--${registeredUser.userType}`}>
+                {registeredUser.roleLabel}
+              </div>
+
+              {registeredUser.isPending ? (
+                <div className="pending-notice">
+                  <span className="pending-icon">⏳</span>
+                  <h3>Account Pending Approval</h3>
+                  <p>
+                    Your employee account has been created successfully. An administrator will review
+                    and activate your account shortly. You&apos;ll receive an email once approved.
+                  </p>
+                  <button
+                    className="dashboard-link-btn dashboard-link-btn--pending"
+                    onClick={() => navigate('/login')}
+                  >
+                    🔐 Go to Login Page
+                  </button>
+                </div>
+              ) : (
+                <div className="dashboard-prompt">
+                  <p className="dashboard-prompt-text">Your account is ready. Head over to your dashboard to get started!</p>
+                  <button
+                    className="dashboard-link-btn"
+                    onClick={() => navigate(registeredUser.dashboardPath)}
+                  >
+                    {dashboardLabels[registeredUser.userType] || '🏠 Go to Dashboard'}
+                  </button>
+                  <div className="or-login">
+                    <span>or</span>
+                    <Link to="/login" className="login-text-link">Login to an existing account</Link>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Step 1 & 2 Header ── */}
+          {step !== 3 && (
+            <div className="register-header">
+              <h1>{step === 1 ? 'Create Account' : 'Verify Email'}</h1>
+              <p>{step === 1 ? 'Start your journey with Laklight today' : "We've sent a code to your inbox"}</p>
+            </div>
+          )}
 
           {step === 1 ? (
             <form onSubmit={handleSubmit} className="register-form">
@@ -253,8 +336,49 @@ function Register() {
               </div>
 
               <div className="form-group">
-                <label htmlFor="address">Address</label>
+                <label htmlFor="address">Street Address</label>
                 <input type="text" id="address" name="address" value={formData.address} onChange={handleChange} required />
+              </div>
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="city">City</label>
+                  <input type="text" id="city" name="city" value={formData.city} onChange={handleChange} required />
+                </div>
+                <div className="form-group">
+                  <label htmlFor="postalCode">Postal Code</label>
+                  <input type="text" id="postalCode" name="postalCode" value={formData.postalCode} onChange={handleChange} required />
+                </div>
+              </div>
+              <div className="form-group">
+                <label htmlFor="district">District</label>
+                <select id="district" name="district" value={formData.district} onChange={handleChange} required>
+                  <option value="">Select District</option>
+                  <option value="ampara">Ampara</option>
+                  <option value="anuradhapura">Anuradhapura</option>
+                  <option value="badulla">Badulla</option>
+                  <option value="batticaloa">Batticaloa</option>
+                  <option value="colombo">Colombo</option>
+                  <option value="galle">Galle</option>
+                  <option value="gampaha">Gampaha</option>
+                  <option value="hambantota">Hambantota</option>
+                  <option value="jaffna">Jaffna</option>
+                  <option value="kalutara">Kalutara</option>
+                  <option value="kandy">Kandy</option>
+                  <option value="kegalle">Kegalle</option>
+                  <option value="kilinochchi">Kilinochchi</option>
+                  <option value="kurunegala">Kurunegala</option>
+                  <option value="mannar">Mannar</option>
+                  <option value="matale">Matale</option>
+                  <option value="matara">Matara</option>
+                  <option value="moneragala">Moneragala</option>
+                  <option value="mullaitivu">Mullaitivu</option>
+                  <option value="nuwara-eliya">Nuwara Eliya</option>
+                  <option value="polonnaruwa">Polonnaruwa</option>
+                  <option value="puttalam">Puttalam</option>
+                  <option value="ratnapura">Ratnapura</option>
+                  <option value="trincomalee">Trincomalee</option>
+                  <option value="vavuniya">Vavuniya</option>
+                </select>
               </div>
 
               <div className="form-row">

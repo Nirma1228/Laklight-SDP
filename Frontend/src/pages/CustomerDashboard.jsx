@@ -110,7 +110,10 @@ const CustomerDashboard = () => {
               lastName: fullName.split(' ').slice(1).join(' '),
               email: data.user.email,
               phone: data.user.phone,
-              address: data.user.address
+              address: data.user.address,
+              city: data.user.city || '',
+              postalCode: data.user.postal_code || '',
+              district: data.user.district || ''
             }));
             localStorage.setItem('userName', fullName);
           }
@@ -139,6 +142,7 @@ const CustomerDashboard = () => {
     firstName: '',
     lastName: '',
     deliveryAddress: '',
+    city: '',
     contactNumber: '',
     postalCode: '',
     orderNotes: ''
@@ -170,9 +174,18 @@ const CustomerDashboard = () => {
       const res = await fetch(`${config.API_BASE_URL}/orders`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      if (res.status === 401 || res.status === 403) {
+        // Token expired – clear storage and redirect to login
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.href = '/login';
+        return;
+      }
       const data = await res.json();
       if (data.success) {
         setDbOrders(data.orders);
+      } else {
+        console.error('Orders API error:', data.message);
       }
     } catch (err) { console.error('Order fetch failed:', err); }
   };
@@ -285,7 +298,7 @@ const CustomerDashboard = () => {
           productId: item.id,
           quantity: item.quantity
         })),
-        deliveryAddress: `${checkoutData.deliveryAddress}, ${checkoutData.postalCode}`,
+        deliveryAddress: `${checkoutData.deliveryAddress}, ${checkoutData.city}, ${checkoutData.postalCode}`,
         paymentMethod: paymentMethod === 'cod' ? 'Cash on Delivery' : 'Stripe Card'
       };
 
@@ -411,16 +424,45 @@ const CustomerDashboard = () => {
     setIsCartOpen(!isCartOpen)
   }
 
-  const saveProfile = () => {
+  const saveProfile = async () => {
     if (!profileData.firstName || !profileData.lastName || !profileData.email ||
-      !profileData.phone || !profileData.address || !profileData.city ||
-      !profileData.postalCode || !profileData.district) {
-      alert('Please fill in all required fields marked with *')
+      !profileData.phone || !profileData.address) {
+      toast.warning('Please fill in all required fields marked with *')
       return
     }
 
-    alert('Profile updated successfully!\n\nYour changes have been saved.')
-    setIsEditProfileOpen(false)
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const fullName = `${profileData.firstName} ${profileData.lastName}`;
+      
+      const response = await fetch(`${config.API_BASE_URL}/auth/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          fullName,
+          phone: profileData.phone,
+          address: profileData.address,
+          city: profileData.city,
+          postalCode: profileData.postalCode,
+          district: profileData.district
+        })
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        toast.success('Profile updated successfully!');
+        localStorage.setItem('userName', fullName);
+        setIsEditProfileOpen(false);
+      } else {
+        toast.error(`Update failed: ${data.message}`);
+      }
+    } catch (error) {
+      console.error('Profile update error:', error);
+      toast.error('Failed to update profile. Please try again.');
+    }
   }
 
 
@@ -805,18 +847,33 @@ const CustomerDashboard = () => {
                     <select
                       value={profileData.district}
                       onChange={(e) => setProfileData({ ...profileData, district: e.target.value })}
-                      required
                     >
                       <option value="">Select District</option>
+                      <option value="ampara">Ampara</option>
+                      <option value="anuradhapura">Anuradhapura</option>
+                      <option value="badulla">Badulla</option>
+                      <option value="batticaloa">Batticaloa</option>
                       <option value="colombo">Colombo</option>
+                      <option value="galle">Galle</option>
                       <option value="gampaha">Gampaha</option>
+                      <option value="hambantota">Hambantota</option>
+                      <option value="jaffna">Jaffna</option>
                       <option value="kalutara">Kalutara</option>
                       <option value="kandy">Kandy</option>
+                      <option value="kegalle">Kegalle</option>
+                      <option value="kilinochchi">Kilinochchi</option>
+                      <option value="kurunegala">Kurunegala</option>
+                      <option value="mannar">Mannar</option>
                       <option value="matale">Matale</option>
-                      <option value="nuwara-eliya">Nuwara Eliya</option>
-                      <option value="galle">Galle</option>
                       <option value="matara">Matara</option>
-                      <option value="hambantota">Hambantota</option>
+                      <option value="moneragala">Moneragala</option>
+                      <option value="mullaitivu">Mullaitivu</option>
+                      <option value="nuwara-eliya">Nuwara Eliya</option>
+                      <option value="polonnaruwa">Polonnaruwa</option>
+                      <option value="puttalam">Puttalam</option>
+                      <option value="ratnapura">Ratnapura</option>
+                      <option value="trincomalee">Trincomalee</option>
+                      <option value="vavuniya">Vavuniya</option>
                     </select>
                   </div>
                 </div>
@@ -883,6 +940,16 @@ const CustomerDashboard = () => {
                     onChange={(e) => setCheckoutData({ ...checkoutData, deliveryAddress: e.target.value })}
                     placeholder="Enter full delivery address"
                     rows="3"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>City *</label>
+                  <input
+                    type="text"
+                    value={checkoutData.city}
+                    onChange={(e) => setCheckoutData({ ...checkoutData, city: e.target.value })}
+                    placeholder="Enter city"
                     required
                   />
                 </div>

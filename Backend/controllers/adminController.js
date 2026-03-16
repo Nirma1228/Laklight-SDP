@@ -10,7 +10,7 @@ const getId = async (table, pk, col, val) => {
 exports.getAllUsers = async (req, res) => {
   try {
     const [users] = await db.query(`
-      SELECT u.user_id as id, u.full_name, u.email, u.phone, r.role_name as user_type, s.status_name as status, u.join_date 
+      SELECT u.user_id as id, u.full_name, u.email, u.phone, u.address, u.city, u.postal_code, u.district, r.role_name as user_type, s.status_name as status, u.join_date 
       FROM users u
       JOIN user_roles r ON u.role_id = r.role_id
       JOIN account_statuses s ON u.status_id = s.status_id
@@ -98,11 +98,14 @@ exports.deleteUser = async (req, res) => {
 // FR15: Admin User Management
 exports.createUser = async (req, res) => {
   try {
-    const { fullName, email, phone, password, role } = req.body;
+    const { fullName, email, phone, password, role, address, city, postalCode, district } = req.body;
     const roleId = await getId('user_roles', 'role_id', 'role_name', role);
     const activeStatusId = await getId('account_statuses', 'status_id', 'status_name', 'active');
     const hash = await bcrypt.hash(password, 10);
-    await db.query('INSERT INTO users (full_name, email, phone, password_hash, role_id, status_id) VALUES (?, ?, ?, ?, ?, ?)', [fullName, email, phone, hash, roleId, activeStatusId]);
+    await db.query(
+      'INSERT INTO users (full_name, email, phone, password_hash, role_id, status_id, address, city, postal_code, district) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', 
+      [fullName, email, phone, hash, roleId, activeStatusId, address, city, postalCode, district]
+    );
     res.status(201).json({ success: true, message: 'User created' });
   } catch (error) { res.status(500).json({ message: 'Create failed', error: error.message }); }
 };
@@ -117,8 +120,11 @@ exports.getUserDetails = async (req, res) => {
 
 exports.updateUser = async (req, res) => {
   try {
-    const { fullName, phone } = req.body;
-    await db.query('UPDATE users SET full_name = ?, phone = ? WHERE user_id = ?', [fullName, phone, req.params.id]);
+    const { fullName, phone, address, city, postalCode, district } = req.body;
+    await db.query(
+      'UPDATE users SET full_name = ?, phone = ?, address = ?, city = ?, postal_code = ?, district = ? WHERE user_id = ?', 
+      [fullName, phone, address, city, postalCode, district, req.params.id]
+    );
     res.json({ success: true, message: 'User updated' });
   } catch (error) { res.status(500).json({ message: 'Update failed', error: error.message }); }
 };
@@ -217,8 +223,8 @@ exports.seedMaintenanceData = async (req, res) => {
     const [[activeStatus]] = await db.query("SELECT status_id FROM account_statuses WHERE status_name = 'active'");
 
     await db.query(
-      'INSERT INTO users (full_name, email, phone, password_hash, role_id, status_id) VALUES (?, ?, ?, ?, ?, ?)',
-      ['System Administrator', 'admin@laklight.lk', '0112223344', '$2a$10$89W1h/I3A2J1o7B9G/3.O.gUvVlU.vN0P0E1I0E0E0E0E0E0E0E0E', adminRole.role_id, activeStatus.status_id]
+      'INSERT INTO users (full_name, email, phone, password_hash, role_id, status_id, address, city, postal_code, district) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      ['System Administrator', 'admin@laklight.lk', '0112223344', '$2a$10$89W1h/I3A2J1o7B9G/3.O.gUvVlU.vN0P0E1I0E0E0E0E0E0E0E0E', adminRole.role_id, activeStatus.status_id, 'No. 45, Main St, Colombo', 'Colombo', '00100', 'colombo']
     );
 
     // 2. Seed Fruit Products (Updated to match available images)
@@ -227,7 +233,8 @@ exports.seedMaintenanceData = async (req, res) => {
       { name: 'Wood Apple Juice', price: 280.00, desc: 'Refreshingly traditional wood apple juice.', img: '/images/Wood Apple Juice.png' },
       { name: 'Custard Powder', price: 450.00, desc: 'Premium custard powder for perfect desserts.', img: '/images/Custard powder.png' },
       { name: 'Lime Mix', price: 320.00, desc: 'Pure lime concentrate mix.', img: '/images/Lime Mix.png' },
-      { name: 'Fresh Mixed Fruit', price: 550.00, desc: 'Hand-picked premium mixed fruit jam.', img: '/images/cta-fruits.png' }
+      { name: 'Fresh Mixed Fruit', price: 550.00, desc: 'Hand-picked premium mixed fruit jam.', img: '/images/placeholder.png' },
+      { name: 'Guava Juice', price: 300.00, desc: 'Pure natural guava juice.', img: '/images/Guawa juice.png' }
     ];
 
     const [[category]] = await db.query("SELECT category_id FROM product_categories LIMIT 1");
@@ -252,15 +259,15 @@ exports.seedMaintenanceData = async (req, res) => {
       { name: 'Amara Wickramasinghe', email: 'amara@example.lk', phone: '0765555555', address: 'Anuradhapura Central' }
     ];
 
-    const [[custRole]] = await db.query("SELECT role_id FROM user_roles WHERE role_name = 'customer'");
+    const [[customerRole]] = await db.query("SELECT role_id FROM user_roles WHERE role_name = 'customer'");
     const [[paidStatus]] = await db.query("SELECT payment_status_id FROM payment_statuses WHERE status_name = 'paid'");
     const [[deliveredStatus]] = await db.query("SELECT order_status_id FROM order_statuses WHERE status_name = 'Delivered'");
 
     for (let i = 0; i < slCustomers.length; i++) {
       const cust = slCustomers[i];
       const [userRes] = await db.query(
-        'INSERT INTO users (full_name, email, phone, password_hash, role_id, status_id, address) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [cust.name, cust.email, cust.phone, 'hashed_pass_here', custRole.role_id, activeStatus.status_id, cust.address]
+        'INSERT INTO users (full_name, email, phone, password_hash, role_id, status_id, address, city, district) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [cust.name, cust.email, cust.phone, '$2a$10$89W1h/I3A2J1o7B9G/3.O.gUvVlU.vN0P0E1I0E0E0E0E0E0E0E0E', customerRole.role_id, activeStatus.status_id, cust.address, cust.address.split(',')[0], 'colombo']
       );
       const userId = userRes.insertId;
 

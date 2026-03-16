@@ -19,7 +19,6 @@ exports.getAllProducts = async (req, res) => {
       FROM products p
       JOIN product_categories c ON p.category_id = c.category_id
       JOIN measurement_units u ON p.unit_id = u.unit_id
-      WHERE p.is_available = TRUE 
       ORDER BY c.category_name, p.name
     `);
 
@@ -55,7 +54,7 @@ exports.searchProducts = async (req, res) => {
       FROM products p
       JOIN product_categories c ON p.category_id = c.category_id
       JOIN measurement_units u ON p.unit_id = u.unit_id
-      WHERE (p.name LIKE ? OR p.description LIKE ?) AND p.is_available = TRUE`,
+      WHERE (p.name LIKE ? OR p.description LIKE ?)`,
       [`%${query}%`, `%${query}%`]);
 
     res.json({ success: true, count: products.length, products });
@@ -126,7 +125,7 @@ exports.filterProducts = async (req, res) => {
       FROM products p
       JOIN product_categories c ON p.category_id = c.category_id
       JOIN measurement_units u ON p.unit_id = u.unit_id
-      WHERE p.is_available = TRUE`;
+      WHERE 1=1`;
     const params = [];
 
     if (category) { query += ' AND c.category_name = ?'; params.push(category); }
@@ -148,7 +147,7 @@ exports.getProductsByCategory = async (req, res) => {
       FROM products p
       JOIN product_categories c ON p.category_id = c.category_id
       JOIN measurement_units u ON p.unit_id = u.unit_id
-      WHERE c.category_name = ? AND p.is_available = TRUE`, [req.params.category]);
+      WHERE c.category_name = ?`, [req.params.category]);
     res.json({ success: true, products });
   } catch (error) {
     res.status(500).json({ message: 'Fetch failed', error: error.message });

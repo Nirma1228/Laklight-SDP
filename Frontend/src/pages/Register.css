@@ -572,3 +572,183 @@
     transform: translateY(0) scale(1);
   }
 }
+
+/* ── Registration Success Screen (Step 3) ─────────────────────────── */
+.registration-success {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 1rem 0 2rem;
+  animation: fadeIn 0.5s ease;
+}
+
+/* Animated SVG Checkmark */
+.success-checkmark {
+  width: 100px;
+  height: 100px;
+  margin-bottom: 2rem;
+}
+
+.checkmark-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.checkmark-circle {
+  stroke: #1a5d1a;
+  stroke-width: 2;
+  stroke-dasharray: 166;
+  stroke-dashoffset: 166;
+  stroke-linecap: round;
+  animation: stroke 0.6s cubic-bezier(0.65, 0, 0.45, 1) forwards;
+}
+
+.checkmark-check {
+  stroke: #1a5d1a;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 48;
+  stroke-dashoffset: 48;
+  animation: stroke 0.4s cubic-bezier(0.65, 0, 0.45, 1) 0.55s forwards;
+}
+
+@keyframes stroke {
+  100% { stroke-dashoffset: 0; }
+}
+
+.success-title {
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: var(--text-dark);
+  margin-bottom: 0.6rem;
+}
+
+.success-greeting {
+  font-size: 1.1rem;
+  color: var(--text-light);
+  margin-bottom: 1.5rem;
+}
+
+.success-greeting strong {
+  color: var(--primary-premium);
+  font-weight: 700;
+}
+
+/* Role Badge */
+.role-badge {
+  display: inline-block;
+  padding: 0.45rem 1.4rem;
+  border-radius: 50px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 2.5rem;
+}
+
+.role-badge--customer  { background: #e0f2fe; color: #0369a1; }
+.role-badge--farmer    { background: #dcfce7; color: #15803d; }
+.role-badge--admin     { background: #fef3c7; color: #b45309; }
+.role-badge--employee  { background: #f3e8ff; color: #7e22ce; }
+
+/* Dashboard CTA */
+.dashboard-prompt {
+  width: 100%;
+}
+
+.dashboard-prompt-text {
+  color: var(--text-light);
+  font-size: 1rem;
+  margin-bottom: 1.75rem;
+}
+
+.dashboard-link-btn {
+  display: block;
+  width: 100%;
+  padding: 1.1rem;
+  background: var(--primary-premium);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  box-shadow: 0 10px 30px rgba(26, 93, 26, 0.2);
+  margin-bottom: 1.5rem;
+  font-family: inherit;
+}
+
+.dashboard-link-btn:hover {
+  background: #064e3b;
+  transform: translateY(-3px);
+  box-shadow: 0 15px 40px rgba(26, 93, 26, 0.3);
+}
+
+.dashboard-link-btn--pending {
+  background: #7e22ce;
+  box-shadow: 0 10px 30px rgba(126, 34, 206, 0.2);
+}
+
+.dashboard-link-btn--pending:hover {
+  background: #581c87;
+  box-shadow: 0 15px 40px rgba(126, 34, 206, 0.3);
+}
+
+.or-login {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  color: var(--text-light);
+  font-size: 0.95rem;
+}
+
+.or-login::before,
+.or-login::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e2e8f0;
+}
+
+.login-text-link {
+  color: var(--primary-premium);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.login-text-link:hover {
+  text-decoration: underline;
+}
+
+/* Pending Notice (Employee) */
+.pending-notice {
+  background: #faf5ff;
+  border: 1px solid #e9d5ff;
+  border-radius: 20px;
+  padding: 2rem;
+  width: 100%;
+}
+
+.pending-icon {
+  font-size: 2.5rem;
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.pending-notice h3 {
+  color: #7e22ce;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.pending-notice p {
+  color: var(--text-light);
+  line-height: 1.7;
+  margin-bottom: 2rem;
+  font-size: 0.97rem;
+}

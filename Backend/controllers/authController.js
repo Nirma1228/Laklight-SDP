@@ -20,7 +20,7 @@ const getStatusId = async (statusName) => {
 // FR01: Generic Registration - Step 1: Send OTP
 exports.register = async (req, res) => {
   try {
-    const { fullName, email, phone, password, userType, address, adminCode } = req.body;
+    const { fullName, email, phone, password, userType, address, city, postalCode, district, adminCode } = req.body;
 
     // Check if user already exists
     const [existingUser] = await db.query('SELECT * FROM users WHERE email = ?', [email]);
@@ -49,7 +49,7 @@ exports.register = async (req, res) => {
     await db.query('DELETE FROM otp_verifications WHERE email = ? AND flow_type = "registration"', [email]);
 
     // Store registration data in JSON
-    const userData = JSON.stringify({ fullName, phone, passwordHash, roleId, address });
+    const userData = JSON.stringify({ fullName, phone, passwordHash, roleId, address, city, postalCode, district });
 
     await db.query(
       'INSERT INTO otp_verifications (email, otp, flow_type, user_data_json, expires_at) VALUES (?, ?, "registration", ?, ?)',
@@ -109,8 +109,8 @@ exports.login = async (req, res) => {
 
     await db.query('UPDATE users SET last_login = NOW() WHERE user_id = ?', [user.user_id]);
 
-    // Role-based expiration: Customer/Farmer: 2h, Employee/Admin: 24h
-    const expiration = (user.role_name === 'customer' || user.role_name === 'farmer') ? '2h' : '24h';
+    // Role-based expiration: all roles 24h
+    const expiration = '24h';
 
     const token = jwt.sign(
       { userId: user.user_id, userType: user.role_name },
@@ -139,7 +139,9 @@ exports.login = async (req, res) => {
 // Step 2: Verify OTP and Complete Registration
 exports.verifyOTP = async (req, res) => {
   try {
-    const { email, otp } = req.body;
+    // Normalize email and otp to avoid case/whitespace mismatches
+    const email = (req.body.email || '').trim().toLowerCase();
+    const otp   = (req.body.otp   || '').toString().trim();
 
     const [otpRecords] = await db.query(
       'SELECT * FROM otp_verifications WHERE email = ? AND otp = ? AND flow_type = "registration" AND verified = FALSE',
@@ -178,8 +180,8 @@ exports.verifyOTP = async (req, res) => {
     }
 
     const [result] = await db.query(
-      'INSERT INTO users (full_name, email, phone, password_hash, role_id, status_id, address) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [userData.fullName, email, userData.phone, userData.passwordHash, userData.roleId, targetStatusId, userData.address]
+      'INSERT INTO users (full_name, email, phone, password_hash, role_id, status_id, address, city, postal_code, district) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [userData.fullName, email, userData.phone, userData.passwordHash, userData.roleId, targetStatusId, userData.address, userData.city, userData.postalCode, userData.district]
     );
 
     await db.query('UPDATE otp_verifications SET verified = TRUE WHERE otp_id = ?', [otpRecord.otp_id]);
@@ -204,8 +206,8 @@ exports.verifyOTP = async (req, res) => {
       console.error('Email sending failed (non-blocking):', emailError.message);
     }
 
-    // Role-based expiration: Customer/Farmer: 2h, Employee/Admin: 24h
-    const expiration = (roleName === 'customer' || roleName === 'farmer') ? '2h' : '24h';
+    // Role-based expiration: all roles 24h
+    const expiration = '24h';
 
     const token = jwt.sign(
       { userId: result.insertId, userType: roleName },
@@ -238,7 +240,7 @@ exports.verifyOTP = async (req, res) => {
 exports.getProfile = async (req, res) => {
   try {
     const [rows] = await db.query(
-      `SELECT u.user_id as id, u.full_name, u.email, u.phone, u.address, r.role_name as user_type, s.status_name as status, u.join_date 
+      `SELECT u.user_id as id, u.full_name, u.email, u.phone, u.address, u.city, u.postal_code, u.district, r.role_name as user_type, s.status_name as status, u.join_date 
        FROM users u
        JOIN user_roles r ON u.role_id = r.role_id
        JOIN account_statuses s ON u.status_id = s.status_id
@@ -255,8 +257,11 @@ exports.getProfile = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
   try {
-    const { fullName, phone, address } = req.body;
-    await db.query('UPDATE users SET full_name = ?, phone = ?, address = ? WHERE user_id = ?', [fullName, phone, address, req.user.userId]);
+    const { fullName, phone, address, city, postalCode, district } = req.body;
+    await db.query(
+      'UPDATE users SET full_name = ?, phone = ?, address = ?, city = ?, postal_code = ?, district = ? WHERE user_id = ?', 
+      [fullName, phone, address, city, postalCode, district, req.user.userId]
+    );
     res.json({ message: 'Profile updated successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Update failed', error: error.message });
