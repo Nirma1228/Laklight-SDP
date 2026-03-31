@@ -13,7 +13,7 @@ exports.submitProduct = async (req, res) => {
     const {
       productName, variety, category, quantity, unit,
       grade, customPrice, harvestDate, transport,
-      deliveryDate, storageInstructions, notes, images
+      deliveryDate, proposedDate2, proposedDate3, storageInstructions, notes, images
     } = req.body;
 
     console.log('📦 Received submission:', { productName, category, quantity, unit, grade });
@@ -76,8 +76,8 @@ exports.submitProduct = async (req, res) => {
     // Insert
     const [result] = await db.query(
       `INSERT INTO farmer_submissions 
-       (farmer_id, product_name, category_id, quantity, unit_id, grade_id, custom_price, harvest_date, transport_method_id, delivery_date, storage_instructions, images, notes, status_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (farmer_id, product_name, category_id, quantity, unit_id, grade_id, custom_price, harvest_date, transport_method_id, delivery_date, proposed_date_2, proposed_date_3, storage_instructions, images, notes, status_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         farmerId,
         productName,
@@ -89,6 +89,8 @@ exports.submitProduct = async (req, res) => {
         harvestDate,
         transportMethodId || null,
         deliveryDate || null,
+        proposedDate2 || null,
+        proposedDate3 || null,
         storageInstructions || null,
         imageData,
         notes || null,

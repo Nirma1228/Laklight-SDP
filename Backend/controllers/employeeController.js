@@ -10,13 +10,15 @@ exports.getPendingApplications = async (req, res) => {
   try {
     const [apps] = await db.query(`
       SELECT fs.*, fs.submission_id as id, u.full_name as farmer_name, ss.status_name as status, 
-             mu.unit_name as unit, qg.grade_name as grade, pc.category_name as category
+             mu.unit_name as unit, qg.grade_name as grade, pc.category_name as category,
+             tm.method_name as transport_method
        FROM farmer_submissions fs
        JOIN users u ON fs.farmer_id = u.user_id
        JOIN submission_statuses ss ON fs.status_id = ss.submission_status_id
        JOIN measurement_units mu ON fs.unit_id = mu.unit_id
        LEFT JOIN quality_grades qg ON fs.grade_id = qg.grade_id
        JOIN product_categories pc ON fs.category_id = pc.category_id
+       LEFT JOIN transport_methods tm ON fs.transport_method_id = tm.transport_method_id
        WHERE ss.status_name = 'under-review'`);
     res.json({ success: true, count: apps.length, applications: apps });
   } catch (error) {

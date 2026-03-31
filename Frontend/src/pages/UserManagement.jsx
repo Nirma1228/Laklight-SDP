@@ -17,7 +17,7 @@ function UserManagement() {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
-          const data = await response.json();
+          const data = await res.json();
           if (data.user) {
             setAdminName(data.user.full_name);
             localStorage.setItem('userName', data.user.full_name);

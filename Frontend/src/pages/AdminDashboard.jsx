@@ -4,6 +4,15 @@ import Header from '../components/Header'
 import { config } from '../config'
 import Footer from '../components/Footer'
 import { useToast } from '../components/ToastNotification'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { 
+  faChartLine, faShoppingCart, faUsers, faTruckLoading,
+  faBoxes, faClipboardList, faUserTie, faCogs, faDatabase,
+  faChartBar, faStore, faBoxOpen, faUser, faHandshake,
+  faBox, faExclamationTriangle, faClock, faCheckCircle,
+  faTags, faHourglassHalf, faSync, faStar, faMoneyBillWave,
+  faShieldAlt, faDesktop, faLock
+} from '@fortawesome/free-solid-svg-icons'
 import './AdminDashboard.css'
 
 function AdminDashboard() {
@@ -251,25 +260,33 @@ function AdminDashboard() {
         {/* Stats Grid */}
         <div className="stats-grid">
           <div className="stat-card stat-revenue">
-            <div className="stat-icon"></div>
+            <div className="stat-icon-wrapper">
+              <FontAwesomeIcon icon={faChartLine} className="stat-icon" />
+            </div>
             <div className="stat-value">Rs. {((dashboardData?.orders?.total_revenue || 1250000) / 1000000).toFixed(1)}M</div>
             <div className="stat-label">Monthly Revenue</div>
             <div className="stat-change positive">+12% from last month</div>
           </div>
           <div className="stat-card stat-orders">
-            <div className="stat-icon"></div>
+            <div className="stat-icon-wrapper">
+              <FontAwesomeIcon icon={faShoppingCart} className="stat-icon" />
+            </div>
             <div className="stat-value">{dashboardData?.orders?.total_orders || 1234}</div>
             <div className="stat-label">Total Orders</div>
             <div className="stat-change positive">+8% from last month</div>
           </div>
           <div className="stat-card stat-customers">
-            <div className="stat-icon"></div>
+            <div className="stat-icon-wrapper">
+              <FontAwesomeIcon icon={faUsers} className="stat-icon" />
+            </div>
             <div className="stat-value">{dashboardData?.users?.customers || 450}</div>
             <div className="stat-label">Active Customers</div>
             <div className="stat-change positive">+15% from last month</div>
           </div>
           <div className="stat-card stat-suppliers">
-            <div className="stat-icon"></div>
+            <div className="stat-icon-wrapper">
+              <FontAwesomeIcon icon={faTruckLoading} className="stat-icon" />
+            </div>
             <div className="stat-value">{dashboardData?.users?.farmers || 87}</div>
             <div className="stat-label">Registered Suppliers</div>
             <div className="stat-change positive">+5% from last month</div>
@@ -443,167 +460,226 @@ function AdminDashboard() {
           </div>
           <div className="management-grid">
             <div className="management-card" onClick={() => navigate('/admin/users')}>
-              <div className="management-icon blue">
-                <span></span>
+              <div className="management-card-header">
+                <div className="icon-circle icon-blue">
+                  <FontAwesomeIcon icon={faUsers} />
+                </div>
+                <h3 className="management-title">User Management</h3>
               </div>
-              <h3 className="management-title">User Management</h3>
               <p className="management-description">Manage customers, suppliers, and employees accounts</p>
               <div className="management-stats">
                 <div className="management-stat">
                   <span className="management-stat-number">{dashboardData?.users?.customers || 1523}</span>
-                  <span className="management-stat-label">Customers</span>
+                  <span className="management-stat-label">
+                    <FontAwesomeIcon icon={faUser} /> Customers
+                  </span>
                 </div>
                 <div className="management-stat">
                   <span className="management-stat-number">{dashboardData?.users?.farmers || 234}</span>
-                  <span className="management-stat-label">Suppliers</span>
+                  <span className="management-stat-label">
+                    <FontAwesomeIcon icon={faHandshake} /> Suppliers
+                  </span>
                 </div>
                 <div className="management-stat">
                   <span className="management-stat-number">{dashboardData?.users?.employees || 45}</span>
-                  <span className="management-stat-label">Employees</span>
+                  <span className="management-stat-label">
+                    <FontAwesomeIcon icon={faUserTie} /> Employees
+                  </span>
                 </div>
               </div>
             </div>
 
             <div className="management-card" onClick={() => navigate('/admin/inventory')}>
-              <div className="management-icon green">
-                <span></span>
+              <div className="management-card-header">
+                <div className="icon-circle icon-green">
+                  <FontAwesomeIcon icon={faBoxes} />
+                </div>
+                <h3 className="management-title">Inventory Control</h3>
               </div>
-              <h3 className="management-title">Inventory Control</h3>
               <p className="management-description">Monitor stock levels, warehouse locations, and product expiry</p>
               <div className="management-stats">
                 <div className="management-stat">
                   <span className="management-stat-number">{dashboardData?.products?.total_products || 156}</span>
-                  <span className="management-stat-label">Products</span>
+                  <span className="management-stat-label">
+                    <FontAwesomeIcon icon={faBox} /> Products
+                  </span>
                 </div>
                 <div className="management-stat">
                   <span className="management-stat-number">{dashboardData?.products?.low_stock_products || 12}</span>
-                  <span className="management-stat-label">Low Stock</span>
+                  <span className="management-stat-label">
+                    <FontAwesomeIcon icon={faExclamationTriangle} /> Low Stock
+                  </span>
                 </div>
                 <div className="management-stat">
                   <span className="management-stat-number">{dashboardData?.products?.out_of_stock_products || 3}</span>
-                  <span className="management-stat-label">Expiring</span>
+                  <span className="management-stat-label">
+                    <FontAwesomeIcon icon={faClock} /> Expiring
+                  </span>
                 </div>
               </div>
             </div>
 
             <div className="management-card" onClick={() => navigate('/products')}>
-              <div className="management-icon lime">
-                <span></span>
+              <div className="management-card-header">
+                <div className="icon-circle icon-teal">
+                  <FontAwesomeIcon icon={faStore} />
+                </div>
+                <h3 className="management-title">Product Catalog</h3>
               </div>
-              <h3 className="management-title">Product Catalog</h3>
               <p className="management-description">Add, edit, and manage products with pricing controls</p>
               <div className="management-stats">
                 <div className="management-stat">
                   <span className="management-stat-number">156</span>
-                  <span className="management-stat-label">Total Products</span>
+                  <span className="management-stat-label">
+                    <FontAwesomeIcon icon={faBox} /> Total
+                  </span>
                 </div>
                 <div className="management-stat">
                   <span className="management-stat-number">142</span>
-                  <span className="management-stat-label">Active</span>
+                  <span className="management-stat-label">
+                    <FontAwesomeIcon icon={faCheckCircle} /> Active
+                  </span>
                 </div>
                 <div className="management-stat">
                   <span className="management-stat-number">8</span>
-                  <span className="management-stat-label">Categories</span>
+                  <span className="management-stat-label">
+                    <FontAwesomeIcon icon={faTags} /> Categories
+                  </span>
                 </div>
               </div>
             </div>
 
             <div className="management-card" onClick={() => navigate('/admin/orders')}>
-              <div className="management-icon orange">
-                <span></span>
+              <div className="management-card-header">
+                <div className="icon-circle icon-orange">
+                  <FontAwesomeIcon icon={faClipboardList} />
+                </div>
+                <h3 className="management-title">Order Management</h3>
               </div>
-              <h3 className="management-title">Order Management</h3>
               <p className="management-description">Process orders, manage delivery, and track payments</p>
               <div className="management-stats">
                 <div className="management-stat">
                   <span className="management-stat-number">{dashboardData?.orders?.total_orders || 1847}</span>
-                  <span className="management-stat-label">Total Orders</span>
+                  <span className="management-stat-label">
+                    <FontAwesomeIcon icon={faClipboardList} /> Total
+                  </span>
                 </div>
                 <div className="management-stat">
                   <span className="management-stat-number">{dashboardData?.orders?.pending_orders || 23}</span>
-                  <span className="management-stat-label">Pending</span>
+                  <span className="management-stat-label">
+                    <FontAwesomeIcon icon={faHourglassHalf} /> Pending
+                  </span>
                 </div>
                 <div className="management-stat">
                   <span className="management-stat-number">15</span>
-                  <span className="management-stat-label">Processing</span>
+                  <span className="management-stat-label">
+                    <FontAwesomeIcon icon={faSync} /> Processing
+                  </span>
                 </div>
               </div>
             </div>
 
             <div className="management-card" onClick={() => navigate('/admin/suppliers')}>
-              <div className="management-icon purple">
-                <span></span>
+              <div className="management-card-header">
+                <div className="icon-circle icon-purple">
+                  <FontAwesomeIcon icon={faUserTie} />
+                </div>
+                <h3 className="management-title">Supplier Relations</h3>
               </div>
-              <h3 className="management-title">Supplier Relations</h3>
               <p className="management-description">Review applications, manage contracts, and quality control</p>
               <div className="management-stats">
                 <div className="management-stat">
                   <span className="management-stat-number">234</span>
-                  <span className="management-stat-label">Active</span>
+                  <span className="management-stat-label">
+                    <FontAwesomeIcon icon={faCheckCircle} /> Active
+                  </span>
                 </div>
                 <div className="management-stat">
                   <span className="management-stat-number">18</span>
-                  <span className="management-stat-label">Pending</span>
+                  <span className="management-stat-label">
+                    <FontAwesomeIcon icon={faHourglassHalf} /> Pending
+                  </span>
                 </div>
                 <div className="management-stat">
                   <span className="management-stat-number">98%</span>
-                  <span className="management-stat-label">Quality Rate</span>
+                  <span className="management-stat-label">
+                    <FontAwesomeIcon icon={faStar} /> Quality
+                  </span>
                 </div>
               </div>
             </div>
 
             <div className="management-card" onClick={() => navigate('/generate-reports')}>
-              <div className="management-icon red">
-                <span></span>
+              <div className="management-card-header">
+                <div className="icon-circle icon-red">
+                  <FontAwesomeIcon icon={faChartBar} />
+                </div>
+                <h3 className="management-title">Analytics & Reports</h3>
               </div>
-              <h3 className="management-title">Analytics & Reports</h3>
               <p className="management-description">Generate business insights, sales reports, and performance metrics</p>
               <div className="management-stats">
                 <div className="management-stat">
                   <span className="management-stat-number">Rs. 2.4M</span>
-                  <span className="management-stat-label">Revenue</span>
+                  <span className="management-stat-label">
+                    <FontAwesomeIcon icon={faMoneyBillWave} /> Revenue
+                  </span>
                 </div>
                 <div className="management-stat">
                   <span className="management-stat-number">+12%</span>
-                  <span className="management-stat-label">Growth</span>
+                  <span className="management-stat-label">
+                    <FontAwesomeIcon icon={faChartLine} /> Growth
+                  </span>
                 </div>
                 <div className="management-stat">
                   <span className="management-stat-number">99.5%</span>
-                  <span className="management-stat-label">Uptime</span>
+                  <span className="management-stat-label">
+                    <FontAwesomeIcon icon={faClock} /> Uptime
+                  </span>
                 </div>
               </div>
             </div>
 
             <div className="management-card" onClick={() => navigate('/admin/settings')}>
-              <div className="management-icon gray">
-                <span></span>
+              <div className="management-card-header">
+                <div className="icon-circle icon-gray">
+                  <FontAwesomeIcon icon={faCogs} />
+                </div>
+                <h3 className="management-title">System Settings</h3>
               </div>
-              <h3 className="management-title">System Settings</h3>
               <p className="management-description">Configure platform settings, security, and integrations</p>
               <div className="management-stats">
                 <div className="management-stat">
                   <span className="management-stat-number green-text">Active</span>
-                  <span className="management-stat-label">System Status</span>
+                  <span className="management-stat-label">
+                    <FontAwesomeIcon icon={faShieldAlt} /> Status
+                  </span>
                 </div>
                 <div className="management-stat">
                   <span className="management-stat-number">24/7</span>
-                  <span className="management-stat-label">Monitoring</span>
+                  <span className="management-stat-label">
+                    <FontAwesomeIcon icon={faDesktop} /> Monitoring
+                  </span>
                 </div>
                 <div className="management-stat">
                   <span className="management-stat-number green-text">Secure</span>
-                  <span className="management-stat-label">Data Protection</span>
+                  <span className="management-stat-label">
+                    <FontAwesomeIcon icon={faLock} /> Protection
+                  </span>
                 </div>
               </div>
             </div>
 
-            <div className="management-card" style={{ background: '#fffbeb', border: '1px solid #fef3c7' }} onClick={handleResetDatabase}>
-              <div className="management-icon yellow" style={{ background: '#fef3c7', color: '#92400e' }}>
-                <span>🛠️</span>
+            <div className="management-card maintenance-card" onClick={handleResetDatabase}>
+              <div className="management-card-header">
+                <div className="icon-circle icon-yellow">
+                  <FontAwesomeIcon icon={faDatabase} />
+                </div>
+                <h3 className="management-title">Database Maintenance</h3>
               </div>
-              <h3 className="management-title">Database Maintenance</h3>
               <p className="management-description">Clean up system data and reset IDs for report generation testing</p>
               <div className="management-stats" style={{ color: '#92400e', fontWeight: '600', fontSize: '0.85rem' }}>
-                Click to Reset & Seed Report Data
+                <FontAwesomeIcon icon={faDatabase} style={{ marginRight: '8px' }} />
+                Click to Reset & Seed Data
               </div>
             </div>
           </div>

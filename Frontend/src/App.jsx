@@ -37,7 +37,7 @@ function App() {
       <Route path="/shop" element={<PublicProductCatalog />} />
       <Route path="/payment" element={<OnlinePayment />} />
       <Route path="/feedback" element={<Feedback />} />
-      
+
       {/* Admin Routes */}
       <Route path="/admin/dashboard" element={<AdminDashboard />} />
       <Route path="/admin/inventory" element={<AdminInventory />} />
@@ -53,13 +53,13 @@ function App() {
       <Route path="/admin/supplier-relations" element={<SupplierRelations />} />
       <Route path="/admin/suppliers" element={<SupplierRelations />} />
       <Route path="/admin/settings" element={<SystemSettings />} />
-      
+
       {/* Customer Routes */}
       <Route path="/customer/dashboard" element={<CustomerDashboard />} />
-      
+
       {/* Employee Routes */}
       <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
-      
+
       {/* Farmer Routes */}
       <Route path="/farmer/dashboard" element={<FarmerDashboard />} />
       <Route path="/farmer/feedback" element={<FarmerFeedback />} />

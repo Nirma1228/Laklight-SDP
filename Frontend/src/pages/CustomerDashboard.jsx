@@ -5,6 +5,8 @@ import Footer from '../components/Footer'
 import { config } from '../config'
 import StripeCheckoutButton from '../components/StripeCheckoutButton'
 import { useToast } from '../components/ToastNotification'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faShoppingBag, faBoxOpen, faUser } from '@fortawesome/free-solid-svg-icons'
 import './CustomerDashboard.css'
 
 // Product Card Component
@@ -295,11 +297,11 @@ const CustomerDashboard = () => {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       const orderData = {
         items: cart.map(item => ({
-          productId: item.id,
+          productId: item.id, // This is mapped to product_id in fetchCart
           quantity: item.quantity
         })),
         deliveryAddress: `${checkoutData.deliveryAddress}, ${checkoutData.city}, ${checkoutData.postalCode}`,
-        paymentMethod: paymentMethod === 'cod' ? 'Cash on Delivery' : 'Stripe Card'
+        paymentMethod: paymentMethod === 'cod' ? 'Cash on Delivery' : 'Card Payment'
       };
 
       const res = await fetch(`${config.API_BASE_URL}/orders/place`, {
@@ -317,7 +319,7 @@ const CustomerDashboard = () => {
         setIsCheckoutOpen(false);
         setIsPaymentOpen(true);
       } else {
-        toast.error(`Order failed: ${data.message}`);
+        toast.error(`Order failed: ${data.error || data.message || 'Unknown error'}`);
       }
     } catch (err) {
       console.error('Order creation error:', err);
@@ -343,7 +345,7 @@ const CustomerDashboard = () => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ productId: product.product_id, quantity })
+        body: JSON.stringify({ productId: product.id, quantity })
       });
       const data = await res.json();
       if (data.success) {
@@ -467,15 +469,28 @@ const CustomerDashboard = () => {
 
 
   const calculateTotals = () => {
-    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-    const qualifiesForDiscount = totalItems >= 12;
-    const discount = qualifiesForDiscount ? subtotal * 0.1 : 0;
-    const total = subtotal - discount;
-    return { subtotal, totalItems, discount, total, qualifiesForDiscount };
+    let subtotal = 0;
+    let discount = 0;
+    let totalItems = 0;
+    const deliveryCharge = 400;
+
+    cart.forEach(item => {
+      const itemSubtotal = item.price * item.quantity;
+      subtotal += itemSubtotal;
+      totalItems += item.quantity;
+      
+      // Give 10% discount for a specific product if purchased 12+ times
+      if (item.quantity >= 12) {
+        discount += itemSubtotal * 0.1;
+      }
+    });
+
+    const total = subtotal - discount + deliveryCharge;
+    const qualifiesForDiscount = discount > 0;
+    return { subtotal, totalItems, discount, deliveryCharge, total, qualifiesForDiscount };
   };
 
-  const { subtotal, totalItems, discount, total, qualifiesForDiscount } = calculateTotals()
+  const { subtotal, totalItems, discount, deliveryCharge, total, qualifiesForDiscount } = calculateTotals()
 
   const filteredProducts = dbProducts.filter(product => {
     const matchesSearch = !featuredSearch ||
@@ -521,15 +536,32 @@ const CustomerDashboard = () => {
       {/* Dashboard Content */}
       <main className="dashboard">
         {/* Welcome Section */}
-        <section className="welcome-section">
-          <h1 className="welcome-title">Customer Dashboard</h1>
-          <p>Welcome to your Laklights Food Products account. Browse our premium cordials, jams, and sauces with automatic wholesale discounts for bulk orders.</p>
-          <div className="welcome-buttons">
+        <section className="welcome-section" style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+          <h1 className="welcome-title">Welcome, {profileData.firstName || 'Customer'}!</h1>
+          <p style={{ maxWidth: '600px', margin: '0 auto 2rem', color: '#666' }}>
+            Manage your account, track recent orders, and quickly browse our premium products.
+          </p>
+          <div className="welcome-quick-links" style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
             <button
-              className="btn btn-secondary welcome-btn-secondary"
+              className="quick-link-card"
               onClick={() => document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' })}
             >
-              View Catalog
+              <FontAwesomeIcon icon={faShoppingBag} className="quick-link-icon" />
+              <span className="quick-link-text">Browse Catalog</span>
+            </button>
+            <button
+              className="quick-link-card"
+              onClick={() => document.getElementById('recent-orders')?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              <FontAwesomeIcon icon={faBoxOpen} className="quick-link-icon" />
+              <span className="quick-link-text">Recent Orders</span>
+            </button>
+            <button
+              className="quick-link-card"
+              onClick={() => document.getElementById('account-summary')?.scrollIntoView({ behavior: 'smooth' })}
+            >
+              <FontAwesomeIcon icon={faUser} className="quick-link-icon" />
+              <span className="quick-link-text">Account Summary</span>
             </button>
           </div>
         </section>
@@ -553,9 +585,15 @@ const CustomerDashboard = () => {
                       <div>Total: LKR {(parseFloat(order.net_amount) || 0).toFixed(2)}</div>
                     </div>
                     <div className="order-actions-status" style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
-                      <span className={`order-status status-${(order.order_status || '').toLowerCase()}`}>
-                        {order.order_status}
-                      </span>
+                      {(order.order_status || '').toLowerCase() === 'delivered' ? (
+                        <Link to="/feedback" className={`order-status status-${(order.order_status || '').toLowerCase()}`} style={{ textDecoration: 'none' }}>
+                          {order.order_status}
+                        </Link>
+                      ) : (
+                        <span className={`order-status status-${(order.order_status || '').toLowerCase()}`}>
+                          {order.order_status}
+                        </span>
+                      )}
                       <span className={`payment-status status-${(order.payment_status || '').toLowerCase()}`}>
                         {order.payment_status}
                       </span>
@@ -573,16 +611,33 @@ const CustomerDashboard = () => {
           </div>
 
           {/* Account Summary */}
-          <div className="dashboard-card">
-            <div className="card-header">
+          <div className="dashboard-card" id="account-summary">
+            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h2 className="card-title">Account Summary</h2>
+              <button 
+                className="btn btn-small btn-secondary"
+                onClick={() => setIsEditProfileOpen(true)}
+              >
+                Edit Profile
+              </button>
             </div>
-            <div>
-              <p><strong>Customer ID:</strong> C001</p>
-              <p><strong>Total Orders:</strong> 12</p>
-              <p><strong>Total Spent:</strong> LKR 45,500.00</p>
-              <p><strong>Wholesale Discounts Earned:</strong> LKR 4,550.00</p>
-              <p><strong>Member Since:</strong> January 2025</p>
+            <div className="account-details-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+              <div className="summary-item" style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '8px' }}>
+                <span style={{ color: '#666', fontSize: '0.9rem', display: 'block', marginBottom: '4px' }}>Name</span>
+                <strong>{profileData.firstName} {profileData.lastName}</strong>
+              </div>
+              <div className="summary-item" style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '8px' }}>
+                <span style={{ color: '#666', fontSize: '0.9rem', display: 'block', marginBottom: '4px' }}>Email</span>
+                <strong style={{ wordBreak: 'break-all' }}>{profileData.email || 'N/A'}</strong>
+              </div>
+              <div className="summary-item" style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '8px' }}>
+                <span style={{ color: '#666', fontSize: '0.9rem', display: 'block', marginBottom: '4px' }}>Phone</span>
+                <strong>{profileData.phone || 'N/A'}</strong>
+              </div>
+              <div className="summary-item" style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '8px' }}>
+                <span style={{ color: '#666', fontSize: '0.9rem', display: 'block', marginBottom: '4px' }}>Total Orders</span>
+                <strong>{dbOrders.length}</strong>
+              </div>
             </div>
           </div>
         </div>
@@ -646,7 +701,7 @@ const CustomerDashboard = () => {
           <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
             <a href="/product-catalog" className="btn btn-primary">View All Products</a>
             <p style={{ marginTop: '0.5rem', color: '#666', fontSize: '0.9rem' }}>
-              💡 Order 12+ pieces of any product to get automatic 10% wholesale discount!
+              💡 Order 12+ pieces of any specific product to get an automatic 10% wholesale discount on it!
             </p>
           </div>
         </div>
@@ -713,6 +768,10 @@ const CustomerDashboard = () => {
                   <span style={{ color: '#4caf50' }}>-LKR {discount.toFixed(2)}</span>
                 </div>
               )}
+              <div className="summary-row">
+                <span>Delivery Charge:</span>
+                <span>LKR {deliveryCharge.toFixed(2)}</span>
+              </div>
               <div className="summary-row summary-total">
                 <span>Total:</span>
                 <span>LKR {total.toFixed(2)}</span>
@@ -720,11 +779,11 @@ const CustomerDashboard = () => {
 
               {qualifiesForDiscount ? (
                 <div className="wholesale-notice">
-                  🎉 Congratulations! You've qualified for our 10% wholesale discount on bulk orders (12+ pieces)
+                  🎉 Congratulations! You've qualified for our 10% wholesale discount on specific bulk items (12+ pieces)
                 </div>
               ) : (
-                <div className="wholesale-notice" style={{ background: '#fff3cd', borderColor: '#ffc107' }}>
-                  💡 Add {12 - totalItems} more items to qualify for 10% wholesale discount
+                <div className="wholesale-notice" style={{ background: '#fff3cd', borderColor: '#ffc107', color: '#856404' }}>
+                  💡 Order 12 or more of any specific item to unlock a 10% wholesale discount for that item!
                 </div>
               )}
 
@@ -921,13 +980,13 @@ const CustomerDashboard = () => {
             <form onSubmit={handleCheckoutSubmit}>
               <div className="modal-body">
                 <div className="form-row">
-                  <div className="form-group">
-                    <label>First Name *</label>
+                  <div className="form-group" style={{ width: '100%', gridColumn: '1 / -1' }}>
+                    <label>Name *</label>
                     <input
                       type="text"
                       value={checkoutData.firstName}
                       onChange={(e) => setCheckoutData({ ...checkoutData, firstName: e.target.value })}
-                      placeholder="Enter first name"
+                      placeholder="Enter name"
                       required
                     />
                   </div>

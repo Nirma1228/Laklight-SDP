@@ -91,8 +91,7 @@ exports.createCheckoutSession = async (req, res) => {
           price_data: {
             currency: 'lkr',
             product_data: {
-              name: 'Laklight Food Products Order',
-              description: orderId ? `Payment for Order #${orderId}` : 'Bulk Purchase',
+              name: 'Laklight Food Products',
             },
             unit_amount: Math.round(amount * 100), // Stripe expects amount in cents
           },
@@ -100,6 +99,11 @@ exports.createCheckoutSession = async (req, res) => {
         },
       ],
       mode: 'payment',
+      payment_method_options: {
+        link: {
+          enabled: false,
+        },
+      },
       success_url: `${process.env.STRIPE_SUCCESS_URL}&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: process.env.STRIPE_CANCEL_URL,
       metadata: { orderId: orderId?.toString() }

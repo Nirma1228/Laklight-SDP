@@ -3,11 +3,18 @@ import { Link, useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import { config } from '../config'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import {
+  faBoxes, faHandshake, faClipboardList, faTruck,
+  faBell, faSync, faLeaf, faCubes,
+  faCheckCircle, faFlagCheckered
+} from '@fortawesome/free-solid-svg-icons'
 import './EmployeeDashboard.css'
 
 const EmployeeDashboard = () => {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState('inventory')
+  const [inventorySubTab, setInventorySubTab] = useState('farmer')
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false)
   const [isReviewDeliveryOpen, setIsReviewDeliveryOpen] = useState(false)
   const [isDeliveryDetailsOpen, setIsDeliveryDetailsOpen] = useState(false)
@@ -548,6 +555,8 @@ const EmployeeDashboard = () => {
           submitted: app.created_at ? new Date(app.created_at).toISOString().split('T')[0] : '',
           transport: app.transport_method || app.transport || 'N/A',
           date: app.delivery_date ? new Date(app.delivery_date).toISOString().split('T')[0] : '',
+          proposedDate2: app.proposed_date_2 ? new Date(app.proposed_date_2).toISOString().split('T')[0] : '',
+          proposedDate3: app.proposed_date_3 ? new Date(app.proposed_date_3).toISOString().split('T')[0] : '',
           images: app.images || [],
           category: app.category || 'raw',
           status: app.status || 'under-review'
@@ -669,7 +678,10 @@ const EmployeeDashboard = () => {
       }
 
       // Check if employee is using farmer's proposed date or rescheduling
-      const isUsingFarmerDate = customScheduleDate === selectedApp.date;
+      const isUsingFarmerDate = 
+        customScheduleDate === selectedApp.date || 
+        customScheduleDate === selectedApp.proposedDate2 || 
+        customScheduleDate === selectedApp.proposedDate3;
 
       // Call backend API to approve application
       const response = await fetch(`${config.API_BASE_URL}/employee/applications/${selectedApp.id}/approve`, {
@@ -1103,24 +1115,28 @@ const EmployeeDashboard = () => {
             className={`tab-button ${activeTab === 'inventory' ? 'active' : ''}`}
             onClick={() => showTab('inventory')}
           >
+            <FontAwesomeIcon icon={faBoxes} style={{ marginRight: '0.5rem' }} />
             Inventory Management
           </button>
           <button
             className={`tab-button ${activeTab === 'suppliers' ? 'active' : ''}`}
             onClick={() => showTab('suppliers')}
           >
+            <FontAwesomeIcon icon={faHandshake} style={{ marginRight: '0.5rem' }} />
             Supplier Applications
           </button>
           <button
             className={`tab-button ${activeTab === 'orders' ? 'active' : ''}`}
             onClick={() => showTab('orders')}
           >
+            <FontAwesomeIcon icon={faClipboardList} style={{ marginRight: '0.5rem' }} />
             Order Management
           </button>
           <button
             className={`tab-button ${activeTab === 'deliveries' ? 'active' : ''}`}
             onClick={() => showTab('deliveries')}
           >
+            <FontAwesomeIcon icon={faTruck} style={{ marginRight: '0.5rem' }} />
             Delivery Schedule
           </button>
         </div>
@@ -1131,12 +1147,12 @@ const EmployeeDashboard = () => {
           {notifications.length > 0 && (
             <div className="notifications-section">
               <div className="notifications-header">
-                <h3>🔔 Delivery Reschedule Requests ({notifications.length})</h3>
+                <h3><FontAwesomeIcon icon={faBell} style={{ marginRight: '0.5rem', color: '#f59e0b' }} /> Delivery Reschedule Requests ({notifications.length})</h3>
               </div>
               {notifications.map((notification) => (
                 <div key={notification.id} className="notification-item">
                   <div className="notification-content">
-                    <h4>🔄 Delivery Reschedule Request</h4>
+                    <h4><FontAwesomeIcon icon={faSync} style={{ marginRight: '0.4rem', color: '#3b82f6' }} /> Delivery Reschedule Request</h4>
                     <div className="notification-details">
                       <div className="detail-row">
                         <span className="detail-label">Delivery ID:</span>
@@ -1248,10 +1264,49 @@ const EmployeeDashboard = () => {
                 </div>
               </div>
 
-              <div className="inventory-split">
-                {/* Farmer Products Column */}
-                <div className="inventory-column">
-                  <h3>Farmer Products</h3>
+              {/* Inventory Sub-Tab Toggle Buttons */}
+              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1.5rem', borderBottom: '2px solid #e8f5e9', paddingBottom: '0.5rem' }}>
+                <button
+                  onClick={() => setInventorySubTab('farmer')}
+                  style={{
+                    padding: '0.6rem 1.6rem',
+                    borderRadius: '8px',
+                    border: 'none',
+                    fontWeight: '600',
+                    fontSize: '0.95rem',
+                    cursor: 'pointer',
+                    background: inventorySubTab === 'farmer' ? '#2e7d32' : '#f0f0f0',
+                    color: inventorySubTab === 'farmer' ? '#fff' : '#555',
+                    boxShadow: inventorySubTab === 'farmer' ? '0 2px 8px rgba(46,125,50,0.3)' : 'none',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <FontAwesomeIcon icon={faLeaf} style={{ marginRight: '0.4rem' }} />
+                  Farmer Products
+                </button>
+                <button
+                  onClick={() => setInventorySubTab('finished')}
+                  style={{
+                    padding: '0.6rem 1.6rem',
+                    borderRadius: '8px',
+                    border: 'none',
+                    fontWeight: '600',
+                    fontSize: '0.95rem',
+                    cursor: 'pointer',
+                    background: inventorySubTab === 'finished' ? '#2e7d32' : '#f0f0f0',
+                    color: inventorySubTab === 'finished' ? '#fff' : '#555',
+                    boxShadow: inventorySubTab === 'finished' ? '0 2px 8px rgba(46,125,50,0.3)' : 'none',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  <FontAwesomeIcon icon={faCubes} style={{ marginRight: '0.4rem' }} />
+                  Finished Products
+                </button>
+              </div>
+
+              {/* Farmer Products Panel */}
+              {inventorySubTab === 'farmer' && (
+                <div className="inventory-column" style={{ width: '100%' }}>
                   <button
                     className="btn btn-primary btn-small"
                     style={{ marginBottom: '0.5rem' }}
@@ -1307,10 +1362,11 @@ const EmployeeDashboard = () => {
                     </div>
                   )}
                 </div>
+              )}
 
-                {/* Finished Products Column */}
-                <div className="inventory-column">
-                  <h3>Finished Products</h3>
+              {/* Finished Products Panel */}
+              {inventorySubTab === 'finished' && (
+                <div className="inventory-column" style={{ width: '100%' }}>
                   <button
                     className="btn btn-primary btn-small"
                     style={{ marginBottom: '0.5rem' }}
@@ -1353,7 +1409,7 @@ const EmployeeDashboard = () => {
                     </div>
                   )}
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
@@ -1558,7 +1614,7 @@ const EmployeeDashboard = () => {
             <div id="delivery-schedule" className="dashboard-card" style={{ gridColumn: '1 / -1' }}>
               <div className="card-header">
                 <div className="card-title">
-                  <div className="card-icon">🚚</div>
+                  <div className="card-icon"><FontAwesomeIcon icon={faTruck} /></div>
                   <h2>Farmer Delivery Schedule Requests</h2>
                 </div>
                 <p className="card-subtitle" style={{ marginTop: '0.5rem', color: '#666' }}>
@@ -1575,6 +1631,7 @@ const EmployeeDashboard = () => {
                   <option value="all">All Delivery Schedules</option>
                   <option value="scheduled delivery">Scheduled Delivery</option>
                   <option value="pending">Pending Farmer Response</option>
+                  <option value="confirmed">✅ Confirmed (Ready to Complete)</option>
                   <option value="confirmed schedule">Confirmed Schedule</option>
                   <option value="completed">Completed</option>
                 </select>
@@ -2166,8 +2223,56 @@ const EmployeeDashboard = () => {
                 <p>Product: <strong>{selectedApp.product}</strong> ({selectedApp.quantity})</p>
               </div>
 
-              <div style={{ background: '#fff3cd', padding: '1rem', borderRadius: '8px', marginBottom: '1.5rem', borderLeft: '4px solid #ffc107' }}>
-                <p style={{ margin: 0 }}><strong>Farmer's Proposed Date:</strong> {selectedApp.date}</p>
+              <div style={{ background: '#f5f5f5', padding: '1.2rem', borderRadius: '12px', marginBottom: '1.5rem' }}>
+                <p style={{ margin: '0 0 1rem 0', fontWeight: 'bold', color: '#666' }}>Farmer's Proposed Dates (Pick one):</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
+                  <button 
+                    className="btn-date-option"
+                    style={{ 
+                      padding: '0.8rem', 
+                      borderRadius: '8px', 
+                      border: customScheduleDate === selectedApp.date ? '2px solid #2e7d32' : '1px solid #ddd',
+                      background: customScheduleDate === selectedApp.date ? '#e8f5e9' : 'white',
+                      textAlign: 'left',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => setCustomScheduleDate(selectedApp.date)}
+                  >
+                    📅 Option 1: <strong>{selectedApp.date}</strong>
+                  </button>
+                  {selectedApp.proposedDate2 && (
+                    <button 
+                      className="btn-date-option"
+                      style={{ 
+                        padding: '0.8rem', 
+                        borderRadius: '8px', 
+                        border: customScheduleDate === selectedApp.proposedDate2 ? '2px solid #2e7d32' : '1px solid #ddd',
+                        background: customScheduleDate === selectedApp.proposedDate2 ? '#e8f5e9' : 'white',
+                        textAlign: 'left',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => setCustomScheduleDate(selectedApp.proposedDate2)}
+                    >
+                      📅 Option 2: <strong>{selectedApp.proposedDate2}</strong>
+                    </button>
+                  )}
+                  {selectedApp.proposedDate3 && (
+                    <button 
+                      className="btn-date-option"
+                      style={{ 
+                        padding: '0.8rem', 
+                        borderRadius: '8px', 
+                        border: customScheduleDate === selectedApp.proposedDate3 ? '2px solid #2e7d32' : '1px solid #ddd',
+                        background: customScheduleDate === selectedApp.proposedDate3 ? '#e8f5e9' : 'white',
+                        textAlign: 'left',
+                        cursor: 'pointer'
+                      }}
+                      onClick={() => setCustomScheduleDate(selectedApp.proposedDate3)}
+                    >
+                      📅 Option 3: <strong>{selectedApp.proposedDate3}</strong>
+                    </button>
+                  )}
+                </div>
               </div>
 
               <div className="form-group">

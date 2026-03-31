@@ -1,0 +1,82 @@
+{
+  "farmerDashboard": {
+    "title": "Farmer Dashboard",
+    "welcomeMessage": "Welcome to your supplier portal. Submit your fruit products and track your applications with Laklight Food Products.",
+    "approvedSupplier": "Approved Supplier",
+    "stats": {
+      "productsSubmitted": "Products Submitted",
+      "productsSelected": "Products Selected",
+      "deliveriesMade": "Deliveries Made",
+      "qualityRating": "Quality Rating"
+    },
+    "submitProductSection": {
+      "title": "Submit Product Information",
+      "subtitle": "Add details about the products you want to sell",
+      "form": {
+        "product": "Product",
+        "remove": "Remove",
+        "productType": "Product Type: *",
+        "selectType": "Select Type",
+        "vegetables": "Vegetables",
+        "fruits": "Fruits",
+        "dairy": "Dairy",
+        "grains": "Grains",
+        "other": "Other",
+        "productName": "Product Name: *",
+        "productNamePlaceholder": "e.g., Mangoes",
+        "variety": "Variety (Optional):",
+        "varietyPlaceholder": "e.g., Alphonso",
+        "quantity": "Quantity: *",
+        "quantityPlaceholder": "Amount",
+        "price": "Price per Unit (LKR): *",
+        "pricePlaceholder": "Price in LKR",
+        "harvestDate": "Harvest Date: *",
+        "qualityGrade": "Quality Grade: *",
+        "selectGrade": "Select Grade",
+        "gradeA": "Grade A (Premium)",
+        "gradeB": "Grade B (Standard)",
+        "gradeC": "Grade C (Economy)",
+        "transportMethod": "Transport Method: *",
+        "selectTransport": "Select Transport Method",
+        "companyTransport": "Company Transport",
+        "selfDelivery": "Self Delivery",
+        "prefDate1": "Preferred Transport Date 1: *",
+        "prefDate1Hint": "Must be after harvest date",
+        "prefDate2": "Preferred Transport Date 2: (Optional)",
+        "prefDate2Hint": "Alternative Date 1",
+        "prefDate3": "Preferred Transport Date 3: (Optional)",
+        "prefDate3Hint": "Alternative Date 2",
+        "productImages": "Product Images (Max 5 images):",
+        "uploadInstructions": "Click to upload images or drag and drop",
+        "uploadSubtext": "PNG, JPG up to 5MB each",
+        "additionalNotes": "Additional Notes:",
+        "notesPlaceholder": "Any special information about this product...",
+        "addAnother": "+ Add Another Product",
+        "submitAll": "Submit All Products"
+      }
+    },
+    "mySubmissionsSection": {
+      "title": "My Product Submissions"
+    },
+    "deliveriesSection": {
+      "title": "Delivery Schedule Management"
+    },
+    "sidebar": {
+      "home": "Home",
+      "submit": "Suggest Products",
+      "submissions": "My History",
+      "deliveries": "Deliveries",
+      "profile": "My Profile",
+      "bank": "Bank Details",
+      "support": "Help & Support",
+      "logout": "Logout"
+    }
+  },
+  "header": {
+    "dashboard": "Dashboard",
+    "myProducts": "My Products",
+    "deliveries": "Deliveries",
+    "bankDetails": "Bank Details",
+    "profile": "Profile"
+  }
+}

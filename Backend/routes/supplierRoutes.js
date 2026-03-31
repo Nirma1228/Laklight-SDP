@@ -51,7 +51,7 @@ router.get('/:id', verifyToken, async (req, res) => {
 });
 
 // Add supplier (Admin/Employee)
-router.post('/', verifyToken, checkRole('administrator', 'employee'), async (req, res) => {
+router.post('/', verifyToken, checkRole('admin', 'employee'), async (req, res) => {
   try {
     const { farmName, ownerName, location, phone, email, productTypes, licenseNumber, farmSize, capacity } = req.body;
 
@@ -72,7 +72,7 @@ router.post('/', verifyToken, checkRole('administrator', 'employee'), async (req
 });
 
 // Update supplier (Admin/Employee)
-router.put('/:id', verifyToken, checkRole('administrator', 'employee'), async (req, res) => {
+router.put('/:id', verifyToken, checkRole('admin', 'employee'), async (req, res) => {
   try {
     const supplierId = req.params.id;
     const { farmName, ownerName, location, phone, email, productTypes, licenseNumber, status } = req.body;
@@ -98,7 +98,7 @@ router.put('/:id', verifyToken, checkRole('administrator', 'employee'), async (r
 });
 
 // Delete supplier (Admin)
-router.delete('/:id', verifyToken, checkRole('administrator'), async (req, res) => {
+router.delete('/:id', verifyToken, checkRole('admin'), async (req, res) => {
   try {
     const supplierId = req.params.id;
 
@@ -118,7 +118,7 @@ router.delete('/:id', verifyToken, checkRole('administrator'), async (req, res) 
 });
 
 // Get supplier performance
-router.get('/:id/performance', verifyToken, checkRole('administrator', 'employee'), async (req, res) => {
+router.get('/:id/performance', verifyToken, checkRole('admin', 'employee'), async (req, res) => {
   try {
     const supplierId = req.params.id;
 
@@ -148,7 +148,7 @@ router.get('/:id/performance', verifyToken, checkRole('administrator', 'employee
 });
 
 // Rate supplier (Admin/Employee)
-router.post('/:id/rating', verifyToken, checkRole('administrator', 'employee'), async (req, res) => {
+router.post('/:id/rating', verifyToken, checkRole('admin', 'employee'), async (req, res) => {
   try {
     const supplierId = req.params.id;
     const { rating } = req.body;

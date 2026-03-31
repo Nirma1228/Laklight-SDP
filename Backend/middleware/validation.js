@@ -2,14 +2,19 @@ const { body, param, query, validationResult } = require('express-validator');
 
 // Validation error handler
 exports.validate = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      errors: errors.array()
-    });
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: errors.array()[0]?.msg || 'Validation failed',
+        errors: errors.array()
+      });
+    }
+    next();
+  } catch (err) {
+    next(err);
   }
-  next();
 };
 
 // User registration validation
@@ -48,7 +53,7 @@ exports.productValidation = [
 exports.orderValidation = [
   body('items').isArray({ min: 1 }).withMessage('Order must contain at least one item'),
   body('deliveryAddress').notEmpty().withMessage('Delivery address is required'),
-  body('paymentMethod').isIn(['Card Payment', 'Online Banking', 'Cash on Delivery']).withMessage('Invalid payment method')
+  body('paymentMethod').isIn(['Card Payment', 'Stripe Card', 'Credit Card', 'Online Banking', 'Cash on Delivery']).withMessage('Invalid payment method')
 ];
 
 // Farmer submission validation
