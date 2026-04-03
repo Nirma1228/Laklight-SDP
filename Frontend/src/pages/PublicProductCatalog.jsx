@@ -1,63 +1,51 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
+import { config } from '../config'
 import { useToast } from '../components/ToastNotification'
 import './CustomerDashboard.css'
 
-// Product Card Component
-const ProductCard = ({ productKey, product, onAddToCart }) => {
-  const [quantity, setQuantity] = useState(1)
-  const [added, setAdded] = useState(false)
-
-  const updateQuantity = (change) => {
-    setQuantity(prev => Math.max(1, Math.min(99, prev + change)))
-  }
-
+// Product Card Component (read-only for public view)
+const ProductCard = ({ product, onLoginPrompt }) => {
   const handleAddToCart = () => {
-    onAddToCart(productKey, quantity)
-    setQuantity(1)
-    setAdded(true)
-    setTimeout(() => setAdded(false), 400)
+    onLoginPrompt()
   }
+
+  const availability = product.is_available !== undefined
+    ? (product.is_available ? 'in-stock' : 'out-of-stock')
+    : (product.stock_quantity > 10 ? 'in-stock' : product.stock_quantity > 0 ? 'low-stock' : 'out-of-stock')
+
+  const availabilityLabel = {
+    'in-stock': 'In Stock',
+    'low-stock': 'Low Stock',
+    'out-of-stock': 'Out of Stock'
+  }[availability]
 
   return (
-    <div className="product-card" data-key={productKey}>
+    <div className="product-card">
       <div className="product-img" style={{ height: '200px', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <img
-          src={product.image}
+          src={product.image_url || product.image || '/images/placeholder.png'}
           alt={product.name}
           style={{ height: '100%', width: 'auto', objectFit: 'contain', borderRadius: '8px' }}
         />
       </div>
       <div className="product-info">
         <div className="product-name">{product.name}</div>
-        <div className="product-price">LKR {product.price.toFixed(2)}</div>
+        <div className="product-price">LKR {(parseFloat(product.price) || 0).toFixed(2)}</div>
         <div className="product-description">{product.description}</div>
-        <div className={`product-availability availability-${product.availability}`}>
-          {product.availability === 'in-stock' && 'In Stock'}
-          {product.availability === 'low-stock' && 'Low Stock'}
-          {product.availability === 'out-of-stock' && 'Out of Stock'}
+        <div className={`product-availability availability-${availability}`}>
+          {availabilityLabel}
         </div>
         <div className="product-actions">
-          <div className="quantity-controls">
-            <button className="quantity-btn" onClick={() => updateQuantity(-1)}>-</button>
-            <input
-              type="number"
-              className="quantity-input"
-              value={quantity}
-              onChange={(e) => setQuantity(Math.max(1, Math.min(99, parseInt(e.target.value) || 1)))}
-              min="1"
-              max="99"
-            />
-            <button className="quantity-btn" onClick={() => updateQuantity(1)}>+</button>
-          </div>
           <button
-            className={`btn btn-primary btn-small add-to-cart-btn${added ? ' added' : ''}`}
+            className="btn btn-primary btn-small add-to-cart-btn"
             onClick={handleAddToCart}
-            disabled={product.availability === 'out-of-stock'}
+            disabled={availability === 'out-of-stock'}
+            title="Login to add to cart"
           >
-            {added ? 'Added!' : 'Add to Cart'}
+            🔒 Login to Order
           </button>
         </div>
       </div>
@@ -68,84 +56,59 @@ const ProductCard = ({ productKey, product, onAddToCart }) => {
 const PublicProductCatalog = () => {
   const navigate = useNavigate()
   const toast = useToast()
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
   const [featuredSearch, setFeaturedSearch] = useState('')
   const [featuredCategory, setFeaturedCategory] = useState('')
   const [featuredSort, setFeaturedSort] = useState('')
 
-  const products = {
-    'lime': {
-      name: 'Lime Mix',
-      price: 150.00,
-      image: '/images/Lime Mix.png',
-      description: 'Refreshing lime cordial made from fresh lime extracts. Perfect for mixing with water or soda. 350ml bottle.',
-      availability: 'in-stock',
-      category: 'juice'
-    },
-    'woodapple': {
-      name: 'Wood Apple Juice',
-      price: 100.00,
-      image: '/images/Wood Apple Juice.png',
-      description: 'Traditional Sri Lankan wood apple juice rich in nutrients. Naturally sweet and tangy. 200ml liter bottle.',
-      availability: 'in-stock',
-      category: 'juice'
-    },
-    'mangojelly': {
-      name: 'Mango Jelly',
-      price: 200.00,
-      image: '/images/Mango Jelly.png',
-      description: 'Premium mango jelly made from fresh mangoes. Great for desserts and breakfast spreads. 100g pack.',
-      availability: 'out-of-stock',
-      category: 'jam'
-    },
-    'custard': {
-      name: 'Custard powder',
-      price: 300.00,
-      image: '/images/Custard powder.png',
-      description: 'High-quality custard powder for delicious desserts. Rich vanilla flavor. Perfect for puddings and trifles. 100g pack.',
-      availability: 'in-stock',
-      category: 'preserves'
+  // Fetch all products from API (same endpoint as CustomerDashboard)
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch(`${config.API_BASE_URL}/products`)
+        const data = await res.json()
+        if (data.success) {
+          setProducts(data.products)
+        }
+      } catch (err) {
+        console.error('Product fetch failed:', err)
+      } finally {
+        setLoading(false)
+      }
     }
-  }
+    fetchProducts()
+  }, [])
 
-  const addToCart = (productKey, quantity = 1) => {
-    // Check if user is logged in
-    const token = localStorage.getItem('token') || sessionStorage.getItem('token')
-    if (!token) {
-      toast.warning('Please login to add items to your cart')
-      setTimeout(() => {
-        navigate('/login?redirect=/customer/dashboard')
-      }, 1500)
-      return
-    }
-
-    // If logged in, redirect to customer dashboard
-    toast.info('Redirecting to your dashboard...')
+  const handleLoginPrompt = () => {
+    toast.warning('Please login to add items to your cart')
     setTimeout(() => {
-      navigate('/customer/dashboard')
-    }, 1000)
+      navigate('/login?redirect=/customer/dashboard')
+    }, 1500)
   }
 
-  const filteredProducts = Object.entries(products).filter(([key, product]) => {
+  // Get unique categories from fetched products
+  const categories = [...new Set(products.map(p => p.category_name || p.category).filter(Boolean))]
+
+  const filteredProducts = products.filter(product => {
+    const productCategory = product.category_name || product.category || ''
     const matchesSearch = !featuredSearch ||
       product.name.toLowerCase().includes(featuredSearch.toLowerCase()) ||
-      product.description.toLowerCase().includes(featuredSearch.toLowerCase())
+      (product.description || '').toLowerCase().includes(featuredSearch.toLowerCase())
 
-    const matchesCategory = !featuredCategory || product.category === featuredCategory
+    const matchesCategory = !featuredCategory || productCategory === featuredCategory
 
     return matchesSearch && matchesCategory
   }).sort((a, b) => {
-    const [keyA, productA] = a
-    const [keyB, productB] = b
-
     switch (featuredSort) {
       case 'price-low':
-        return productA.price - productB.price
+        return parseFloat(a.price) - parseFloat(b.price)
       case 'price-high':
-        return productB.price - productA.price
+        return parseFloat(b.price) - parseFloat(a.price)
       case 'popular':
-        return productA.name.localeCompare(productB.name)
+        return a.name.localeCompare(b.name)
       case 'newest':
-        return productB.name.localeCompare(productA.name)
+        return b.name.localeCompare(a.name)
       default:
         return 0
     }
@@ -167,7 +130,7 @@ const PublicProductCatalog = () => {
         {/* Welcome Section */}
         <section className="welcome-section">
           <h1 className="welcome-title">Our Products</h1>
-          <p>Browse our premium selection of cordials, jams, and sauces. Login to place orders and get automatic wholesale discounts for bulk purchases.</p>
+          <p>Browse our premium selection of cordials, jams, and more. Login to place orders and get automatic wholesale discounts for bulk purchases.</p>
           <div className="welcome-buttons">
             <button
               className="btn btn-primary"
@@ -175,14 +138,27 @@ const PublicProductCatalog = () => {
             >
               Login to Shop
             </button>
+            <button
+              className="btn btn-secondary"
+              style={{ marginLeft: '1rem' }}
+              onClick={() => navigate('/')}
+            >
+              Back to Home
+            </button>
           </div>
         </section>
 
-        {/* Featured Products */}
+        {/* Product Catalog */}
         <div id="products" className="dashboard-card">
           <div className="card-header">
-            <h2 className="card-title">Featured Products</h2>
+            <h2 className="card-title">Product Catalog</h2>
+            {!loading && (
+              <span style={{ color: '#666', fontSize: '0.9rem' }}>
+                {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''} found
+              </span>
+            )}
           </div>
+
           {/* Search and Filter */}
           <div className="search-container">
             <div className="search-box">
@@ -201,10 +177,9 @@ const PublicProductCatalog = () => {
                 onChange={(e) => setFeaturedCategory(e.target.value)}
               >
                 <option value="">All Categories</option>
-                <option value="fruits">Fresh Fruits</option>
-                <option value="juice">Fruit Juice</option>
-                <option value="jam">Fruit Jam</option>
-                <option value="preserves">Preserves</option>
+                {categories.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
               </select>
               <select
                 className="filter-select"
@@ -214,22 +189,25 @@ const PublicProductCatalog = () => {
                 <option value="">Sort By</option>
                 <option value="price-low">Price: Low to High</option>
                 <option value="price-high">Price: High to Low</option>
-                <option value="popular">Most Popular</option>
-                <option value="newest">Newest First</option>
+                <option value="popular">Name: A–Z</option>
+                <option value="newest">Name: Z–A</option>
               </select>
             </div>
           </div>
 
-          {filteredProducts.length === 0 ? (
-            <div className="no-results">No featured products found matching your criteria.</div>
+          {loading ? (
+            <div className="no-results" style={{ padding: '3rem', textAlign: 'center' }}>
+              <p>Loading products...</p>
+            </div>
+          ) : filteredProducts.length === 0 ? (
+            <div className="no-results">No products found matching your criteria.</div>
           ) : (
             <div className="products-grid">
-              {filteredProducts.map(([key, product]) => (
+              {filteredProducts.map(product => (
                 <ProductCard
-                  key={key}
-                  productKey={key}
+                  key={product.product_id || product.id}
                   product={product}
-                  onAddToCart={addToCart}
+                  onLoginPrompt={handleLoginPrompt}
                 />
               ))}
             </div>
