@@ -357,8 +357,9 @@ function FarmerDashboard() {
   }
 
   const [deliveries, setDeliveries] = useState([
-    { id: 'DEL-2041', product: 'Alphonso Mangoes', quantity: '500kg', scheduleDate: '2024-03-25', transport: 'company', status: 'pending' },
-    { id: 'DEL-2038', product: 'Cavendish Bananas', quantity: '300kg', scheduleDate: '2024-03-20', transport: 'self', status: 'completed' },
+    { id: 'DEL-2038', product: 'Mango (Grade A)', quantity: '100.00kg', scheduleDate: '2026-03-20', transport: 'self', status: 'completed' },
+    { id: 'DEL-2041', product: 'Tomato (Grade C)', quantity: '148.00kg', scheduleDate: '2026-03-23', transport: 'company', status: 'confirmed' },
+    { id: 'DEL-2042', product: 'Papaya (Grade A)', quantity: '500.00kg', scheduleDate: '2026-03-22', transport: 'company', status: 'pending' },
   ]);
 
   // Check for updates and notify farmer on load
@@ -755,28 +756,28 @@ function FarmerDashboard() {
 
                 {/* Quick Stats Row */}
                 <div className="stats-row-v2">
-                  <div className="stat-card-v2">
+                  <div className="stat-card-v2 blue">
                     <div className="stat-icon-v2 blue"><FontAwesomeIcon icon={faBoxes} /></div>
                     <div className="stat-info-v2">
                       <span className="stat-value-v2">{submissions.length}</span>
                       <span className="stat-label-v2">Total Submitted</span>
                     </div>
                   </div>
-                  <div className="stat-card-v2">
+                  <div className="stat-card-v2 green">
                     <div className="stat-icon-v2 green"><FontAwesomeIcon icon={faCheckCircle} /></div>
                     <div className="stat-info-v2">
                       <span className="stat-value-v2">{submissions.filter(s => s.status === 'selected').length}</span>
                       <span className="stat-label-v2">Accepted Stocks</span>
                     </div>
                   </div>
-                  <div className="stat-card-v2">
+                  <div className="stat-card-v2 orange">
                     <div className="stat-icon-v2 orange"><FontAwesomeIcon icon={faTruck} /></div>
                     <div className="stat-info-v2">
                       <span className="stat-value-v2">{deliveries.filter(d => d.status === 'pending').length}</span>
                       <span className="stat-label-v2">Pending Logistics</span>
                     </div>
                   </div>
-                  <div className="stat-card-v2">
+                  <div className="stat-card-v2 gold">
                     <div className="stat-icon-v2 gold"><FontAwesomeIcon icon={faStar} /></div>
                     <div className="stat-info-v2">
                       <span className="stat-value-v2">{farmerProfile.qualityRating}</span>
@@ -820,10 +821,6 @@ function FarmerDashboard() {
                             <span>Missing bank details for payments</span>
                           </div>
                         )}
-                        <div className="notice-item-v2 info">
-                          <FontAwesomeIcon icon={faInfoCircle} />
-                          <span>Seasonal produce requirements updated for next month</span>
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -1045,6 +1042,7 @@ function FarmerDashboard() {
                           <div className="sub-info-row-v2">
                             <span>Price: <strong>{sub.price}</strong></span>
                             <span>Harvest: <strong>{sub.harvestDate}</strong></span>
+                            <span>&nbsp;&nbsp;Delivery: <strong>{sub.deliveryDate}</strong></span>
                           </div>
                         </div>
                         <div className="sub-footer-v2">
@@ -1095,7 +1093,7 @@ function FarmerDashboard() {
                       <div className="table-empty-v2">No active deliveries scheduled.</div>
                     ) : (
                       deliveries.map(delivery => (
-                        <div key={delivery.id} className="table-row-v2">
+                        <div key={delivery.id} className={`table-row-v2 ${delivery.status}`}>
                           <div className="td-v2 font-bold">{delivery.product}</div>
                           <div className="td-v2">{delivery.quantity}</div>
                           <div className="td-v2">{delivery.scheduleDate || 'TBD'}</div>
@@ -1110,7 +1108,11 @@ function FarmerDashboard() {
                                 <button className="btn-reschedule-v2" onClick={() => handleRescheduleClick(delivery)}>Reschedule</button>
                               </div>
                             )}
-                            {delivery.status === 'confirmed' && <span className="status-text-v2">Awaiting Pickup</span>}
+                            {delivery.status === 'confirmed' && (
+                              <span className="status-text-v2">
+                                {delivery.transport.toLowerCase().includes('self') ? 'Ready for Drop-off' : 'Scheduled for Pickup'}
+                              </span>
+                            )}
                             {delivery.status === 'completed' && <span className="status-text-v2 success">Completed</span>}
                           </div>
                         </div>

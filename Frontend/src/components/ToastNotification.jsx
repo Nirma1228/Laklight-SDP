@@ -14,7 +14,7 @@ export const useToast = () => {
 export const ToastProvider = ({ children }) => {
     const [toasts, setToasts] = useState([])
 
-    const showToast = (message, type = 'info', duration = 3000) => {
+    const showToast = (message, type = 'info', duration = 10000) => {
         const id = Date.now()
         const newToast = { id, message, type, duration }
 
@@ -44,7 +44,6 @@ export const ToastProvider = ({ children }) => {
                     <div
                         key={toast.id}
                         className={`toast toast-${toast.type}`}
-                        onClick={() => removeToast(toast.id)}
                     >
                         <div className="toast-icon">
                             {toast.type === 'success' && '✓'}
@@ -53,7 +52,15 @@ export const ToastProvider = ({ children }) => {
                             {toast.type === 'info' && 'ℹ'}
                         </div>
                         <div className="toast-message">{toast.message}</div>
-                        <button className="toast-close" onClick={() => removeToast(toast.id)}>×</button>
+                        <button 
+                            className="toast-close" 
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                removeToast(toast.id);
+                            }}
+                        >
+                            ×
+                        </button>
                     </div>
                 ))}
             </div>

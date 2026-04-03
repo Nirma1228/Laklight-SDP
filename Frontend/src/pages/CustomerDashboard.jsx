@@ -27,7 +27,7 @@ const ProductCard = ({ product, onAddToCart }) => {
 
   return (
     <div className="product-card">
-      <div className="product-img" style={{ height: '200px', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="product-img" style={{ height: '100px', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <img
           src={product.image_url || '/images/placeholder.png'}
           alt={product.name}
@@ -78,6 +78,7 @@ const CustomerDashboard = () => {
   const [featuredSearch, setFeaturedSearch] = useState('')
   const [featuredCategory, setFeaturedCategory] = useState('')
   const [featuredSort, setFeaturedSort] = useState('')
+  const [activeDashboardView, setActiveDashboardView] = useState('none')
 
   // Load user data from localStorage and Database
   useEffect(() => {
@@ -536,12 +537,12 @@ const CustomerDashboard = () => {
       {/* Dashboard Content */}
       <main className="dashboard">
         {/* Welcome Section */}
-        <section className="welcome-section" style={{ textAlign: 'center', padding: '2rem 1rem' }}>
+        <section className="welcome-section">
           <h1 className="welcome-title">Welcome, {profileData.firstName || 'Customer'}!</h1>
-          <p style={{ maxWidth: '600px', margin: '0 auto 2rem', color: '#666' }}>
+          <p className="welcome-subtitle">
             Manage your account, track recent orders, and quickly browse our premium products.
           </p>
-          <div className="welcome-quick-links" style={{ display: 'flex', gap: '1.5rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+          <div className="welcome-quick-links">
             <button
               className="quick-link-card"
               onClick={() => document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' })}
@@ -550,15 +551,15 @@ const CustomerDashboard = () => {
               <span className="quick-link-text">Browse Catalog</span>
             </button>
             <button
-              className="quick-link-card"
-              onClick={() => document.getElementById('recent-orders')?.scrollIntoView({ behavior: 'smooth' })}
+              className={`quick-link-card ${activeDashboardView === 'orders' ? 'active' : ''}`}
+              onClick={() => setActiveDashboardView(activeDashboardView === 'orders' ? 'none' : 'orders')}
             >
               <FontAwesomeIcon icon={faBoxOpen} className="quick-link-icon" />
               <span className="quick-link-text">Recent Orders</span>
             </button>
             <button
-              className="quick-link-card"
-              onClick={() => document.getElementById('account-summary')?.scrollIntoView({ behavior: 'smooth' })}
+              className={`quick-link-card ${activeDashboardView === 'account' ? 'active' : ''}`}
+              onClick={() => setActiveDashboardView(activeDashboardView === 'account' ? 'none' : 'account')}
             >
               <FontAwesomeIcon icon={faUser} className="quick-link-icon" />
               <span className="quick-link-text">Account Summary</span>
@@ -569,77 +570,81 @@ const CustomerDashboard = () => {
         {/* Dashboard Grid */}
         <div className="dashboard-grid">
           {/* Recent Orders */}
-          <div className="dashboard-card">
-            <div className="card-header">
-              <h2 className="card-title">Recent Orders</h2>
-            </div>
-            <div id="recent-orders">
-              {dbOrders.length === 0 ? (
-                <p>No orders found yet.</p>
-              ) : (
-                dbOrders.slice(0, 5).map(order => (
-                  <div key={order.order_id} className="order-item">
-                    <div className="order-details">
-                      <div className="order-id">Order #{order.order_number || order.order_id}</div>
-                      <div>{order.order_date ? new Date(order.order_date).toLocaleDateString() : 'N/A'}</div>
-                      <div>Total: LKR {(parseFloat(order.net_amount) || 0).toFixed(2)}</div>
-                    </div>
-                    <div className="order-actions-status" style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
-                      {(order.order_status || '').toLowerCase() === 'delivered' ? (
-                        <Link to="/feedback" className={`order-status status-${(order.order_status || '').toLowerCase()}`} style={{ textDecoration: 'none' }}>
-                          {order.order_status}
-                        </Link>
-                      ) : (
-                        <span className={`order-status status-${(order.order_status || '').toLowerCase()}`}>
-                          {order.order_status}
+          {activeDashboardView === 'orders' && (
+            <div className="dashboard-card animated fadeIn" style={{ gridColumn: '1 / -1' }}>
+              <div className="card-header">
+                <h2 className="card-title">Recent Orders</h2>
+              </div>
+              <div id="recent-orders">
+                {dbOrders.length === 0 ? (
+                  <p>No orders found yet.</p>
+                ) : (
+                  dbOrders.slice(0, 5).map(order => (
+                    <div key={order.order_id} className="order-item">
+                      <div className="order-details">
+                        <div className="order-id">Order #{order.order_number || order.order_id}</div>
+                        <div>{order.order_date ? new Date(order.order_date).toLocaleDateString() : 'N/A'}</div>
+                        <div>Total: LKR {(parseFloat(order.net_amount) || 0).toFixed(2)}</div>
+                      </div>
+                      <div className="order-actions-status" style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
+                        {(order.order_status || '').toLowerCase() === 'delivered' ? (
+                          <Link to="/feedback" className={`order-status status-${(order.order_status || '').toLowerCase()}`} style={{ textDecoration: 'none' }}>
+                            {order.order_status}
+                          </Link>
+                        ) : (
+                          <span className={`order-status status-${(order.order_status || '').toLowerCase()}`}>
+                            {order.order_status}
+                          </span>
+                        )}
+                        <span className={`payment-status status-${(order.payment_status || '').toLowerCase()}`}>
+                          {order.payment_status}
                         </span>
-                      )}
-                      <span className={`payment-status status-${(order.payment_status || '').toLowerCase()}`}>
-                        {order.payment_status}
-                      </span>
+                      </div>
                     </div>
-                  </div>
-                ))
-              )}
-            </div>
-            <button
-              onClick={() => document.getElementById('recent-orders')?.scrollIntoView({ behavior: 'smooth' })}
-              className="btn btn-primary"
-            >
-              View All Orders
-            </button>
-          </div>
-
-          {/* Account Summary */}
-          <div className="dashboard-card" id="account-summary">
-            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <h2 className="card-title">Account Summary</h2>
-              <button 
-                className="btn btn-small btn-secondary"
-                onClick={() => setIsEditProfileOpen(true)}
+                  ))
+                )}
+              </div>
+              <button
+                onClick={() => document.getElementById('recent-orders')?.scrollIntoView({ behavior: 'smooth' })}
+                className="btn btn-primary"
               >
-                Edit Profile
+                View All Orders
               </button>
             </div>
-            <div className="account-details-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
-              <div className="summary-item" style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '8px' }}>
-                <span style={{ color: '#666', fontSize: '0.9rem', display: 'block', marginBottom: '4px' }}>Name</span>
-                <strong>{profileData.firstName} {profileData.lastName}</strong>
+          )}
+
+          {/* Account Summary */}
+          {activeDashboardView === 'account' && (
+            <div className="dashboard-card animated fadeIn" id="account-summary" style={{ gridColumn: '1 / -1' }}>
+              <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h2 className="card-title">Account Summary</h2>
+                <button 
+                  className="btn btn-small btn-secondary"
+                  onClick={() => setIsEditProfileOpen(true)}
+                >
+                  Edit Profile
+                </button>
               </div>
-              <div className="summary-item" style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '8px' }}>
-                <span style={{ color: '#666', fontSize: '0.9rem', display: 'block', marginBottom: '4px' }}>Email</span>
-                <strong style={{ wordBreak: 'break-all' }}>{profileData.email || 'N/A'}</strong>
-              </div>
-              <div className="summary-item" style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '8px' }}>
-                <span style={{ color: '#666', fontSize: '0.9rem', display: 'block', marginBottom: '4px' }}>Phone</span>
-                <strong>{profileData.phone || 'N/A'}</strong>
-              </div>
-              <div className="summary-item" style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '8px' }}>
-                <span style={{ color: '#666', fontSize: '0.9rem', display: 'block', marginBottom: '4px' }}>Total Orders</span>
-                <strong>{dbOrders.length}</strong>
+              <div className="account-details-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+                <div className="summary-item" style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '8px' }}>
+                  <span style={{ color: '#666', fontSize: '0.9rem', display: 'block', marginBottom: '4px' }}>Name</span>
+                  <strong>{profileData.firstName} {profileData.lastName}</strong>
+                </div>
+                <div className="summary-item" style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '8px' }}>
+                  <span style={{ color: '#666', fontSize: '0.9rem', display: 'block', marginBottom: '4px' }}>Email</span>
+                  <strong style={{ wordBreak: 'break-all' }}>{profileData.email || 'N/A'}</strong>
+                </div>
+                <div className="summary-item" style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '8px' }}>
+                  <span style={{ color: '#666', fontSize: '0.9rem', display: 'block', marginBottom: '4px' }}>Phone</span>
+                  <strong>{profileData.phone || 'N/A'}</strong>
+                </div>
+                <div className="summary-item" style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '8px' }}>
+                  <span style={{ color: '#666', fontSize: '0.9rem', display: 'block', marginBottom: '4px' }}>Total Orders</span>
+                  <strong>{dbOrders.length}</strong>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Featured Products */}
