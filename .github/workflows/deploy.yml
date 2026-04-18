@@ -1,0 +1,64 @@
+name: CI/CD Deployment to DigitalOcean
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install Frontend Dependencies & Build
+        run: |
+          cd Frontend
+          npm install
+          npm run build
+
+      - name: Deploy to Server via SCP
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.VM_IP }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "."
+          target: "/root/Laklight-SDP-deploy"
+          rm: true
+
+      - name: Execute Remote Deployment Commands
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.VM_IP }}
+          username: ${{ secrets.VM_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # 1. Update project directory
+            sudo mkdir -p /root/Laklight-SDP
+            # Move contents and cleanup
+            sudo cp -r /root/Laklight-SDP-deploy/* /root/Laklight-SDP/
+            sudo rm -rf /root/Laklight-SDP-deploy
+
+            # 2. Setup Frontend static files for Nginx
+            sudo mkdir -p /var/www/laklight/frontend
+            sudo rm -rf /var/www/laklight/frontend/*
+            sudo cp -r /root/Laklight-SDP/Frontend/dist/* /var/www/laklight/frontend/
+            sudo systemctl restart nginx
+
+            # 3. Setup Backend
+            cd /root/Laklight-SDP/Backend
+            npm install --production
+            
+            # Note: Ensure your .env file exists on the server in /root/Laklight-SDP/Backend/.env
+            
+            # 4. Restart Backend with PM2
+            pm2 restart laklight-backend || pm2 start server.js --name "laklight-backend"
+            pm2 save
