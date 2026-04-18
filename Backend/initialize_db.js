@@ -14,7 +14,7 @@ async function initializeDatabase() {
     });
 
     try {
-        const sqlPath = path.join(__dirname, 'database', 'master_complete_db.sql');
+        const sqlPath = path.join(__dirname, 'database', 'complete_final_schema.sql');
         const sql = fs.readFileSync(sqlPath, 'utf8');
 
         console.log('⏳ Executing schema script...');
