@@ -8,7 +8,7 @@ router.get('/', verifyToken, async (req, res) => {
   try {
     const { status } = req.query;
 
-    let query = 'SELECT * FROM suppliers WHERE 1=1';
+    let query = 'SELECT *, supplier_id as id FROM suppliers WHERE 1=1';
     const params = [];
 
     if (status) {
@@ -35,7 +35,7 @@ router.get('/:id', verifyToken, async (req, res) => {
   try {
     const supplierId = req.params.id;
 
-    const [suppliers] = await db.query('SELECT * FROM suppliers WHERE id = ?', [supplierId]);
+    const [suppliers] = await db.query('SELECT *, supplier_id as id FROM suppliers WHERE supplier_id = ?', [supplierId]);
 
     if (suppliers.length === 0) {
       return res.status(404).json({ message: 'Supplier not found' });
@@ -51,7 +51,7 @@ router.get('/:id', verifyToken, async (req, res) => {
 });
 
 // Add supplier (Admin/Employee)
-router.post('/', verifyToken, checkRole('administrator', 'employee'), async (req, res) => {
+router.post('/', verifyToken, checkRole('admin', 'employee'), async (req, res) => {
   try {
     const { farmName, ownerName, location, phone, email, productTypes, licenseNumber, farmSize, capacity } = req.body;
 
@@ -72,7 +72,7 @@ router.post('/', verifyToken, checkRole('administrator', 'employee'), async (req
 });
 
 // Update supplier (Admin/Employee)
-router.put('/:id', verifyToken, checkRole('administrator', 'employee'), async (req, res) => {
+router.put('/:id', verifyToken, checkRole('admin', 'employee'), async (req, res) => {
   try {
     const supplierId = req.params.id;
     const { farmName, ownerName, location, phone, email, productTypes, licenseNumber, status } = req.body;
@@ -80,7 +80,7 @@ router.put('/:id', verifyToken, checkRole('administrator', 'employee'), async (r
     const [result] = await db.query(
       `UPDATE suppliers 
        SET farm_name = ?, owner_name = ?, location = ?, phone = ?, email = ?, product_types = ?, license_number = ?, status = ?
-       WHERE id = ?`,
+       WHERE supplier_id = ?`,
       [farmName, ownerName, location, phone, email, productTypes, licenseNumber, status, supplierId]
     );
 
@@ -98,11 +98,11 @@ router.put('/:id', verifyToken, checkRole('administrator', 'employee'), async (r
 });
 
 // Delete supplier (Admin)
-router.delete('/:id', verifyToken, checkRole('administrator'), async (req, res) => {
+router.delete('/:id', verifyToken, checkRole('admin'), async (req, res) => {
   try {
     const supplierId = req.params.id;
 
-    const [result] = await db.query('DELETE FROM suppliers WHERE id = ?', [supplierId]);
+    const [result] = await db.query('DELETE FROM suppliers WHERE supplier_id = ?', [supplierId]);
 
     if (result.affectedRows === 0) {
       return res.status(404).json({ message: 'Supplier not found' });
@@ -118,7 +118,7 @@ router.delete('/:id', verifyToken, checkRole('administrator'), async (req, res) 
 });
 
 // Get supplier performance
-router.get('/:id/performance', verifyToken, checkRole('administrator', 'employee'), async (req, res) => {
+router.get('/:id/performance', verifyToken, checkRole('admin', 'employee'), async (req, res) => {
   try {
     const supplierId = req.params.id;
 
@@ -127,7 +127,7 @@ router.get('/:id/performance', verifyToken, checkRole('administrator', 'employee
       [supplierId]
     );
 
-    const [supplier] = await db.query('SELECT * FROM suppliers WHERE id = ?', [supplierId]);
+    const [supplier] = await db.query('SELECT * FROM suppliers WHERE supplier_id = ?', [supplierId]);
 
     if (supplier.length === 0) {
       return res.status(404).json({ message: 'Supplier not found' });
@@ -148,7 +148,7 @@ router.get('/:id/performance', verifyToken, checkRole('administrator', 'employee
 });
 
 // Rate supplier (Admin/Employee)
-router.post('/:id/rating', verifyToken, checkRole('administrator', 'employee'), async (req, res) => {
+router.post('/:id/rating', verifyToken, checkRole('admin', 'employee'), async (req, res) => {
   try {
     const supplierId = req.params.id;
     const { rating } = req.body;
@@ -158,7 +158,7 @@ router.post('/:id/rating', verifyToken, checkRole('administrator', 'employee'), 
     }
 
     const [result] = await db.query(
-      'UPDATE suppliers SET rating = ? WHERE id = ?',
+      'UPDATE suppliers SET rating = ? WHERE supplier_id = ?',
       [rating, supplierId]
     );
 

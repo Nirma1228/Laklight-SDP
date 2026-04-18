@@ -8,6 +8,8 @@ router.post('/process', verifyToken, checkRole('customer'), paymentController.pr
 router.post('/verify', verifyToken, checkRole('customer'), paymentController.verifyPayment);
 router.get('/methods', paymentController.getPaymentMethods);
 router.post('/card', verifyToken, checkRole('customer'), paymentController.processCardPayment);
+router.post('/create-checkout-session', verifyToken, checkRole('customer'), paymentController.createCheckoutSession);
+router.post('/confirm-stripe', verifyToken, paymentController.confirmStripePayment);
 router.get('/history', verifyToken, checkRole('customer'), paymentController.getPaymentHistory);
 
 module.exports = router;

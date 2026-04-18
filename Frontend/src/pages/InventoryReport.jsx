@@ -1,29 +1,68 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
+import { useToast } from '../components/ToastNotification'
+import { config } from '../config'
 import './InventoryReport.css'
 
 function InventoryReport() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const reportType = searchParams.get('type') // 'raw' or 'finished'
+
   const [filters, setFilters] = useState({
-    category: 'all',
+    category: reportType === 'raw' ? 'raw' : (reportType === 'finished' ? 'processed' : 'all'),
     status: 'all',
     location: 'all'
   })
+  const [inventory, setInventory] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  const inventory = [
-    { id: 'INV-001', name: 'Mango Cordial', category: 'Processed Products', quantity: 500, unit: 'bottles', location: 'Warehouse A', expiry: '2025-11-15', status: 'good' },
-    { id: 'INV-002', name: 'Lime Mix', category: 'Processed Products', quantity: 250, unit: 'bottles', location: 'Warehouse A', expiry: '2025-10-30', status: 'good' },
-    { id: 'INV-003', name: 'Papaya Jam', category: 'Processed Products', quantity: 320, unit: 'jars', location: 'Warehouse B', expiry: '2025-12-20', status: 'good' },
-    { id: 'INV-004', name: 'Avocado Spread', category: 'Processed Products', quantity: 150, unit: 'jars', location: 'Cold Storage', expiry: '2025-11-05', status: 'low' },
-    { id: 'INV-005', name: 'Orange Cordial', category: 'Processed Products', quantity: 95, unit: 'bottles', location: 'Warehouse A', expiry: '2025-10-25', status: 'low' },
-    { id: 'INV-006', name: 'Mango Jam', category: 'Processed Products', quantity: 95, unit: 'jars', location: 'Warehouse B', expiry: '2025-12-10', status: 'low' },
-    { id: 'INV-007', name: 'Lime Cordial', category: 'Processed Products', quantity: 420, unit: 'bottles', location: 'Warehouse A', expiry: '2025-11-22', status: 'good' },
-    { id: 'INV-008', name: 'Mixed Fruit Jam', category: 'Processed Products', quantity: 280, unit: 'jars', location: 'Warehouse B', expiry: '2025-12-15', status: 'good' },
-    { id: 'INV-009', name: 'Pineapple Cordial', category: 'Processed Products', quantity: 180, unit: 'bottles', location: 'Warehouse A', expiry: '2025-11-18', status: 'low' },
-    { id: 'INV-010', name: 'Strawberry Jam', category: 'Processed Products', quantity: 0, unit: 'jars', location: 'Warehouse B', expiry: 'N/A', status: 'out' }
-  ]
+  useEffect(() => {
+    const fetchReport = async () => {
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        const res = await fetch(`${config.API_BASE_URL}/reports/inventory`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          // Map backend data to frontend model
+          const mapped = [
+            ...data.report.rawInventory.map(item => ({
+              id: `RAW-${item.id}`,
+              name: item.material_name,
+              category: 'Raw Materials',
+              quantity: item.quantity_units,
+              unit: item.unit_name,
+              location: item.storage_location,
+              expiry: item.expiry_date ? new Date(item.expiry_date).toLocaleDateString() : 'N/A',
+              expiryRaw: item.expiry_date ? new Date(item.expiry_date).toISOString().split('T')[0] : 'N/A',
+              status: item.quantity_units < 20 ? 'low' : 'good'
+            })),
+            ...data.report.finishedInventory.map(item => ({
+              id: `FIN-${item.id}`,
+              name: item.name,
+              category: 'Processed Products',
+              quantity: item.quantity_units,
+              unit: 'units',
+              location: item.storage_location,
+              expiry: item.expiry_date ? new Date(item.expiry_date).toLocaleDateString() : 'N/A',
+              expiryRaw: item.expiry_date ? new Date(item.expiry_date).toISOString().split('T')[0] : 'N/A',
+              status: item.quantity_units < 10 ? 'low' : 'good'
+            }))
+          ];
+          setInventory(mapped);
+        }
+      } catch (err) {
+        console.error('Fetch inventory report error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchReport();
+  }, [])
 
   const filteredInventory = inventory.filter(item => {
     if (filters.category !== 'all' && !item.category.toLowerCase().includes(filters.category)) return false
@@ -36,8 +75,31 @@ function InventoryReport() {
     setFilters({ ...filters, [e.target.name]: e.target.value })
   }
 
+  const { success, info } = useToast()
+
   const handleExport = (format) => {
-    alert(`Exporting Inventory Report to ${format}...\n\nFile: Inventory_Report_${new Date().toISOString().split('T')[0]}.${format === 'Excel' ? 'xlsx' : 'pdf'}`)
+    info(`Preparing ${format} export...`)
+
+    setTimeout(() => {
+      if (format === 'PDF') {
+        window.print();
+        success('Inventory Report sent to printer/PDF generator');
+      } else {
+        const headers = ['"ID"', '"Product Name"', '"Category"', '"Quantity"', '"Location"', '"Expiry Date"'];
+        const rows = filteredInventory.map(i =>
+          `"${i.id}","${i.name.replace(/"/g, '""')}","${i.category}","${i.quantity}","${i.location}","${i.expiryRaw}"`
+        );
+        const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join('\n');
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `Inventory_Report_${new Date().toISOString().split('T')[0]}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        success('Inventory Report downloaded as CSV (Excel compatible)');
+      }
+    }, 1000)
   }
 
   return (
@@ -45,8 +107,14 @@ function InventoryReport() {
       <Header isLoggedIn={true} />
       <div className="container">
         <div className="page-header">
-          <h1>Inventory Report</h1>
-          <p>Comprehensive overview of stock levels, expiry alerts, location mapping, and turnover rates</p>
+          <h1>{reportType === 'raw' ? 'Raw Materials Inventory' : (reportType === 'finished' ? 'Finished Products Inventory' : 'Inventory Report')}</h1>
+          <p>
+            {reportType === 'raw'
+              ? 'Detailed tracking of raw fruits, vegetables, and unprocessed materials'
+              : (reportType === 'finished'
+                ? 'Comprehensive monitoring of bottled products, juices, and ready-to-sell items'
+                : 'Complete overview of both raw materials and processed production stock')}
+          </p>
         </div>
 
         <div className="filters-container">
@@ -81,62 +149,68 @@ function InventoryReport() {
 
         <div className="stats-grid">
           <div className="stat-card">
-            <div className="stat-number">156</div>
+            <div className="stat-number">{inventory.length}</div>
             <div className="stat-label">Total Items</div>
           </div>
           <div className="stat-card">
-            <div className="stat-number">142</div>
+            <div className="stat-number">{inventory.filter(i => i.status === 'good').length}</div>
             <div className="stat-label">In Stock</div>
           </div>
           <div className="stat-card warning">
-            <div className="stat-number">10</div>
+            <div className="stat-number">{inventory.filter(i => i.status === 'low').length}</div>
             <div className="stat-label">Low Stock</div>
           </div>
           <div className="stat-card danger">
-            <div className="stat-number">4</div>
+            <div className="stat-number">{inventory.filter(i => i.quantity === 0).length}</div>
             <div className="stat-label">Out of Stock</div>
           </div>
         </div>
 
         <div className="report-section">
-          <h2>Inventory Details</h2>
+          <h2>{reportType === 'raw' ? 'Raw Materials Data' : (reportType === 'finished' ? 'Finished Products Data' : 'All Inventory Details')}</h2>
           <div className="action-buttons">
             <button className="btn-action btn-export" onClick={() => handleExport('Excel')}>Export to Excel</button>
             <button className="btn-action btn-export" onClick={() => handleExport('PDF')}>Export to PDF</button>
-            <button className="btn-action" onClick={() => navigate('/admin/generate-reports')}>Back to Reports</button>
+            <button className="btn-action" onClick={() => navigate('/generate-reports')}>Back to Reports</button>
           </div>
-          
+
           <div className="table-container">
             <table>
               <thead>
                 <tr>
-                  <th>Product ID</th>
-                  <th>Product Name</th>
+                  <th>Item ID</th>
+                  <th>Name</th>
                   <th>Category</th>
                   <th>Quantity</th>
-                  <th>Unit</th>
-                  <th>Location</th>
-                  <th>Expiry Date</th>
-                  <th>Status</th>
+                  <th>Unit/Pack</th>
+                  <th>Storage Location</th>
+                  <th>Expiry Info</th>
+                  <th>Stock Status</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredInventory.map(item => (
-                  <tr key={item.id}>
-                    <td>{item.id}</td>
-                    <td>{item.name}</td>
-                    <td>{item.category}</td>
-                    <td>{item.quantity}</td>
-                    <td>{item.unit}</td>
-                    <td>{item.location}</td>
-                    <td>{item.expiry}</td>
-                    <td>
-                      <span className={`stock-badge stock-${item.status}`}>
-                        {item.status === 'good' ? 'In Stock' : item.status === 'low' ? 'Low Stock' : 'Out of Stock'}
-                      </span>
-                    </td>
+                {filteredInventory.length > 0 ? (
+                  filteredInventory.map(item => (
+                    <tr key={item.id}>
+                      <td>{item.id}</td>
+                      <td style={{ fontWeight: '600' }}>{item.name}</td>
+                      <td>{item.category}</td>
+                      <td>{item.quantity}</td>
+                      <td>{item.unit}</td>
+                      <td>{item.location}</td>
+                      <td>{item.expiry}</td>
+                      <td>
+                        <span className={`stock-badge stock-${item.status}`}>
+                          {item.status.toUpperCase()}
+                        </span>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="8" style={{ textAlign: 'center', padding: '2rem' }}>No inventory items match your current filters.</td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
+import { useToast } from '../components/ToastNotification'
 import './GenerateReports.css'
 
 function GenerateReports() {
@@ -10,7 +11,8 @@ function GenerateReports() {
   const [dateRange, setDateRange] = useState('month')
 
   const reports = [
-    { id: 'inventory', name: 'Inventory Report', description: 'Stock levels, expiry alerts, and location mapping', icon: '📦' },
+    { id: 'inventory-raw', name: 'Raw Materials Inventory', description: 'Track fruits and other unprocessed stock', icon: '🍎' },
+    { id: 'inventory-finished', name: 'Finished Products Inventory', description: 'Monitor bottled juices and ready items', icon: '🧃' },
     { id: 'sales', name: 'Sales Report', description: 'Revenue analysis and order tracking', icon: '💰' },
     { id: 'supplier', name: 'Supplier Report', description: 'Supplier performance and quality ratings', icon: '🚚' },
     { id: 'customer', name: 'Customer Report', description: 'Customer analytics and loyalty metrics', icon: '👥' }
@@ -20,28 +22,33 @@ function GenerateReports() {
     setSelectedReport(reportId)
   }
 
+  const { warning, error } = useToast()
+
   const handleGenerate = () => {
     if (!selectedReport) {
-      alert('Please select a report type')
+      warning('Please select a report type before generating.')
       return
     }
-    
+
     // Navigate to the specific report page
-    switch(selectedReport) {
-      case 'inventory':
-        navigate('/admin/inventory-report')
+    switch (selectedReport) {
+      case 'inventory-raw':
+        navigate('/admin/reports/inventory?type=raw')
+        break
+      case 'inventory-finished':
+        navigate('/admin/reports/inventory?type=finished')
         break
       case 'sales':
-        navigate('/admin/sales-report')
+        navigate('/admin/reports/sales')
         break
       case 'supplier':
-        navigate('/admin/supplier-report')
+        navigate('/admin/reports/supplier')
         break
       case 'customer':
-        navigate('/admin/customer-report')
+        navigate('/admin/reports/customer')
         break
       default:
-        alert('Report type not found')
+        error('Report type configuration not found.')
     }
   }
 
@@ -60,12 +67,12 @@ function GenerateReports() {
         <div className="report-container">
           <div className="report-selector">
             <h2 className="section-title">Report Configuration</h2>
-            
+
             <div className="form-group">
               <label htmlFor="reportType">Report Type *</label>
-              <select 
-                id="reportType" 
-                value={selectedReport} 
+              <select
+                id="reportType"
+                value={selectedReport}
                 onChange={(e) => handleReportSelect(e.target.value)}
                 className="form-control"
               >
@@ -78,9 +85,9 @@ function GenerateReports() {
 
             <div className="form-group">
               <label htmlFor="dateRange">Date Range *</label>
-              <select 
-                id="dateRange" 
-                value={dateRange} 
+              <select
+                id="dateRange"
+                value={dateRange}
                 onChange={(e) => setDateRange(e.target.value)}
                 className="form-control"
               >
@@ -102,8 +109,8 @@ function GenerateReports() {
               </select>
             </div>
 
-            <button 
-              className="btn btn-primary" 
+            <button
+              className="btn btn-primary"
               onClick={handleGenerate}
               disabled={!selectedReport}
             >
@@ -113,10 +120,10 @@ function GenerateReports() {
 
           <div className="report-preview">
             <h2 className="section-title">Report Types</h2>
-            
+
             <div className="report-types-grid">
               {reports.map(report => (
-                <div 
+                <div
                   key={report.id}
                   className={`report-type-card ${selectedReport === report.id ? 'selected' : ''}`}
                   onClick={() => handleReportSelect(report.id)}

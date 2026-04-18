@@ -1,330 +1,273 @@
 const db = require('../config/database');
 
-// FR11: Get pending applications for review
+const getId = async (table, pk, col, val) => {
+  const [rows] = await db.query(`SELECT ${pk} FROM ${table} WHERE ${col} = ?`, [val]);
+  return rows.length > 0 ? rows[0][pk] : null;
+};
+
+// --- Applications ---
 exports.getPendingApplications = async (req, res) => {
   try {
-    const [applications] = await db.query(
-      `SELECT fs.*, u.full_name as farmer_name, u.email, u.phone 
+    const [apps] = await db.query(`
+      SELECT fs.*, fs.submission_id as id, u.full_name as farmer_name, ss.status_name as status, 
+             mu.unit_name as unit, qg.grade_name as grade, pc.category_name as category,
+             tm.method_name as transport_method
        FROM farmer_submissions fs
-       JOIN users u ON fs.farmer_id = u.id
-       WHERE fs.status = 'under-review'
-       ORDER BY fs.submission_date ASC`
-    );
-
-    res.json({
-      success: true,
-      count: applications.length,
-      applications
-    });
+       JOIN users u ON fs.farmer_id = u.user_id
+       JOIN submission_statuses ss ON fs.status_id = ss.submission_status_id
+       JOIN measurement_units mu ON fs.unit_id = mu.unit_id
+       LEFT JOIN quality_grades qg ON fs.grade_id = qg.grade_id
+       JOIN product_categories pc ON fs.category_id = pc.category_id
+       LEFT JOIN transport_methods tm ON fs.transport_method_id = tm.transport_method_id
+       WHERE ss.status_name = 'under-review'`);
+    res.json({ success: true, count: apps.length, applications: apps });
   } catch (error) {
-    console.error('Get applications error:', error);
-    res.status(500).json({ message: 'Failed to fetch applications', error: error.message });
+    res.status(500).json({ message: 'Fetch failed', error: error.message });
   }
 };
 
-// FR11: View application details
-exports.getApplicationDetails = async (req, res) => {
-  try {
-    const applicationId = req.params.id;
-
-    const [applications] = await db.query(
-      `SELECT fs.*, u.full_name as farmer_name, u.email, u.phone, u.address 
-       FROM farmer_submissions fs
-       JOIN users u ON fs.farmer_id = u.id
-       WHERE fs.id = ?`,
-      [applicationId]
-    );
-
-    if (applications.length === 0) {
-      return res.status(404).json({ message: 'Application not found' });
-    }
-
-    res.json({
-      success: true,
-      application: applications[0]
-    });
-  } catch (error) {
-    console.error('Get application details error:', error);
-    res.status(500).json({ message: 'Failed to fetch application details', error: error.message });
-  }
-};
-
-// FR11: Approve application
 exports.approveApplication = async (req, res) => {
   const connection = await db.getConnection();
-
   try {
     await connection.beginTransaction();
+    const { scheduledDate, notes, isUsingFarmerDate } = req.body;
+    const statusId = await getId('submission_statuses', 'submission_status_id', 'status_name', 'selected');
 
-    const applicationId = req.params.id;
-    const { notes } = req.body;
+    // If employee uses farmer's proposed date → 'scheduled delivery' (confirmed immediately)
+    // If employee reschedules → 'pending' (waiting for farmer to confirm)
+    let deliveryStatusName = isUsingFarmerDate ? 'confirmed' : 'pending';
+    const deliveryStatusId = await getId('delivery_statuses', 'delivery_status_id', 'status_name', deliveryStatusName);
 
-    // Update submission status
-    const [result] = await connection.query(
-      'UPDATE farmer_submissions SET status = ?, notes = ? WHERE id = ? AND status = ?',
-      ['selected', notes || null, applicationId, 'under-review']
-    );
+    await connection.query('UPDATE farmer_submissions SET status_id = ?, notes = ? WHERE submission_id = ?', [statusId, notes, req.params.id]);
 
-    if (result.affectedRows === 0) {
-      await connection.rollback();
-      return res.status(404).json({ message: 'Application not found or already processed' });
-    }
+    const [[sub]] = await connection.query('SELECT * FROM farmer_submissions WHERE submission_id = ?', [req.params.id]);
 
-    // Get submission details
-    const [submissions] = await connection.query(
-      'SELECT * FROM farmer_submissions WHERE id = ?',
-      [applicationId]
-    );
-
-    const submission = submissions[0];
-
-    // Create delivery record
-    const deliveryNumber = `DEL-${Date.now()}`;
     await connection.query(
-      `INSERT INTO deliveries (delivery_number, submission_id, farmer_id, product_name, quantity, proposed_date, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [
-        deliveryNumber,
-        applicationId,
-        submission.farmer_id,
-        submission.product_name,
-        `${submission.quantity}${submission.unit}`,
-        submission.delivery_date || submission.harvest_date,
-        'pending'
-      ]
+      'INSERT INTO deliveries (submission_id, scheduled_date, transport_method_id, status_id) VALUES (?, ?, ?, ?)',
+      [req.params.id, scheduledDate || sub.delivery_date, sub.transport_method_id, deliveryStatusId]
     );
 
     await connection.commit();
-
-    res.json({
-      success: true,
-      message: 'Application approved successfully'
-    });
+    res.json({ success: true, message: 'Approved & Delivery Scheduled' });
   } catch (error) {
     await connection.rollback();
-    console.error('Approve application error:', error);
-    res.status(500).json({ message: 'Failed to approve application', error: error.message });
-  } finally {
-    connection.release();
-  }
+    res.status(500).json({ message: 'Approval failed', error: error.message });
+  } finally { connection.release(); }
 };
 
-// FR11: Reject application
-exports.rejectApplication = async (req, res) => {
+// --- Inventory ---
+
+exports.addRawMaterial = async (req, res) => {
   try {
-    const applicationId = req.params.id;
-    const { rejectionReason } = req.body;
+    const { materialName, gradeName, quantity, expiryDate, location, unitName } = req.body;
+    const gradeId = await getId('quality_grades', 'grade_id', 'grade_name', gradeName);
+    const unitId = await getId('measurement_units', 'unit_id', 'unit_name', unitName || 'kg');
 
-    if (!rejectionReason) {
-      return res.status(400).json({ message: 'Rejection reason is required' });
-    }
+    if (!gradeId) return res.status(400).json({ message: 'Invalid Grade' });
 
-    const [result] = await db.query(
-      'UPDATE farmer_submissions SET status = ?, rejection_reason = ? WHERE id = ? AND status = ?',
-      ['not-selected', rejectionReason, applicationId, 'under-review']
+    await db.query(
+      'INSERT INTO inventory_raw (material_name, grade_id, quantity_units, unit_id, received_date, expiry_date, storage_location) VALUES (?, ?, ?, ?, NOW(), ?, ?)',
+      [materialName, gradeId, quantity, unitId || 1, expiryDate, location]
     );
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: 'Application not found or already processed' });
-    }
-
-    res.json({
-      success: true,
-      message: 'Application rejected'
-    });
+    res.json({ success: true, message: 'Raw stock added' });
   } catch (error) {
-    console.error('Reject application error:', error);
-    res.status(500).json({ message: 'Failed to reject application', error: error.message });
+    res.status(500).json({ message: 'Add failed', error: error.message });
   }
 };
 
-// FR13: Get all inventory
+exports.addFinishedProduct = async (req, res) => {
+  try {
+    const { productId, batch, mfgDate, expDate, quantity, location } = req.body;
+    await db.query(
+      'INSERT INTO inventory_finished (product_id, batch_number, manufactured_date, expiry_date, quantity_units, storage_location) VALUES (?, ?, ?, ?, ?, ?)',
+      [productId, batch, mfgDate, expDate, quantity, location]
+    );
+    res.json({ success: true, message: 'Finished stock added' });
+  } catch (error) {
+    res.status(500).json({ message: 'Add failed', error: error.message });
+  }
+};
+
 exports.getInventory = async (req, res) => {
   try {
-    const { type, status } = req.query;
+    const [raw] = await db.query(`
+      SELECT ir.*, COALESCE(fs.product_name, ir.material_name) as material_name, qg.grade_name as grade 
+      FROM inventory_raw ir 
+      LEFT JOIN farmer_submissions fs ON ir.submission_id = fs.submission_id
+      JOIN quality_grades qg ON ir.grade_id = qg.grade_id`);
 
-    let query = 'SELECT * FROM inventory WHERE 1=1';
-    const params = [];
+    const [finished] = await db.query(`
+      SELECT ifin.*, p.name 
+      FROM inventory_finished ifin 
+      JOIN products p ON ifin.product_id = p.product_id`);
 
-    if (type) {
-      query += ' AND type = ?';
-      params.push(type);
-    }
-
-    if (status) {
-      query += ' AND status = ?';
-      params.push(status);
-    }
-
-    query += ' ORDER BY expiry_date ASC, name ASC';
-
-    const [inventory] = await db.query(query, params);
-
-    res.json({
-      success: true,
-      count: inventory.length,
-      inventory
-    });
+    res.json({ success: true, raw, finished });
   } catch (error) {
-    console.error('Get inventory error:', error);
-    res.status(500).json({ message: 'Failed to fetch inventory', error: error.message });
+    res.status(500).json({ message: 'Fetch failed', error: error.message });
   }
 };
-
-// FR13: Get inventory item
-exports.getInventoryItem = async (req, res) => {
+exports.getApplicationDetails = async (req, res) => {
   try {
-    const itemId = req.params.id;
-
-    const [items] = await db.query('SELECT * FROM inventory WHERE id = ?', [itemId]);
-
-    if (items.length === 0) {
-      return res.status(404).json({ message: 'Inventory item not found' });
-    }
-
-    res.json({
-      success: true,
-      item: items[0]
-    });
-  } catch (error) {
-    console.error('Get inventory item error:', error);
-    res.status(500).json({ message: 'Failed to fetch inventory item', error: error.message });
-  }
+    const [rows] = await db.query('SELECT fs.*, fs.submission_id as id, u.full_name as farmer_name, ss.status_name as status FROM farmer_submissions fs JOIN users u ON fs.farmer_id = u.user_id JOIN submission_statuses ss ON fs.status_id = ss.submission_status_id WHERE fs.submission_id = ?', [req.params.id]);
+    if (rows.length === 0) return res.status(404).json({ message: 'Not found' });
+    res.json({ success: true, application: rows[0] });
+  } catch (error) { res.status(500).json({ message: 'Fetch failed', error: error.message }); }
 };
 
-// FR13: Update inventory
-exports.updateInventory = async (req, res) => {
+exports.rejectApplication = async (req, res) => {
   try {
-    const itemId = req.params.id;
-    const { name, type, stock, unit, location, expiryDate, status, batchNumber } = req.body;
-
-    const [result] = await db.query(
-      `UPDATE inventory 
-       SET name = ?, type = ?, stock = ?, unit = ?, location = ?, expiry_date = ?, status = ?, batch_number = ?
-       WHERE id = ?`,
-      [name, type, stock, unit, location, expiryDate, status, batchNumber, itemId]
-    );
-
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ message: 'Inventory item not found' });
-    }
-
-    res.json({
-      success: true,
-      message: 'Inventory updated successfully'
-    });
-  } catch (error) {
-    console.error('Update inventory error:', error);
-    res.status(500).json({ message: 'Failed to update inventory', error: error.message });
-  }
+    const { rejectionReason } = req.body;
+    const statusId = await getId('submission_statuses', 'submission_status_id', 'status_name', 'not-selected');
+    await db.query('UPDATE farmer_submissions SET status_id = ?, rejection_reason = ? WHERE submission_id = ?', [statusId, rejectionReason, req.params.id]);
+    res.json({ success: true, message: 'Application rejected' });
+  } catch (error) { res.status(500).json({ message: 'Update failed', error: error.message }); }
 };
 
-// FR14: Search inventory by location
-exports.searchByLocation = async (req, res) => {
-  try {
-    const { location } = req.query;
-
-    if (!location) {
-      return res.status(400).json({ message: 'Location parameter is required' });
-    }
-
-    const [items] = await db.query(
-      'SELECT * FROM inventory WHERE location LIKE ? ORDER BY name',
-      [`%${location}%`]
-    );
-
-    res.json({
-      success: true,
-      count: items.length,
-      location,
-      items
-    });
-  } catch (error) {
-    console.error('Search by location error:', error);
-    res.status(500).json({ message: 'Failed to search inventory', error: error.message });
-  }
-};
-
-// FR14: Find by exact location
-exports.getByLocation = async (req, res) => {
-  try {
-    const { location } = req.params;
-
-    const [items] = await db.query(
-      'SELECT * FROM inventory WHERE location = ? ORDER BY name',
-      [location]
-    );
-
-    res.json({
-      success: true,
-      count: items.length,
-      location,
-      items
-    });
-  } catch (error) {
-    console.error('Get by location error:', error);
-    res.status(500).json({ message: 'Failed to fetch inventory by location', error: error.message });
-  }
-};
-
-// FR12: Get alerts (low stock and expiring products)
-exports.getAlerts = async (req, res) => {
-  try {
-    const alertService = require('../services/alertService');
-    const alerts = await alertService.getCurrentAlerts();
-
-    res.json({
-      success: true,
-      alerts
-    });
-  } catch (error) {
-    console.error('Get alerts error:', error);
-    res.status(500).json({ message: 'Failed to fetch alerts', error: error.message });
-  }
-};
-
-// Add inventory item
 exports.addInventoryItem = async (req, res) => {
-  try {
-    const { name, type, stock, unit, location, expiryDate, status, batchNumber } = req.body;
-
-    const [result] = await db.query(
-      `INSERT INTO inventory (name, type, stock, unit, location, expiry_date, status, batch_number)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [name, type, stock, unit, location || null, expiryDate || null, status || 'good', batchNumber || null]
-    );
-
-    res.status(201).json({
-      success: true,
-      message: 'Inventory item added successfully',
-      itemId: result.insertId
-    });
-  } catch (error) {
-    console.error('Add inventory error:', error);
-    res.status(500).json({ message: 'Failed to add inventory item', error: error.message });
-  }
+  // Generic handler for raw/finished
+  const { type } = req.body;
+  if (type === 'raw') return exports.addRawMaterial(req, res);
+  return exports.addFinishedProduct(req, res);
 };
 
-// Get inventory statistics
 exports.getInventoryStats = async (req, res) => {
   try {
-    const [stats] = await db.query(`
-      SELECT 
-        COUNT(*) as total_items,
-        SUM(stock) as total_stock,
-        SUM(CASE WHEN status IN ('low', 'critical') THEN 1 ELSE 0 END) as low_stock_items,
-        SUM(CASE WHEN expiry_date <= DATE_ADD(CURDATE(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as expiring_soon,
-        SUM(CASE WHEN type = 'fruit' THEN 1 ELSE 0 END) as fruit_items,
-        SUM(CASE WHEN type = 'product' THEN 1 ELSE 0 END) as product_items
-      FROM inventory
-    `);
+    const [[rawCount]] = await db.query('SELECT COUNT(*) as count FROM inventory_raw');
+    const [[finCount]] = await db.query('SELECT COUNT(*) as count FROM inventory_finished');
+    res.json({ success: true, stats: { raw: rawCount.count, finished: finCount.count } });
+  } catch (error) { res.status(500).json({ message: 'Fetch failed', error: error.message }); }
+};
 
-    res.json({
-      success: true,
-      stats: stats[0]
-    });
+exports.getByLocation = async (req, res) => {
+  try {
+    const loc = req.params.location;
+    const [raw] = await db.query('SELECT * FROM inventory_raw WHERE storage_location = ?', [loc]);
+    const [fin] = await db.query('SELECT * FROM inventory_finished WHERE storage_location = ?', [loc]);
+    res.json({ success: true, items: { raw, finished: fin } });
+  } catch (error) { res.status(500).json({ message: 'Fetch failed', error: error.message }); }
+};
+
+exports.searchByLocation = async (req, res) => {
+  req.params.location = req.query.query;
+  return exports.getByLocation(req, res);
+};
+
+exports.getInventoryItem = async (req, res) => {
+  res.status(501).json({ message: 'Detailed item view not implemented yet' });
+};
+
+exports.updateInventory = async (req, res) => {
+  try {
+    const { quantity, location, type } = req.body;
+    const table = type === 'raw' ? 'inventory_raw' : 'inventory_finished';
+    const pk = type === 'raw' ? 'raw_inventory_id' : 'finished_inventory_id';
+
+    await db.query(`UPDATE ${table} SET quantity_units = ?, storage_location = ? WHERE ${pk} = ?`, [quantity, location, req.params.id]);
+    res.json({ success: true, message: 'Stock updated' });
   } catch (error) {
-    console.error('Get inventory stats error:', error);
-    res.status(500).json({ message: 'Failed to fetch inventory statistics', error: error.message });
+    res.status(500).json({ message: 'Update failed', error: error.message });
   }
 };
+
+exports.deleteInventoryItem = async (req, res) => {
+  try {
+    const { type } = req.query;
+    const table = type === 'raw' ? 'inventory_raw' : 'inventory_finished';
+    const pk = type === 'raw' ? 'raw_inventory_id' : 'finished_inventory_id';
+
+    await db.query(`DELETE FROM ${table} WHERE ${pk} = ?`, [req.params.id]);
+    res.json({ success: true, message: 'Item deleted' });
+  } catch (error) {
+    res.status(500).json({ message: 'Delete failed', error: error.message });
+  }
+};
+exports.getAlerts = async (req, res) => {
+  try {
+    const alerts = await alertService.getCurrentAlerts();
+    res.json({ success: true, alerts });
+  } catch (error) { res.status(500).json({ message: 'Alerts failed', error: error.message }); }
+};
+
+// Get all deliveries for employee dashboard
+exports.getDeliveries = async (req, res) => {
+  try {
+    const [deliveries] = await db.query(`
+      SELECT d.*, d.delivery_id, d.proposed_reschedule_date, fs.product_name, fs.quantity, u.full_name as farmer_name,
+             mu.unit_name as unit, qg.grade_name as grade, ds.status_name as status,
+             tm.method_name as transport_method, fs.delivery_date
+      FROM deliveries d
+      JOIN farmer_submissions fs ON d.submission_id = fs.submission_id
+      JOIN users u ON fs.farmer_id = u.user_id
+      LEFT JOIN measurement_units mu ON fs.unit_id = mu.unit_id
+      LEFT JOIN quality_grades qg ON fs.grade_id = qg.grade_id
+      JOIN delivery_statuses ds ON d.status_id = ds.delivery_status_id
+      LEFT JOIN transport_methods tm ON d.transport_method_id = tm.transport_method_id
+      ORDER BY d.created_at DESC
+    `);
+    res.json({ success: true, count: deliveries.length, deliveries });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to fetch deliveries', error: error.message });
+  }
+};
+
+// Reschedule delivery
+exports.rescheduleDelivery = async (req, res) => {
+  try {
+    const { scheduledDate } = req.body;
+    const deliveryId = req.params.id;
+
+    if (!scheduledDate) {
+      return res.status(400).json({ message: 'Scheduled date is required' });
+    }
+
+    await db.query(
+      'UPDATE deliveries SET scheduled_date = ?, updated_at = NOW() WHERE delivery_id = ?',
+      [scheduledDate, deliveryId]
+    );
+
+    res.json({ success: true, message: 'Delivery rescheduled successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to reschedule delivery', error: error.message });
+  }
+};
+
+// Approve farmer's reschedule request
+exports.approveReschedule = async (req, res) => {
+  try {
+    const { scheduledDate } = req.body;
+    const deliveryId = req.params.id;
+
+    if (!scheduledDate) {
+      return res.status(400).json({ message: 'Scheduled date is required' });
+    }
+
+    // Update scheduled_date and clear proposed_reschedule_date
+    await db.query(
+      'UPDATE deliveries SET scheduled_date = ?, proposed_reschedule_date = NULL, updated_at = NOW() WHERE delivery_id = ?',
+      [scheduledDate, deliveryId]
+    );
+
+    res.json({ success: true, message: 'Farmer\'s reschedule request approved' });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to approve reschedule', error: error.message });
+  }
+};
+
+// Mark delivery as complete
+exports.completeDelivery = async (req, res) => {
+  try {
+    const deliveryId = req.params.id;
+    const statusId = await getId('delivery_statuses', 'delivery_status_id', 'status_name', 'completed');
+
+    await db.query(
+      'UPDATE deliveries SET status_id = ?, updated_at = NOW() WHERE delivery_id = ?',
+      [statusId, deliveryId]
+    );
+
+    res.json({ success: true, message: 'Delivery marked as completed' });
+  } catch (error) {
+    res.status(500).json({ message: 'Failed to complete delivery', error: error.message });
+  }
+};
+
+

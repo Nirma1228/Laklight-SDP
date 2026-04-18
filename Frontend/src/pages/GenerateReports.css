@@ -3,14 +3,14 @@
   max-width: 1400px;
   margin: 0 auto;
   padding: 2rem;
-  padding-top: 100px;
+  padding-top: 140px;
 }
 
 .page-header {
   background: white;
   padding: 2rem;
   border-radius: 15px;
-  box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
   margin-bottom: 2rem;
   display: flex;
   justify-content: space-between;
@@ -78,7 +78,7 @@
   background: white;
   padding: 2rem;
   border-radius: 15px;
-  box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
   height: fit-content;
 }
 
@@ -86,7 +86,7 @@
   background: white;
   padding: 2rem;
   border-radius: 15px;
-  box-shadow: 0 2px 20px rgba(0,0,0,0.08);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
 }
 
 .section-title {

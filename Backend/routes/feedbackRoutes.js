@@ -8,6 +8,7 @@ const { feedbackValidation, validate } = require('../middleware/validation');
 router.post('/', verifyToken, checkRole('customer', 'farmer'), feedbackValidation, validate, feedbackController.submitFeedback);
 
 // Public statistics - Specific route BEFORE parameterized routes
+router.get('/all', verifyToken, checkRole('admin'), feedbackController.getAllFeedback);
 router.get('/stats', feedbackController.getFeedbackStats);
 
 // Specific route before :id

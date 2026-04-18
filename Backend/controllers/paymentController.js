@@ -1,194 +1,178 @@
 const db = require('../config/database');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
+
+const getStatusId = async (table, col, name) => {
+  const [rows] = await db.query(`SELECT id FROM ${table} WHERE ${col} = ?`, [name]);
+  return rows.length > 0 ? rows[0].id : null;
+};
 
 // FR07: Process payment
 exports.processPayment = async (req, res) => {
   const connection = await db.getConnection();
-
   try {
     await connection.beginTransaction();
+    const { orderId, paymentMethod } = req.body;
 
-    const { orderId, paymentMethod, cardDetails } = req.body;
+    const [[order]] = await connection.query('SELECT * FROM orders WHERE order_id = ?', [orderId]);
+    if (!order) throw new Error('Order not found');
 
-    // Get order
-    const [orders] = await connection.query(
-      'SELECT * FROM orders WHERE id = ?',
-      [orderId]
-    );
+    const [paidStatuses] = await connection.query('SELECT payment_status_id FROM payment_statuses WHERE status_name = "paid"');
+    const paidStatusId = paidStatuses[0].payment_status_id;
+    const txnId = `TXN-${Date.now()}`;
 
-    if (orders.length === 0) {
-      await connection.rollback();
-      return res.status(404).json({ message: 'Order not found' });
-    }
-
-    const order = orders[0];
-
-    if (order.payment_status === 'Paid') {
-      await connection.rollback();
-      return res.status(400).json({ message: 'Payment already completed' });
-    }
-
-    // Process payment based on method
-    let paymentStatus = 'Success';
-    let transactionId = `TXN-${Date.now()}`;
-
-    if (paymentMethod === 'Card Payment' || paymentMethod === 'Online Banking') {
-      // Simulate payment gateway integration
-      // In production, integrate with actual payment gateway (Stripe, PayPal, etc.)
-      paymentStatus = 'Success';
-    } else if (paymentMethod === 'Cash on Delivery') {
-      paymentStatus = 'Pending';
-      transactionId = null;
-    }
-
-    // Insert payment record
-    const [paymentResult] = await connection.query(
-      `INSERT INTO payments (order_id, payment_method, card_number_last4, card_name, amount, payment_status, transaction_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [
-        orderId,
-        paymentMethod,
-        cardDetails?.cardNumber ? cardDetails.cardNumber.slice(-4) : null,
-        cardDetails?.cardName || null,
-        order.total_amount,
-        paymentStatus,
-        transactionId
-      ]
-    );
-
-    // Update order payment status
     await connection.query(
-      'UPDATE orders SET payment_status = ?, updated_at = NOW() WHERE id = ?',
-      [paymentStatus === 'Success' ? 'Paid' : 'Pending', orderId]
+      'INSERT INTO payments (order_id, transaction_id, amount, status_id, payment_method) VALUES (?, ?, ?, ?, ?)',
+      [orderId, txnId, order.net_amount, paidStatusId, paymentMethod]
     );
 
-    // Clear cart for this user
-    await connection.query(
-      'DELETE FROM cart WHERE user_id = ?',
-      [order.customer_id]
-    );
+    await connection.query('UPDATE orders SET payment_status_id = ? WHERE order_id = ?', [paidStatusId, orderId]);
+    await connection.query('DELETE FROM cart WHERE user_id = ?', [order.customer_id]);
 
     await connection.commit();
-
-    res.json({
-      success: true,
-      message: 'Payment processed successfully',
-      payment: {
-        paymentId: paymentResult.insertId,
-        transactionId,
-        status: paymentStatus,
-        amount: order.total_amount
-      }
-    });
-
+    res.json({ success: true, transactionId: txnId });
   } catch (error) {
     await connection.rollback();
-    console.error('Process payment error:', error);
-    res.status(500).json({ message: 'Payment processing failed', error: error.message });
-  } finally {
-    connection.release();
-  }
+    res.status(500).json({ message: 'Payment failed', error: error.message });
+  } finally { connection.release(); }
 };
 
-// FR07: Verify payment status
+exports.getPaymentHistory = async (req, res) => {
+  try {
+    const [payments] = await db.query(`
+      SELECT p.*, o.order_id, s.status_name as status 
+      FROM payments p
+      JOIN orders o ON p.order_id = o.order_id
+      JOIN payment_statuses s ON p.status_id = s.payment_status_id
+      WHERE o.customer_id = ?`, [req.user.userId]);
+    res.json({ success: true, payments });
+  } catch (error) {
+    res.status(500).json({ message: 'Fetch failed', error: error.message });
+  }
+};
 exports.verifyPayment = async (req, res) => {
   try {
     const { transactionId } = req.body;
+    const [rows] = await db.query('SELECT * FROM payments WHERE transaction_id = ?', [transactionId]);
+    if (rows.length === 0) return res.status(404).json({ message: 'Transaction not found' });
+    res.json({ success: true, verified: true, payment: rows[0] });
+  } catch (error) { res.status(500).json({ message: 'Verification failed', error: error.message }); }
+};
 
-    const [payments] = await db.query(
-      'SELECT * FROM payments WHERE transaction_id = ?',
-      [transactionId]
+exports.getPaymentMethods = async (req, res) => {
+  res.json({ success: true, methods: ['Card Payment', 'Online Banking', 'Cash on Delivery'] });
+};
+
+exports.processCardPayment = async (req, res) => {
+  // Simulate external card processor
+  try {
+    const { orderId } = req.body;
+    const [paidStatuses] = await db.query('SELECT payment_status_id FROM payment_statuses WHERE status_name = "paid"');
+    const paidStatusId = paidStatuses[0].payment_status_id;
+    const txnId = `CARD-${Date.now()}`;
+    const [[order]] = await db.query('SELECT net_amount FROM orders WHERE order_id = ?', [orderId]);
+
+    await db.query('INSERT INTO payments (order_id, transaction_id, amount, status_id, payment_method) VALUES (?, ?, ?, ?, ?)', [orderId, txnId, order.net_amount, paidStatusId, 'Card Payment']);
+    await db.query('UPDATE orders SET payment_status_id = ? WHERE order_id = ?', [paidStatusId, orderId]);
+
+    res.json({ success: true, transactionId: txnId });
+  } catch (error) { res.status(500).json({ message: 'Card processing failed', error: error.message }); }
+};
+
+// FR07: Create Stripe Checkout Session
+exports.createCheckoutSession = async (req, res) => {
+  try {
+    const { amount, orderId } = req.body;
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'lkr',
+            product_data: {
+              name: 'Laklight Food Products',
+            },
+            unit_amount: Math.round(amount * 100), // Stripe expects amount in cents
+          },
+          quantity: 1,
+        },
+      ],
+      mode: 'payment',
+      payment_method_options: {
+        link: {
+          enabled: false,
+        },
+      },
+      success_url: `${process.env.STRIPE_SUCCESS_URL}&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: process.env.STRIPE_CANCEL_URL,
+      metadata: { orderId: orderId?.toString() }
+    });
+
+    res.json({
+      sessionId: session.id,
+      publishableKey: process.env.STRIPE_PUBLISHABLE_KEY
+    });
+  } catch (error) {
+    console.error('Stripe Error:', error);
+    res.status(500).json({ message: 'Stripe session creation failed', error: error.message });
+  }
+};
+
+// New: Confirm Stripe Payment
+exports.confirmStripePayment = async (req, res) => {
+  const connection = await db.getConnection();
+  try {
+    await connection.beginTransaction();
+    const { sessionId } = req.body;
+
+    if (!sessionId) return res.status(400).json({ message: 'Session ID is required' });
+
+    // Retrieve session from Stripe
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
+    if (session.payment_status !== 'paid') {
+      return res.status(400).json({ success: false, message: 'Payment not completed' });
+    }
+
+    const orderId = session.metadata.orderId;
+    const amount = session.amount_total / 100;
+
+    // Check if payment already recorded
+    const [existing] = await connection.query('SELECT * FROM payments WHERE transaction_id = ?', [sessionId]);
+    if (existing.length > 0) {
+      return res.json({ success: true, message: 'Payment already recorded', transactionId: sessionId });
+    }
+
+    // Status IDs
+    const [paidStatus] = await connection.query('SELECT payment_status_id FROM payment_statuses WHERE status_name = "paid"');
+    const [processingStatus] = await connection.query('SELECT order_status_id FROM order_statuses WHERE status_name = "Processing"');
+
+    const pStatusId = paidStatus[0].payment_status_id;
+    const oStatusId = processingStatus[0].order_status_id;
+
+    // Insert into payments
+    await connection.query(
+      'INSERT INTO payments (order_id, transaction_id, amount, status_id, payment_method) VALUES (?, ?, ?, ?, ?)',
+      [orderId, sessionId, amount, pStatusId, 'Stripe Card']
     );
 
-    if (payments.length === 0) {
-      return res.status(404).json({ message: 'Payment not found' });
+    // Update order
+    await connection.query(
+      'UPDATE orders SET payment_status_id = ?, order_status_id = ? WHERE order_id = ?',
+      [pStatusId, oStatusId, orderId]
+    );
+
+    // Get customer_id to clear cart
+    const [[order]] = await connection.query('SELECT customer_id FROM orders WHERE order_id = ?', [orderId]);
+    if (order) {
+      await connection.query('DELETE FROM cart WHERE user_id = ?', [order.customer_id]);
     }
 
-    res.json({ 
-      success: true,
-      payment: payments[0] 
-    });
+    await connection.commit();
+    res.json({ success: true, transactionId: sessionId });
   } catch (error) {
-    console.error('Verify payment error:', error);
-    res.status(500).json({ message: 'Failed to verify payment', error: error.message });
-  }
-};
-
-// Get available payment methods
-exports.getPaymentMethods = async (req, res) => {
-  try {
-    const methods = [
-      {
-        id: 'card',
-        name: 'Card Payment',
-        description: 'Pay with Credit/Debit Card',
-        icon: '💳',
-        enabled: true
-      },
-      {
-        id: 'bank',
-        name: 'Online Banking',
-        description: 'Pay via Online Banking',
-        icon: '🏦',
-        enabled: true
-      },
-      {
-        id: 'cod',
-        name: 'Cash on Delivery',
-        description: 'Pay when you receive',
-        icon: '💵',
-        enabled: true
-      }
-    ];
-
-    res.json({ 
-      success: true,
-      methods 
-    });
-  } catch (error) {
-    console.error('Get payment methods error:', error);
-    res.status(500).json({ message: 'Failed to fetch payment methods', error: error.message });
-  }
-};
-
-// Card payment (specific endpoint)
-exports.processCardPayment = async (req, res) => {
-  try {
-    const { orderId, cardNumber, expiryDate, cvv, cardName } = req.body;
-
-    // Simulate card validation
-    if (!cardNumber || cardNumber.length < 13) {
-      return res.status(400).json({ message: 'Invalid card number' });
-    }
-
-    // Process payment
-    const paymentResult = await exports.processPayment(req, res);
-    
-  } catch (error) {
-    console.error('Card payment error:', error);
-    res.status(500).json({ message: 'Card payment failed', error: error.message });
-  }
-};
-
-// Get payment history for user
-exports.getPaymentHistory = async (req, res) => {
-  try {
-    const userId = req.user.userId;
-
-    const [payments] = await db.query(`
-      SELECT p.*, o.order_number, o.order_date
-      FROM payments p
-      JOIN orders o ON p.order_id = o.id
-      WHERE o.customer_id = ?
-      ORDER BY p.payment_date DESC
-    `, [userId]);
-
-    res.json({ 
-      success: true,
-      count: payments.length,
-      payments 
-    });
-  } catch (error) {
-    console.error('Get payment history error:', error);
-    res.status(500).json({ message: 'Failed to fetch payment history', error: error.message });
-  }
+    await connection.rollback();
+    console.error('Confirmation Error:', error);
+    res.status(500).json({ message: 'Payment confirmation failed', error: error.message });
+  } finally { connection.release(); }
 };

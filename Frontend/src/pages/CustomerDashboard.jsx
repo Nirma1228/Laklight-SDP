@@ -4,12 +4,13 @@ import Header from '../components/Header'
 import Footer from '../components/Footer'
 import { config } from '../config'
 import StripeCheckoutButton from '../components/StripeCheckoutButton'
-import CardPaymentForm from '../components/CardPaymentForm'
+import { useToast } from '../components/ToastNotification'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faShoppingBag, faBoxOpen, faUser } from '@fortawesome/free-solid-svg-icons'
 import './CustomerDashboard.css'
 
 // Product Card Component
-const ProductCard = ({ productKey, product, onAddToCart }) => {
-
+const ProductCard = ({ product, onAddToCart }) => {
   const [quantity, setQuantity] = useState(1)
   const [added, setAdded] = useState(false)
 
@@ -18,29 +19,27 @@ const ProductCard = ({ productKey, product, onAddToCart }) => {
   }
 
   const handleAddToCart = () => {
-    onAddToCart(productKey, quantity)
+    onAddToCart(product, quantity)
     setQuantity(1)
     setAdded(true)
     setTimeout(() => setAdded(false), 400)
   }
 
   return (
-    <div className="product-card" data-key={productKey}>
-      <div className="product-img" style={{ height: '200px', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div className="product-card">
+      <div className="product-img" style={{ height: '100px', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <img
-          src={product.image}
+          src={product.image_url || '/images/placeholder.png'}
           alt={product.name}
           style={{ height: '100%', width: 'auto', objectFit: 'contain', borderRadius: '8px' }}
         />
       </div>
       <div className="product-info">
         <div className="product-name">{product.name}</div>
-        <div className="product-price">LKR {product.price.toFixed(2)}</div>
+        <div className="product-price">LKR {(parseFloat(product.price) || 0).toFixed(2)}</div>
         <div className="product-description">{product.description}</div>
-        <div className={`product-availability availability-${product.availability}`}>
-          {product.availability === 'in-stock' && 'In Stock'}
-          {product.availability === 'low-stock' && 'Low Stock'}
-          {product.availability === 'out-of-stock' && 'Out of Stock'}
+        <div className={`product-availability availability-${product.is_available ? 'in-stock' : 'out-of-stock'}`}>
+          {product.is_available ? 'Available' : 'Out of Stock'}
         </div>
         <div className="product-actions">
           <div className="quantity-controls">
@@ -58,7 +57,7 @@ const ProductCard = ({ productKey, product, onAddToCart }) => {
           <button
             className={`btn btn-primary btn-small add-to-cart-btn${added ? ' added' : ''}`}
             onClick={handleAddToCart}
-            disabled={product.availability === 'out-of-stock'}
+            disabled={!product.is_available}
           >
             {added ? 'Added!' : 'Add to Cart'}
           </button>
@@ -70,28 +69,16 @@ const ProductCard = ({ productKey, product, onAddToCart }) => {
 
 const CustomerDashboard = () => {
   const navigate = useNavigate()
+  const toast = useToast()
   const [cart, setCart] = useState([])
   const [isCartOpen, setIsCartOpen] = useState(false)
   const [isEditProfileOpen, setIsEditProfileOpen] = useState(false)
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
   const [isPaymentOpen, setIsPaymentOpen] = useState(false)
-  const [showCardForm, setShowCardForm] = useState(false)
   const [featuredSearch, setFeaturedSearch] = useState('')
   const [featuredCategory, setFeaturedCategory] = useState('')
   const [featuredSort, setFeaturedSort] = useState('')
-
-  const [profileData, setProfileData] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    address: '',
-    city: '',
-    postalCode: '',
-    district: '',
-    notifications: 'all',
-    language: 'en'
-  })
+  const [activeDashboardView, setActiveDashboardView] = useState('none')
 
   // Load user data from localStorage and Database
   useEffect(() => {
@@ -126,7 +113,10 @@ const CustomerDashboard = () => {
               lastName: fullName.split(' ').slice(1).join(' '),
               email: data.user.email,
               phone: data.user.phone,
-              address: data.user.address
+              address: data.user.address,
+              city: data.user.city || '',
+              postalCode: data.user.postal_code || '',
+              district: data.user.district || ''
             }));
             localStorage.setItem('userName', fullName);
           }
@@ -139,88 +129,103 @@ const CustomerDashboard = () => {
     fetchRealProfile();
   }, []);
 
+  const [profileData, setProfileData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    address: '',
+    city: '',
+    postalCode: '',
+    district: '',
+    notifications: 'all',
+    language: 'en'
+  })
   const [checkoutData, setCheckoutData] = useState({
     firstName: '',
     lastName: '',
     deliveryAddress: '',
+    city: '',
     contactNumber: '',
     postalCode: '',
     orderNotes: ''
   })
   const [paymentMethod, setPaymentMethod] = useState('visa') // default to VISA
+  const [dbProducts, setDbProducts] = useState([])
+  const [dbOrders, setDbOrders] = useState([])
+  const [activeOrderId, setActiveOrderId] = useState(null)
 
-  const products = {
-    'lime': {
-      name: 'Lime Mix',
-      price: 150.00,
-      image: '/images/Lime Mix.png',
-      description: 'Refreshing lime cordial made from fresh lime extracts. Perfect for mixing with water or soda. 350ml bottle.',
-      availability: 'in-stock',
-      category: 'juice'
-    },
-    'woodapple': {
-      name: 'Wood Apple Juice',
-      price: 100.00,
-      image: '/images/Wood Apple Juice.png',
-      description: 'Traditional Sri Lankan wood apple juice rich in nutrients. Naturally sweet and tangy. 200ml liter bottle.',
-      availability: 'in-stock',
-      category: 'juice'
-    },
-    'mangojelly': {
-      name: 'Mango Jelly',
-      price: 200.00,
-      image: '/images/Mango Jelly.png',
-      description: 'Premium mango jelly made from fresh mangoes. Great for desserts and breakfast spreads. 100g pack.',
-      availability: 'out-of-stock',
-      category: 'jam'
-    },
-    'custard': {
-      name: 'Custard powder',
-      price: 300.00,
-      image: '/images/Custard powder.png',
-      description: 'High-quality custard powder for delicious desserts. Rich vanilla flavor. Perfect for puddings and trifles. 100g pack.',
-      availability: 'in-stock',
-      category: 'preserves'
-    }
-  }
+  // Fetch products from DB
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const res = await fetch(`${config.API_BASE_URL}/products`);
+        const data = await res.json();
+        if (data.success) {
+          setDbProducts(data.products);
+        }
+      } catch (err) { console.error('Product fetch failed:', err); }
+    };
+    fetchProducts();
+  }, []);
 
-  const [orders, setOrders] = useState(() => {
-    const saved = localStorage.getItem('order_list')
-    if (saved) {
-      // For demo, we filter orders for "Asoka Perera" (Customer C001)
-      const allOrders = JSON.parse(saved)
-      return allOrders.filter(o => o.customer === 'Asoka Perera' || o.id === 'O001' || o.id === 'O002')
-    }
-    return [
-      {
-        id: 'O001',
-        items: '15x Fresh Mango Drink',
-        total: 3375.00,
-        discount: true,
-        status: 'processing'
-      },
-      {
-        id: 'O002',
-        items: '8x Mixed Jam Collection',
-        total: 2400.00,
-        discount: false,
-        status: 'completed'
+  // Fetch orders from DB
+  const fetchOrders = async () => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      if (!token) return;
+      const res = await fetch(`${config.API_BASE_URL}/orders`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.status === 401 || res.status === 403) {
+        // Token expired – clear storage and redirect to login
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.href = '/login';
+        return;
       }
-    ]
-  })
+      const data = await res.json();
+      if (data.success) {
+        setDbOrders(data.orders);
+      } else {
+        console.error('Orders API error:', data.message);
+      }
+    } catch (err) { console.error('Order fetch failed:', err); }
+  };
 
-  // Load cart from localStorage on mount
   useEffect(() => {
-    const savedCart = localStorage.getItem('laklight_customer_cart_v1')
-    if (savedCart) {
-      setCart(JSON.parse(savedCart))
-    }
-  }, [])
+    fetchOrders();
+    const interval = setInterval(fetchOrders, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
-  // Save cart to localStorage whenever it changes
+  // Fetch cart from Backend on mount
   useEffect(() => {
-    localStorage.setItem('laklight_customer_cart_v1', JSON.stringify(cart))
-  }, [cart])
+    const fetchCart = async () => {
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        if (!token) return;
+
+        const res = await fetch(`${config.API_BASE_URL}/cart`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+          setCart(data.items.map(item => ({
+            id: item.product_id,
+            cart_id: item.cart_id,
+            name: item.name,
+            price: parseFloat(item.price),
+            image: item.image_url,
+            quantity: item.quantity
+          })));
+        }
+      } catch (err) {
+        console.error('Cart fetch failed:', err);
+      }
+    };
+    fetchCart();
+  }, []);
 
   // Poll for order status updates
   useEffect(() => {
@@ -236,80 +241,259 @@ const CustomerDashboard = () => {
     return () => clearInterval(interval)
   }, [])
 
-  const addToCart = (productKey, quantity = 1) => {
-    const product = products[productKey]
-    if (!product) return
+  // Handle Stripe Success/Cancel URLs
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const status = params.get('payment')
+    const sessionId = params.get('session_id')
 
-    setCart(prevCart => {
-      const existingItem = prevCart.find(item => item.key === productKey)
-      if (existingItem) {
-        return prevCart.map(item =>
-          item.key === productKey
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
-        )
-      } else {
-        return [...prevCart, {
-          key: productKey,
-          name: product.name,
-          price: product.price,
-          image: product.image,
-          quantity: quantity
-        }]
-      }
-    })
-  }
+    const confirmPaymentOnBackend = async (id) => {
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        const response = await fetch(`${config.API_BASE_URL}/payments/confirm-stripe`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ sessionId: id })
+        });
 
-  const removeFromCart = (productKey) => {
-    setCart(prevCart => prevCart.filter(item => item.key !== productKey))
-  }
-
-  const updateQuantity = (productKey, change) => {
-    setCart(prevCart => {
-      return prevCart.map(item => {
-        if (item.key === productKey) {
-          const newQuantity = item.quantity + change
-          return newQuantity <= 0 ? null : { ...item, quantity: newQuantity }
+        if (response.ok) {
+          setCart([])
+          localStorage.removeItem('laklight_customer_cart_v1')
+          toast.success('Payment successful and recorded! Your order has been placed.')
+        } else {
+          const data = await response.json();
+          toast.error(`Payment verification failed: ${data.message}`)
         }
-        return item
-      }).filter(Boolean)
-    })
+      } catch (err) {
+        console.error('Confirmation error:', err);
+        toast.error('Failed to confirm payment with the server.')
+      } finally {
+        // Clear URL params
+        window.history.replaceState({}, document.title, window.location.pathname)
+      }
+    };
+
+    if (status === 'success' && sessionId) {
+      confirmPaymentOnBackend(sessionId)
+    } else if (status === 'success') {
+      // Fallback if session_id is missing but status is success
+      setCart([])
+      localStorage.removeItem('laklight_customer_cart_v1')
+      toast.success('Payment successful! Your order has been placed.')
+      window.history.replaceState({}, document.title, window.location.pathname)
+    } else if (status === 'cancel') {
+      toast.error('Payment cancelled.')
+      window.history.replaceState({}, document.title, window.location.pathname)
+    }
+  }, [toast])
+
+  const handleCheckoutSubmit = async (e) => {
+    e.preventDefault()
+
+    // Create order in DB first
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const orderData = {
+        items: cart.map(item => ({
+          productId: item.id, // This is mapped to product_id in fetchCart
+          quantity: item.quantity
+        })),
+        deliveryAddress: `${checkoutData.deliveryAddress}, ${checkoutData.city}, ${checkoutData.postalCode}`,
+        paymentMethod: paymentMethod === 'cod' ? 'Cash on Delivery' : 'Card Payment'
+      };
+
+      const res = await fetch(`${config.API_BASE_URL}/orders/place`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(orderData)
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        setActiveOrderId(data.orderId);
+        setIsCheckoutOpen(false);
+        setIsPaymentOpen(true);
+      } else {
+        toast.error(`Order failed: ${data.error || data.message || 'Unknown error'}`);
+      }
+    } catch (err) {
+      console.error('Order creation error:', err);
+      toast.error('Failed to place order. Please try again.');
+    }
+  }
+
+  const addToCart = async (product, quantity = 1) => {
+    // Check if user is logged in
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+    if (!token) {
+      toast.warning('Please login to add items to your cart')
+      setTimeout(() => {
+        navigate('/login?redirect=/customer/dashboard')
+      }, 1500)
+      return
+    }
+
+    try {
+      const res = await fetch(`${config.API_BASE_URL}/cart/add`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ productId: product.id, quantity })
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Refresh cart from backend
+        const cartRes = await fetch(`${config.API_BASE_URL}/cart`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const cartData = await cartRes.json();
+        if (cartData.success) {
+          setCart(cartData.items.map(item => ({
+            id: item.product_id,
+            cart_id: item.cart_id,
+            name: item.name,
+            price: parseFloat(item.price),
+            image: item.image_url,
+            quantity: item.quantity
+          })));
+          toast.success('Product added to cart');
+        }
+      } else {
+        toast.error(`Added to cart failed: ${data.message}`);
+      }
+    } catch (err) {
+      console.error('Cart add error:', err);
+      toast.error('Failed to update cart on server');
+    }
+  }
+
+  const removeFromCart = async (cartId) => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const res = await fetch(`${config.API_BASE_URL}/cart/remove/${cartId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCart(prevCart => prevCart.filter(item => item.cart_id !== cartId));
+        toast.success('Item removed from cart');
+      }
+    } catch (err) {
+      console.error('Cart remove error:', err);
+    }
+  }
+
+  const updateQuantity = async (cartId, change) => {
+    const item = cart.find(i => i.cart_id === cartId);
+    if (!item) return;
+    const newQuantity = item.quantity + change;
+
+    if (newQuantity <= 0) {
+      removeFromCart(cartId);
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const res = await fetch(`${config.API_BASE_URL}/cart/update/${cartId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ quantity: newQuantity })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCart(prevCart => prevCart.map(i =>
+          i.cart_id === cartId ? { ...i, quantity: newQuantity } : i
+        ));
+      }
+    } catch (err) {
+      console.error('Cart update error:', err);
+    }
   }
 
   const toggleCart = () => {
     setIsCartOpen(!isCartOpen)
   }
 
-  const saveProfile = () => {
+  const saveProfile = async () => {
     if (!profileData.firstName || !profileData.lastName || !profileData.email ||
-      !profileData.phone || !profileData.address || !profileData.city ||
-      !profileData.postalCode || !profileData.district) {
-      alert('Please fill in all required fields marked with *')
+      !profileData.phone || !profileData.address) {
+      toast.warning('Please fill in all required fields marked with *')
       return
     }
 
-    alert('Profile updated successfully!\n\nYour changes have been saved.')
-    setIsEditProfileOpen(false)
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const fullName = `${profileData.firstName} ${profileData.lastName}`;
+      
+      const response = await fetch(`${config.API_BASE_URL}/auth/profile`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          fullName,
+          phone: profileData.phone,
+          address: profileData.address,
+          city: profileData.city,
+          postalCode: profileData.postalCode,
+          district: profileData.district
+        })
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        toast.success('Profile updated successfully!');
+        localStorage.setItem('userName', fullName);
+        setIsEditProfileOpen(false);
+      } else {
+        toast.error(`Update failed: ${data.message}`);
+      }
+    } catch (error) {
+      console.error('Profile update error:', error);
+      toast.error('Failed to update profile. Please try again.');
+    }
   }
 
-  const handleCheckoutSubmit = (e) => {
-    e.preventDefault()
-    setIsCheckoutOpen(false)
-    setIsPaymentOpen(true)
-  }
 
   const calculateTotals = () => {
-    const subtotal = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
-    const qualifiesForDiscount = totalItems >= 12;
-    const discount = qualifiesForDiscount ? subtotal * 0.1 : 0;
-    const total = subtotal - discount;
-    return { subtotal, totalItems, discount, total, qualifiesForDiscount };
+    let subtotal = 0;
+    let discount = 0;
+    let totalItems = 0;
+    const deliveryCharge = 400;
+
+    cart.forEach(item => {
+      const itemSubtotal = item.price * item.quantity;
+      subtotal += itemSubtotal;
+      totalItems += item.quantity;
+      
+      // Give 10% discount for a specific product if purchased 12+ times
+      if (item.quantity >= 12) {
+        discount += itemSubtotal * 0.1;
+      }
+    });
+
+    const total = subtotal - discount + deliveryCharge;
+    const qualifiesForDiscount = discount > 0;
+    return { subtotal, totalItems, discount, deliveryCharge, total, qualifiesForDiscount };
   };
 
-  const { subtotal, totalItems, discount, total, qualifiesForDiscount } = calculateTotals()
+  const { subtotal, totalItems, discount, deliveryCharge, total, qualifiesForDiscount } = calculateTotals()
 
-  const filteredProducts = Object.entries(products).filter(([key, product]) => {
+  const filteredProducts = dbProducts.filter(product => {
     const matchesSearch = !featuredSearch ||
       product.name.toLowerCase().includes(featuredSearch.toLowerCase()) ||
       product.description.toLowerCase().includes(featuredSearch.toLowerCase())
@@ -318,18 +502,15 @@ const CustomerDashboard = () => {
 
     return matchesSearch && matchesCategory
   }).sort((a, b) => {
-    const [keyA, productA] = a
-    const [keyB, productB] = b
-
     switch (featuredSort) {
       case 'price-low':
-        return productA.price - productB.price
+        return a.price - b.price
       case 'price-high':
-        return productB.price - productA.price
+        return b.price - a.price
       case 'popular':
-        return productA.name.localeCompare(productB.name)
+        return a.name.localeCompare(b.name)
       case 'newest':
-        return productB.name.localeCompare(productA.name)
+        return b.name.localeCompare(a.name)
       default:
         return 0
     }
@@ -357,14 +538,31 @@ const CustomerDashboard = () => {
       <main className="dashboard">
         {/* Welcome Section */}
         <section className="welcome-section">
-          <h1 className="welcome-title">Customer Dashboard</h1>
-          <p>Welcome to your Laklights Food Products account. Browse our premium cordials, jams, and sauces with automatic wholesale discounts for bulk orders.</p>
-          <div className="welcome-buttons">
+          <h1 className="welcome-title">Welcome, {profileData.firstName || 'Customer'}!</h1>
+          <p className="welcome-subtitle">
+            Manage your account, track recent orders, and quickly browse our premium products.
+          </p>
+          <div className="welcome-quick-links">
             <button
-              className="btn btn-secondary welcome-btn-secondary"
+              className="quick-link-card"
               onClick={() => document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' })}
             >
-              View Catalog
+              <FontAwesomeIcon icon={faShoppingBag} className="quick-link-icon" />
+              <span className="quick-link-text">Browse Catalog</span>
+            </button>
+            <button
+              className={`quick-link-card ${activeDashboardView === 'orders' ? 'active' : ''}`}
+              onClick={() => setActiveDashboardView(activeDashboardView === 'orders' ? 'none' : 'orders')}
+            >
+              <FontAwesomeIcon icon={faBoxOpen} className="quick-link-icon" />
+              <span className="quick-link-text">Recent Orders</span>
+            </button>
+            <button
+              className={`quick-link-card ${activeDashboardView === 'account' ? 'active' : ''}`}
+              onClick={() => setActiveDashboardView(activeDashboardView === 'account' ? 'none' : 'account')}
+            >
+              <FontAwesomeIcon icon={faUser} className="quick-link-icon" />
+              <span className="quick-link-text">Account Summary</span>
             </button>
           </div>
         </section>
@@ -372,55 +570,81 @@ const CustomerDashboard = () => {
         {/* Dashboard Grid */}
         <div className="dashboard-grid">
           {/* Recent Orders */}
-          <div className="dashboard-card">
-            <div className="card-header">
-              <h2 className="card-title">Recent Orders</h2>
+          {activeDashboardView === 'orders' && (
+            <div className="dashboard-card animated fadeIn" style={{ gridColumn: '1 / -1' }}>
+              <div className="card-header">
+                <h2 className="card-title">Recent Orders</h2>
+              </div>
+              <div id="recent-orders">
+                {dbOrders.length === 0 ? (
+                  <p>No orders found yet.</p>
+                ) : (
+                  dbOrders.slice(0, 5).map(order => (
+                    <div key={order.order_id} className="order-item">
+                      <div className="order-details">
+                        <div className="order-id">Order #{order.order_number || order.order_id}</div>
+                        <div>{order.order_date ? new Date(order.order_date).toLocaleDateString() : 'N/A'}</div>
+                        <div>Total: LKR {(parseFloat(order.net_amount) || 0).toFixed(2)}</div>
+                      </div>
+                      <div className="order-actions-status" style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
+                        {(order.order_status || '').toLowerCase() === 'delivered' ? (
+                          <Link to="/feedback" className={`order-status status-${(order.order_status || '').toLowerCase()}`} style={{ textDecoration: 'none' }}>
+                            {order.order_status}
+                          </Link>
+                        ) : (
+                          <span className={`order-status status-${(order.order_status || '').toLowerCase()}`}>
+                            {order.order_status}
+                          </span>
+                        )}
+                        <span className={`payment-status status-${(order.payment_status || '').toLowerCase()}`}>
+                          {order.payment_status}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+              <button
+                onClick={() => document.getElementById('recent-orders')?.scrollIntoView({ behavior: 'smooth' })}
+                className="btn btn-primary"
+              >
+                View All Orders
+              </button>
             </div>
-            <div id="recent-orders">
-              {orders.map(order => (
-                <div key={order.id} className="order-item">
-                  <div className="order-details">
-                    <div className="order-id">Order #{order.id}</div>
-                    <div>{order.items}</div>
-                    <div>Total: LKR {order.total.toFixed(2)} {order.discount && '(10% discount applied)'}</div>
-                  </div>
-                  <div className="order-actions-status">
-                    {order.status.toLowerCase() === 'completed' ? (
-                      <span className="order-status status-completed">✅ Delivered</span>
-                    ) : order.status.toLowerCase() === 'packing' ? (
-                      <span className="order-status" style={{ background: '#fff3cd', color: '#856404' }}>📦 Packing</span>
-                    ) : order.status.toLowerCase() === 'delivering' ? (
-                      <span className="order-status" style={{ background: '#e3f2fd', color: '#0d47a1' }}>🚚 Delivering</span>
-                    ) : (
-                      <span className={`order-status status-${order.status.toLowerCase()}`}>
-                        {order.status === 'Ready' ? 'Processing' : order.status}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <button
-              onClick={() => document.getElementById('recent-orders')?.scrollIntoView({ behavior: 'smooth' })}
-              className="btn btn-primary"
-            >
-              View All Orders
-            </button>
-          </div>
+          )}
 
           {/* Account Summary */}
-          <div className="dashboard-card">
-            <div className="card-header">
-              <h2 className="card-title">Account Summary</h2>
+          {activeDashboardView === 'account' && (
+            <div className="dashboard-card animated fadeIn" id="account-summary" style={{ gridColumn: '1 / -1' }}>
+              <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h2 className="card-title">Account Summary</h2>
+                <button 
+                  className="btn btn-small btn-secondary"
+                  onClick={() => setIsEditProfileOpen(true)}
+                >
+                  Edit Profile
+                </button>
+              </div>
+              <div className="account-details-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '1rem', marginTop: '1rem' }}>
+                <div className="summary-item" style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '8px' }}>
+                  <span style={{ color: '#666', fontSize: '0.9rem', display: 'block', marginBottom: '4px' }}>Name</span>
+                  <strong>{profileData.firstName} {profileData.lastName}</strong>
+                </div>
+                <div className="summary-item" style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '8px' }}>
+                  <span style={{ color: '#666', fontSize: '0.9rem', display: 'block', marginBottom: '4px' }}>Email</span>
+                  <strong style={{ wordBreak: 'break-all' }}>{profileData.email || 'N/A'}</strong>
+                </div>
+                <div className="summary-item" style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '8px' }}>
+                  <span style={{ color: '#666', fontSize: '0.9rem', display: 'block', marginBottom: '4px' }}>Phone</span>
+                  <strong>{profileData.phone || 'N/A'}</strong>
+                </div>
+                <div className="summary-item" style={{ background: '#f8f9fa', padding: '1rem', borderRadius: '8px' }}>
+                  <span style={{ color: '#666', fontSize: '0.9rem', display: 'block', marginBottom: '4px' }}>Total Orders</span>
+                  <strong>{dbOrders.length}</strong>
+                </div>
+              </div>
             </div>
-            <div>
-              <p><strong>Customer ID:</strong> C001</p>
-              <p><strong>Total Orders:</strong> 12</p>
-              <p><strong>Total Spent:</strong> LKR 45,500.00</p>
-              <p><strong>Wholesale Discounts Earned:</strong> LKR 4,550.00</p>
-              <p><strong>Member Since:</strong> January 2025</p>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Featured Products */}
@@ -469,10 +693,9 @@ const CustomerDashboard = () => {
             <div className="no-results">No featured products found matching your criteria.</div>
           ) : (
             <div className="products-grid">
-              {filteredProducts.map(([key, product]) => (
+              {filteredProducts.map(product => (
                 <ProductCard
-                  key={key}
-                  productKey={key}
+                  key={product.product_id}
                   product={product}
                   onAddToCart={addToCart}
                 />
@@ -483,7 +706,7 @@ const CustomerDashboard = () => {
           <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
             <a href="/product-catalog" className="btn btn-primary">View All Products</a>
             <p style={{ marginTop: '0.5rem', color: '#666', fontSize: '0.9rem' }}>
-              💡 Order 12+ pieces of any product to get automatic 10% wholesale discount!
+              💡 Order 12+ pieces of any specific product to get an automatic 10% wholesale discount on it!
             </p>
           </div>
         </div>
@@ -508,7 +731,7 @@ const CustomerDashboard = () => {
             ) : (
               <>
                 {cart.map(item => (
-                  <div key={item.key} className="cart-item">
+                  <div key={item.cart_id} className="cart-item">
                     <div className="cart-item-image">
                       {item.image ? (
                         <img src={item.image} alt={item.name} />
@@ -520,13 +743,13 @@ const CustomerDashboard = () => {
                       <div className="cart-item-name">{item.name}</div>
                       <div className="cart-item-price">LKR {item.price.toFixed(2)}</div>
                       <div className="cart-item-quantity">
-                        <button className="quantity-btn" onClick={() => updateQuantity(item.key, -1)}>-</button>
+                        <button className="quantity-btn" onClick={() => updateQuantity(item.cart_id, -1)}>-</button>
                         <span style={{ padding: '0 1rem' }}>{item.quantity}</span>
-                        <button className="quantity-btn" onClick={() => updateQuantity(item.key, 1)}>+</button>
+                        <button className="quantity-btn" onClick={() => updateQuantity(item.cart_id, 1)}>+</button>
                         <button
                           className="btn btn-danger btn-small"
                           style={{ marginLeft: '1rem' }}
-                          onClick={() => removeFromCart(item.key)}
+                          onClick={() => removeFromCart(item.cart_id)}
                         >
                           Remove
                         </button>
@@ -550,6 +773,10 @@ const CustomerDashboard = () => {
                   <span style={{ color: '#4caf50' }}>-LKR {discount.toFixed(2)}</span>
                 </div>
               )}
+              <div className="summary-row">
+                <span>Delivery Charge:</span>
+                <span>LKR {deliveryCharge.toFixed(2)}</span>
+              </div>
               <div className="summary-row summary-total">
                 <span>Total:</span>
                 <span>LKR {total.toFixed(2)}</span>
@@ -557,11 +784,11 @@ const CustomerDashboard = () => {
 
               {qualifiesForDiscount ? (
                 <div className="wholesale-notice">
-                  🎉 Congratulations! You've qualified for our 10% wholesale discount on bulk orders (12+ pieces)
+                  🎉 Congratulations! You've qualified for our 10% wholesale discount on specific bulk items (12+ pieces)
                 </div>
               ) : (
-                <div className="wholesale-notice" style={{ background: '#fff3cd', borderColor: '#ffc107' }}>
-                  💡 Add {12 - totalItems} more items to qualify for 10% wholesale discount
+                <div className="wholesale-notice" style={{ background: '#fff3cd', borderColor: '#ffc107', color: '#856404' }}>
+                  💡 Order 12 or more of any specific item to unlock a 10% wholesale discount for that item!
                 </div>
               )}
 
@@ -684,18 +911,33 @@ const CustomerDashboard = () => {
                     <select
                       value={profileData.district}
                       onChange={(e) => setProfileData({ ...profileData, district: e.target.value })}
-                      required
                     >
                       <option value="">Select District</option>
+                      <option value="ampara">Ampara</option>
+                      <option value="anuradhapura">Anuradhapura</option>
+                      <option value="badulla">Badulla</option>
+                      <option value="batticaloa">Batticaloa</option>
                       <option value="colombo">Colombo</option>
+                      <option value="galle">Galle</option>
                       <option value="gampaha">Gampaha</option>
+                      <option value="hambantota">Hambantota</option>
+                      <option value="jaffna">Jaffna</option>
                       <option value="kalutara">Kalutara</option>
                       <option value="kandy">Kandy</option>
+                      <option value="kegalle">Kegalle</option>
+                      <option value="kilinochchi">Kilinochchi</option>
+                      <option value="kurunegala">Kurunegala</option>
+                      <option value="mannar">Mannar</option>
                       <option value="matale">Matale</option>
-                      <option value="nuwara-eliya">Nuwara Eliya</option>
-                      <option value="galle">Galle</option>
                       <option value="matara">Matara</option>
-                      <option value="hambantota">Hambantota</option>
+                      <option value="moneragala">Moneragala</option>
+                      <option value="mullaitivu">Mullaitivu</option>
+                      <option value="nuwara-eliya">Nuwara Eliya</option>
+                      <option value="polonnaruwa">Polonnaruwa</option>
+                      <option value="puttalam">Puttalam</option>
+                      <option value="ratnapura">Ratnapura</option>
+                      <option value="trincomalee">Trincomalee</option>
+                      <option value="vavuniya">Vavuniya</option>
                     </select>
                   </div>
                 </div>
@@ -743,13 +985,13 @@ const CustomerDashboard = () => {
             <form onSubmit={handleCheckoutSubmit}>
               <div className="modal-body">
                 <div className="form-row">
-                  <div className="form-group">
-                    <label>First Name *</label>
+                  <div className="form-group" style={{ width: '100%', gridColumn: '1 / -1' }}>
+                    <label>Name *</label>
                     <input
                       type="text"
                       value={checkoutData.firstName}
                       onChange={(e) => setCheckoutData({ ...checkoutData, firstName: e.target.value })}
-                      placeholder="Enter first name"
+                      placeholder="Enter name"
                       required
                     />
                   </div>
@@ -762,6 +1004,16 @@ const CustomerDashboard = () => {
                     onChange={(e) => setCheckoutData({ ...checkoutData, deliveryAddress: e.target.value })}
                     placeholder="Enter full delivery address"
                     rows="3"
+                    required
+                  />
+                </div>
+                <div className="form-group">
+                  <label>City *</label>
+                  <input
+                    type="text"
+                    value={checkoutData.city}
+                    onChange={(e) => setCheckoutData({ ...checkoutData, city: e.target.value })}
+                    placeholder="Enter city"
                     required
                   />
                 </div>
@@ -823,57 +1075,36 @@ const CustomerDashboard = () => {
         <div className="modal" style={{ display: 'block' }}>
           <div className="modal-content" style={{ maxWidth: '500px' }}>
             <div className="modal-header">
-              <h2 className="modal-title">{showCardForm ? 'Enter Card Details' : 'Select Payment Method'}</h2>
-              <span className="close" onClick={() => { setIsPaymentOpen(false); setShowCardForm(false); }}>×</span>
+              <h2 className="modal-title">Select Payment Method</h2>
+              <span className="close" onClick={() => setIsPaymentOpen(false)}>×</span>
             </div>
             <div className="modal-body">
-              {!showCardForm ? (
-                <>
-                  <p>Total: <strong>LKR {total.toFixed(2)}</strong></p>
-                  <div className="form-group">
-                    <label>Payment Method *</label>
-                    <select
-                      value={paymentMethod}
-                      onChange={e => setPaymentMethod(e.target.value)}
-                      required
-                    >
-                      <option value="visa">VISA</option>
-                      <option value="mastercard">MasterCard</option>
-                      <option value="cod">Cash on Delivery</option>
-                    </select>
-                  </div>
-                  {['visa', 'mastercard'].includes(paymentMethod) ? (
-                    <button
-                      className="btn btn-primary"
-                      style={{ width: '100%' }}
-                      onClick={() => setShowCardForm(true)}
-                    >
-                      Pay Securely Online
-                    </button>
-                  ) : (
-                    <>
-                      <p>You selected <strong>Cash on Delivery</strong>. Your order will be placed and you can pay upon delivery.</p>
-                      <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => {
-                        setIsPaymentOpen(false);
-                        setCart([]);
-                        alert('Order placed! Please pay cash upon delivery.');
-                      }}>
-                        Place Order (Cash on Delivery)
-                      </button>
-                    </>
-                  )}
-                </>
+              <p>Total: <strong>LKR {total.toFixed(2)}</strong></p>
+              <div className="form-group">
+                <label>Payment Method *</label>
+                <select
+                  value={paymentMethod}
+                  onChange={e => setPaymentMethod(e.target.value)}
+                  required
+                >
+                  <option value="visa">VISA</option>
+                  <option value="mastercard">MasterCard</option>
+                  <option value="cod">Cash on Delivery</option>
+                </select>
+              </div>
+              {['visa', 'mastercard'].includes(paymentMethod) ? (
+                <StripeCheckoutButton amount={total} orderId={activeOrderId} />
               ) : (
-                <CardPaymentForm
-                  amount={total}
-                  onSuccess={() => {
+                <>
+                  <p>You selected <strong>Cash on Delivery</strong>. Your order will be placed and you can pay upon delivery.</p>
+                  <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => {
                     setIsPaymentOpen(false);
-                    setShowCardForm(false);
                     setCart([]);
-                    alert('Payment successful! Your order has been placed.');
-                  }}
-                  onCancel={() => setShowCardForm(false)}
-                />
+                    alert('Order placed! Please pay cash upon delivery.');
+                  }}>
+                    Place Order (Cash on Delivery)
+                  </button>
+                </>
               )}
             </div>
           </div>

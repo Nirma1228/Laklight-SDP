@@ -1,90 +1,12 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { config } from '../config';
 import './AdminOrderManagement.css';
 
 function AdminOrderManagement() {
-  const [orders, setOrders] = useState([
-    {
-      id: 'ORD-2025-1523',
-      customer: { name: 'Asoka Perera', phone: '0771234567', email: 'asoka.perera@email.com', address: '123, Main Street, Colombo 07' },
-      products: [
-        { name: 'Fresh Mango Cordial - 750ml', quantity: 3, price: 750 },
-        { name: 'Lime Mix - 500ml', quantity: 2, price: 600 }
-      ],
-      amount: 3450,
-      payment: 'Paid',
-      status: 'Pending',
-      date: 'Oct 14, 2025',
-      dateTime: 'Oct 14, 2025 - 10:30 AM',
-      paymentMethod: 'Card Payment'
-    },
-    {
-      id: 'ORD-2025-1522',
-      customer: { name: 'Nimal Silva', phone: '0779876543', email: 'nimal.silva@email.com', address: '456, Lake Road, Kandy' },
-      products: [
-        { name: 'Wood Apple Juice', quantity: 5, price: 600 },
-        { name: 'Chili Sauce', quantity: 2, price: 450 }
-      ],
-      amount: 4200,
-      payment: 'Paid',
-      status: 'Processing',
-      date: 'Oct 13, 2025',
-      dateTime: 'Oct 13, 2025 - 09:15 AM',
-      paymentMethod: 'Online Banking'
-    },
-    {
-      id: 'ORD-2025-1521',
-      customer: { name: 'Kamala Fernando', phone: '0763456789', email: 'kamala.f@email.com', address: '789, Hill Street, Galle' },
-      products: [
-        { name: 'Mango Jelly', quantity: 15, price: 350 },
-        { name: 'Passion Fruit Cordial', quantity: 10, price: 600 }
-      ],
-      amount: 8750,
-      payment: 'Paid',
-      status: 'Shipped',
-      date: 'Oct 12, 2025',
-      dateTime: 'Oct 12, 2025 - 11:45 AM',
-      paymentMethod: 'Card Payment'
-    },
-    {
-      id: 'ORD-2025-1520',
-      customer: { name: 'Roshan Jayawardena', phone: '0712345678', email: 'roshan.j@email.com', address: '321, Beach Road, Negombo' },
-      products: [
-        { name: 'Lime Mix', quantity: 4, price: 600 },
-        { name: 'Wood Apple Juice', quantity: 3, price: 600 }
-      ],
-      amount: 2980,
-      payment: 'Paid',
-      status: 'Delivered',
-      date: 'Oct 11, 2025',
-      dateTime: 'Oct 11, 2025 - 08:30 AM',
-      paymentMethod: 'Cash on Delivery'
-    },
-    {
-      id: 'ORD-2025-1519',
-      customer: { name: 'Sarah Wilson', phone: '0778765432', email: 'sarah.w@email.com', address: '654, Park Avenue, Colombo 05' },
-      products: [{ name: 'Mixed Products', quantity: 8, price: 300 }],
-      amount: 2400,
-      payment: 'Pending',
-      status: 'Cancelled',
-      date: 'Oct 10, 2025',
-      dateTime: 'Oct 10, 2025 - 14:20 PM',
-      paymentMethod: 'Card Payment'
-    },
-    {
-      id: 'ORD-2025-1518',
-      customer: { name: 'ABC Restaurant', phone: '0115678901', email: 'abc.rest@email.com', address: '987, Restaurant Street, Colombo 03' },
-      products: [{ name: 'Chili Sauce - Bulk Order', quantity: 25, price: 620 }],
-      amount: 15500,
-      payment: 'Paid',
-      status: 'Confirmed',
-      date: 'Oct 14, 2025',
-      dateTime: 'Oct 14, 2025 - 07:00 AM',
-      paymentMethod: 'Bank Transfer'
-    }
-  ]);
-
+  const [orders, setOrders] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({
     status: '',
     payment: '',
@@ -96,16 +18,75 @@ function AdminOrderManagement() {
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [showModal, setShowModal] = useState(false);
 
+  const fetchOrders = async () => {
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const res = await fetch(`${config.API_BASE_URL}/orders/all`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        // Map backend orders to frontend model
+        const mapped = data.orders.map(o => ({
+          id: o.id,
+          orderIdNum: o.order_number || `ORD-${o.id}`,
+          customer: {
+            name: o.customer_name,
+            phone: o.phone || 'N/A',
+            email: o.email || 'N/A',
+            address: o.delivery_address
+          },
+          productsSummary: o.product_summary || 'No items',
+          amount: o.net_amount,
+          payment: o.payment_status.charAt(0).toUpperCase() + o.payment_status.slice(1),
+          status: o.order_status,
+          date: new Date(o.order_date).toLocaleDateString(),
+          dateTime: new Date(o.order_date).toLocaleString(),
+          paymentMethod: o.payment_method
+        }));
+        setOrders(mapped);
+      }
+    } catch (err) {
+      console.error('Fetch orders error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchOrders();
+  }, []);
+
   const stats = {
     pending: orders.filter(o => o.status === 'Pending').length,
     processing: orders.filter(o => o.status === 'Processing' || o.status === 'Confirmed').length,
     delivered: orders.filter(o => o.status === 'Delivered').length,
-    revenue: orders.filter(o => o.payment === 'Paid').reduce((sum, o) => sum + o.amount, 0)
+    revenue: orders.filter(o => o.payment === 'Paid').reduce((sum, o) => sum + Number(o.amount), 0)
   };
 
-  const viewOrder = (order) => {
-    setSelectedOrder(order);
-    setShowModal(true);
+  const viewOrder = async (order) => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const res = await fetch(`${config.API_BASE_URL}/orders/${order.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSelectedOrder({
+          ...order,
+          products: data.items.map(i => ({
+            name: i.name,
+            quantity: i.quantity,
+            price: i.price_at_purchase
+          }))
+        });
+        setShowModal(true);
+      }
+    } catch (err) {
+      console.error('Fetch order details error:', err);
+      alert('Failed to load order details');
+    }
   };
 
   const closeModal = () => {
@@ -113,10 +94,32 @@ function AdminOrderManagement() {
     setSelectedOrder(null);
   };
 
-  const updateOrderStatus = (orderId, newStatus) => {
-    setOrders(orders.map(order => 
-      order.id === orderId ? { ...order, status: newStatus } : order
-    ));
+  const updateOrderStatus = async (orderId, newStatus) => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const res = await fetch(`${config.API_BASE_URL}/orders/${orderId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setOrders(orders.map(order =>
+          order.id === orderId ? { ...order, status: newStatus } : order
+        ));
+        if (selectedOrder && selectedOrder.id === orderId) {
+          setSelectedOrder({ ...selectedOrder, status: newStatus });
+        }
+      } else {
+        alert(data.message || 'Status update failed');
+      }
+    } catch (err) {
+      console.error('Update status error:', err);
+      alert('Error updating status');
+    }
   };
 
   const filteredOrders = orders.filter(order => {
@@ -124,9 +127,9 @@ function AdminOrderManagement() {
     if (filters.payment && order.payment !== filters.payment) return false;
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
-      if (!order.id.toLowerCase().includes(searchLower) &&
-          !order.customer.name.toLowerCase().includes(searchLower) &&
-          !order.customer.phone.includes(searchLower)) {
+      if (!String(order.orderIdNum).toLowerCase().includes(searchLower) &&
+        !order.customer.name.toLowerCase().includes(searchLower) &&
+        !order.customer.phone.includes(searchLower)) {
         return false;
       }
     }
@@ -148,10 +151,12 @@ function AdminOrderManagement() {
   const getPaymentClass = (payment) => {
     const paymentMap = {
       'Paid': 'payment-paid',
+      'paid': 'payment-paid',
       'Pending': 'payment-pending',
+      'unpaid': 'payment-pending',
       'Failed': 'payment-failed'
     };
-    return paymentMap[payment] || '';
+    return paymentMap[payment.toLowerCase()] || '';
   };
 
   const exportOrders = () => {
@@ -161,7 +166,7 @@ function AdminOrderManagement() {
   return (
     <div className="admin-order-management">
       <Header isLoggedIn={true} />
-      
+
       <main className="dashboard">
         <div className="page-header">
           <h1 className="page-title">📦 Order Management</h1>
@@ -193,10 +198,10 @@ function AdminOrderManagement() {
           <div className="filters-grid">
             <div className="filter-group">
               <label>Order Status</label>
-              <select 
+              <select
                 className="filter-select"
                 value={filters.status}
-                onChange={(e) => setFilters({...filters, status: e.target.value})}
+                onChange={(e) => setFilters({ ...filters, status: e.target.value })}
               >
                 <option value="">All Status</option>
                 <option value="Pending">Pending</option>
@@ -209,10 +214,10 @@ function AdminOrderManagement() {
             </div>
             <div className="filter-group">
               <label>Payment Status</label>
-              <select 
+              <select
                 className="filter-select"
                 value={filters.payment}
-                onChange={(e) => setFilters({...filters, payment: e.target.value})}
+                onChange={(e) => setFilters({ ...filters, payment: e.target.value })}
               >
                 <option value="">All Payments</option>
                 <option value="Paid">Paid</option>
@@ -222,30 +227,30 @@ function AdminOrderManagement() {
             </div>
             <div className="filter-group">
               <label>Date From</label>
-              <input 
-                type="date" 
+              <input
+                type="date"
                 className="filter-input"
                 value={filters.dateFrom}
-                onChange={(e) => setFilters({...filters, dateFrom: e.target.value})}
+                onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
               />
             </div>
             <div className="filter-group">
               <label>Date To</label>
-              <input 
-                type="date" 
+              <input
+                type="date"
                 className="filter-input"
                 value={filters.dateTo}
-                onChange={(e) => setFilters({...filters, dateTo: e.target.value})}
+                onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
               />
             </div>
           </div>
           <div className="search-box">
-            <input 
-              type="text" 
-              className="search-input" 
+            <input
+              type="text"
+              className="search-input"
               placeholder="Search by Order ID, Customer Name, or Phone Number..."
               value={filters.search}
-              onChange={(e) => setFilters({...filters, search: e.target.value})}
+              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
             />
             <button className="btn btn-success">🔍 Search</button>
           </div>
@@ -282,9 +287,7 @@ function AdminOrderManagement() {
                     </div>
                   </td>
                   <td className="order-items">
-                    {order.products.map((p, i) => (
-                      <div key={i}>{p.name} ({p.quantity})</div>
-                    ))}
+                    {order.productsSummary}
                   </td>
                   <td className="order-amount">Rs. {order.amount.toLocaleString()}</td>
                   <td>
@@ -304,7 +307,7 @@ function AdminOrderManagement() {
                         View
                       </button>
                       {order.status === 'Pending' && (
-                        <button 
+                        <button
                           className="btn btn-success btn-small"
                           onClick={() => updateOrderStatus(order.id, 'Confirmed')}
                         >
@@ -312,7 +315,7 @@ function AdminOrderManagement() {
                         </button>
                       )}
                       {order.status === 'Processing' && (
-                        <button 
+                        <button
                           className="btn btn-success btn-small"
                           onClick={() => updateOrderStatus(order.id, 'Shipped')}
                         >
@@ -320,7 +323,7 @@ function AdminOrderManagement() {
                         </button>
                       )}
                       {order.status === 'Shipped' && (
-                        <button 
+                        <button
                           className="btn btn-success btn-small"
                           onClick={() => updateOrderStatus(order.id, 'Delivered')}
                         >
@@ -399,24 +402,24 @@ function AdminOrderManagement() {
                   <li key={index} className="product-item">
                     <div>
                       <div className="product-name">{product.name}</div>
-                      <div style={{fontSize: '0.85rem', color: '#666'}}>
+                      <div style={{ fontSize: '0.85rem', color: '#666' }}>
                         Qty: {product.quantity} × Rs. {product.price.toFixed(2)}
                       </div>
                     </div>
                     <div className="product-price">Rs. {(product.quantity * product.price).toFixed(2)}</div>
                   </li>
                 ))}
-                <li className="product-item" style={{background: '#f1f8e9', fontWeight: 600}}>
+                <li className="product-item" style={{ background: '#f1f8e9', fontWeight: 600 }}>
                   <div>Subtotal</div>
                   <div>Rs. {selectedOrder.amount.toFixed(2)}</div>
                 </li>
-                <li className="product-item" style={{background: '#e8f5e9'}}>
-                  <div style={{color: '#2e7d32', fontWeight: 600}}>Delivery Charges</div>
-                  <div style={{color: '#2e7d32', fontWeight: 600}}>Free</div>
+                <li className="product-item" style={{ background: '#e8f5e9' }}>
+                  <div style={{ color: '#2e7d32', fontWeight: 600 }}>Delivery Charges</div>
+                  <div style={{ color: '#2e7d32', fontWeight: 600 }}>Free</div>
                 </li>
-                <li className="product-item" style={{background: '#4caf50', color: 'white', fontSize: '1.1rem'}}>
-                  <div style={{fontWeight: 'bold'}}>Total Amount</div>
-                  <div style={{fontWeight: 'bold'}}>Rs. {selectedOrder.amount.toFixed(2)}</div>
+                <li className="product-item" style={{ background: '#4caf50', color: 'white', fontSize: '1.1rem' }}>
+                  <div style={{ fontWeight: 'bold' }}>Total Amount</div>
+                  <div style={{ fontWeight: 'bold' }}>Rs. {selectedOrder.amount.toFixed(2)}</div>
                 </li>
               </ul>
             </div>
@@ -425,7 +428,7 @@ function AdminOrderManagement() {
             <div className="modal-section status-update-section">
               <h3>Update Order Status</h3>
               <div className="status-buttons">
-                <button 
+                <button
                   className="btn btn-success btn-small"
                   onClick={() => {
                     updateOrderStatus(selectedOrder.id, 'Confirmed');
@@ -434,7 +437,7 @@ function AdminOrderManagement() {
                 >
                   Confirm Order
                 </button>
-                <button 
+                <button
                   className="btn btn-primary btn-small"
                   onClick={() => {
                     updateOrderStatus(selectedOrder.id, 'Processing');
@@ -443,7 +446,7 @@ function AdminOrderManagement() {
                 >
                   Process Order
                 </button>
-                <button 
+                <button
                   className="btn btn-info btn-small"
                   onClick={() => {
                     updateOrderStatus(selectedOrder.id, 'Shipped');
@@ -452,7 +455,7 @@ function AdminOrderManagement() {
                 >
                   Ship Order
                 </button>
-                <button 
+                <button
                   className="btn btn-success btn-small"
                   onClick={() => {
                     updateOrderStatus(selectedOrder.id, 'Delivered');
@@ -461,7 +464,7 @@ function AdminOrderManagement() {
                 >
                   Mark Delivered
                 </button>
-                <button 
+                <button
                   className="btn btn-danger btn-small"
                   onClick={() => {
                     updateOrderStatus(selectedOrder.id, 'Cancelled');

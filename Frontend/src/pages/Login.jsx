@@ -1,11 +1,15 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons'
 import { config } from '../config'
 import './Login.css'
 
 
 function Login() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectPath = searchParams.get('redirect');
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -13,6 +17,7 @@ function Login() {
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
 
 
@@ -60,6 +65,12 @@ function Login() {
         localStorage.setItem('userType', data.user.userType);
         localStorage.setItem('userName', data.user.name || data.user.email);
 
+        // Check if there's a redirect path (e.g., from add to cart)
+        if (redirectPath && data.user.userType === 'customer') {
+          navigate(redirectPath);
+          return;
+        }
+
         // Navigate based on user type from response
         const userType = data.user.userType;
         switch (userType) {
@@ -93,61 +104,49 @@ function Login() {
 
   return (
     <div className="login-page">
-      <Link to="/" className="back-home">← Back to Home</Link>
+      <Link to="/" className="back-home">&larr; Back to Home</Link>
 
-      <div className="main-content">
-        <div className="login-container">
-          <div className="login-left">
-            <div className="logo-section">
-              <img src="/images/Logo.png" alt="Laklight Logo" />
-              <h1>Laklight Food Products</h1>
-              <p>Fresh From Farm to Table</p>
-            </div>
-            <div className="welcome-text">
-              <h2>Welcome Back!</h2>
-              <p>Login to access your dashboard and manage your account</p>
-            </div>
+      <div className="login-container">
+        <div className="login-right">
+          <div className="login-header">
+            <h2>Login</h2>
+            <p>Enter your credentials to continue</p>
           </div>
 
-          <div className="login-right">
-            <div className="login-header">
-              <h2>Login</h2>
-              <p>Enter your credentials to continue</p>
+          <form onSubmit={handleSubmit}>
+            {error && (
+              <div style={{
+                padding: '12px',
+                marginBottom: '20px',
+                background: '#f8d7da',
+                color: '#721c24',
+                borderRadius: '8px',
+                border: '1px solid #f5c6cb'
+              }}>
+                {error}
+              </div>
+            )}
+
+
+
+            <div className="form-group">
+              <label htmlFor="email">Email Address</label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleChange}
+                placeholder="Enter your email"
+                required
+              />
             </div>
 
-            <form onSubmit={handleSubmit}>
-              {error && (
-                <div style={{
-                  padding: '12px',
-                  marginBottom: '20px',
-                  background: '#f8d7da',
-                  color: '#721c24',
-                  borderRadius: '8px',
-                  border: '1px solid #f5c6cb'
-                }}>
-                  {error}
-                </div>
-              )}
-
-
-
-              <div className="form-group">
-                <label htmlFor="email">Email Address</label>
+            <div className="form-group password-group">
+              <label htmlFor="password">Password</label>
+              <div className="password-input-wrapper">
                 <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="Enter your email"
-                  required
-                />
-              </div>
-
-              <div className="form-group">
-                <label htmlFor="password">Password</label>
-                <input
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   id="password"
                   name="password"
                   value={formData.password}
@@ -155,32 +154,40 @@ function Login() {
                   placeholder="Enter your password"
                   required
                 />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowPassword(!showPassword)}
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  <FontAwesomeIcon icon={showPassword ? faEyeSlash : faEye} />
+                </button>
               </div>
+            </div>
 
-              <div className="form-options">
-                <label className="remember-me">
-                  <input
-                    type="checkbox"
-                    name="rememberMe"
-                    checked={formData.rememberMe}
-                    onChange={handleChange}
-                  />
-                  Remember me
-                </label>
-                <Link to="/forgot-password" className="forgot-password">
-                  Forgot Password?
-                </Link>
-              </div>
+            <div className="form-options">
+              <label className="remember-me">
+                <input
+                  type="checkbox"
+                  name="rememberMe"
+                  checked={formData.rememberMe}
+                  onChange={handleChange}
+                />
+                Remember me
+              </label>
+              <Link to="/forgot-password" className="forgot-password">
+                Forgot Password?
+              </Link>
+            </div>
 
-              <button type="submit" className="login-btn" disabled={isLoading}>
-                {isLoading ? 'Logging in...' : 'Login'}
-              </button>
+            <button type="submit" className="login-btn" disabled={isLoading}>
+              {isLoading ? 'Logging in...' : 'Login'}
+            </button>
 
-              <div className="register-link">
-                Don't have an account? <Link to="/register">Register here</Link>
-              </div>
-            </form>
-          </div>
+            <div className="register-link">
+              Don't have an account? <Link to="/register">Register here</Link>
+            </div>
+          </form>
         </div>
       </div>
     </div>

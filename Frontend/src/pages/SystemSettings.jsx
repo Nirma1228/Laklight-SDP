@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
+import { config } from '../config';
 import './SystemSettings.css';
 
 function SystemSettings() {
   const [activeSection, setActiveSection] = useState('general');
+  const [isLoading, setIsLoading] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(null);
   const adminLinks = [
     { label: 'Admin Home', path: '/admin-dashboard' },
     { label: 'User Management', path: '/admin/users' },
@@ -15,22 +18,22 @@ function SystemSettings() {
   ];
 
   const [settings, setSettings] = useState({
-    companyName: 'Laklight Food Products',
-    companyEmail: 'info@laklights.lk',
-    companyPhone: '0721267405',
-    companyWebsite: 'https://laklights.lk',
-    companyAddress: 'Gokaralla Road, Kadulawa, Ibbagamuwa',
+    companyName: '',
+    companyEmail: '',
+    companyPhone: '',
+    companyWebsite: '',
+    companyAddress: '',
     systemTimezone: 'Asia/Colombo',
     systemLanguage: 'en',
     systemCurrency: 'LKR',
     dateFormat: 'DD/MM/YYYY',
-    onlineStore: true,
-    wholesalePricing: true,
-    guestCheckout: false,
-    wholesaleThreshold: 12,
-    wholesaleDiscount: 15,
-    taxRate: 0,
-    deliveryCharge: 200
+    onlineStore: 'true',
+    wholesalePricing: 'true',
+    guestCheckout: 'false',
+    wholesaleThreshold: '12',
+    wholesaleDiscount: '15',
+    taxRate: '0',
+    deliveryCharge: '200'
   });
 
   const [toggles, setToggles] = useState({
@@ -44,8 +47,43 @@ function SystemSettings() {
     cardPayments: true
   });
 
+  // Fetch settings from backend
+  useEffect(() => {
+    const fetchSettings = async () => {
+      setIsLoading(true);
+      try {
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        const response = await fetch(`${config.API_BASE_URL}/admin/settings`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await response.json();
+        if (data.success && data.settings) {
+          // Merge backend settings with defaults
+          setSettings(prev => ({ ...prev, ...data.settings }));
+
+          // Also handle toggles if they are stored in setting_value as strings
+          const newToggles = { ...toggles };
+          Object.entries(data.settings).forEach(([key, val]) => {
+            if (val === 'true' || val === 'false') {
+              newToggles[key] = val === 'true';
+            }
+          });
+          setToggles(newToggles);
+        }
+      } catch (err) {
+        console.error('Fetch settings error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchSettings();
+  }, []);
+
   const toggleSwitch = (key) => {
-    setToggles({ ...toggles, [key]: !toggles[key] });
+    const newValue = !toggles[key];
+    setToggles({ ...toggles, [key]: newValue });
+    // Keep settings object in sync
+    setSettings({ ...settings, [key]: String(newValue) });
   };
 
   const handleInputChange = (e) => {
@@ -53,8 +91,32 @@ function SystemSettings() {
     setSettings({ ...settings, [name]: value });
   };
 
-  const handleSave = (section) => {
-    alert(`${section} settings saved successfully!`);
+  const handleSave = async (section) => {
+    setIsLoading(true);
+    setSaveSuccess(null);
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const response = await fetch(`${config.API_BASE_URL}/admin/settings`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ settings })
+      });
+      const data = await response.json();
+      if (data.success) {
+        setSaveSuccess(`Successfully saved ${section} settings!`);
+        setTimeout(() => setSaveSuccess(null), 3000);
+      } else {
+        alert(data.message || 'Failed to save settings');
+      }
+    } catch (err) {
+      console.error('Save error:', err);
+      alert('Error saving settings');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -114,6 +176,18 @@ function SystemSettings() {
 
           {/* Settings Content */}
           <div className="settings-content">
+            {saveSuccess && (
+              <div className="alert alert-success" style={{
+                padding: '1rem',
+                backgroundColor: '#e8f5e9',
+                color: '#2e7d32',
+                borderRadius: '8px',
+                marginBottom: '1rem',
+                borderLeft: '4px solid #4caf50'
+              }}>
+                {saveSuccess}
+              </div>
+            )}
             {/* General Settings */}
             {activeSection === 'general' && (
               <section className="settings-section">

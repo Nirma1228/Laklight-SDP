@@ -1,15 +1,41 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { config } from '../config'
 import './ProductCatalog.css'
 
 function ProductCatalog() {
   const navigate = useNavigate()
-  const [products, setProducts] = useState([
-    { id: 1, name: 'Lime Mix', category: 'beverages', price: 150, unit: 'bottle', stock: 150, description: 'Refreshing lime cordial 350ml', availability: 'in-stock', image: '/images/Lime Mix.png' },
-    { id: 2, name: 'Wood Apple Juice', category: 'beverages', price: 100, unit: 'bottle', stock: 200, description: 'Traditional wood apple nectar 200ml', availability: 'in-stock', image: '/images/Wood Apple Juice.png' },
-    { id: 3, name: 'Mango Jelly', category: 'desserts', price: 200, unit: 'pack', stock: 45, description: 'Premium mango jelly 100g', availability: 'low-stock', image: '/images/Mango Jelly.png' },
-    { id: 4, name: 'Custard Powder', category: 'desserts', price: 300, unit: 'pack', stock: 100, description: 'Mango flavored custard powder 100g', availability: 'in-stock', image: '/images/Custard powder.png' }
-  ])
+  const [products, setProducts] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetchProducts()
+  }, [])
+
+  const fetchProducts = async () => {
+    try {
+      const res = await fetch(`${config.API_BASE_URL}/products`)
+      const data = await res.json()
+      if (data.success) {
+        // Map backend schema to frontend state
+        setProducts(data.products.map(p => ({
+          id: p.product_id,
+          name: p.name,
+          category: p.category_name || 'fruits',
+          price: parseFloat(p.price),
+          unit: p.unit_name || 'unit',
+          stock: p.stock_quantity,
+          description: p.description,
+          availability: p.stock_quantity > 10 ? 'in-stock' : p.stock_quantity > 0 ? 'low-stock' : 'out-of-stock',
+          image: p.image_url
+        })))
+      }
+    } catch (err) {
+      console.error('Failed to fetch products:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
 
   const [showModal, setShowModal] = useState(false)
   const [editingProduct, setEditingProduct] = useState(null)
@@ -185,9 +211,9 @@ function ProductCatalog() {
                     </span>
                   </div>
                   <div className="product-detail-row">
-                    <span className="detail-label">Status:</span>
-                    <span className={`status-${product.availability === 'in-stock' ? 'active' : 'inactive'}`}>
-                      {product.availability === 'in-stock' ? 'In Stock' : 'Low Stock'}
+                    <span className="detail-label">Available:</span>
+                    <span className={product.availability === 'in-stock' ? 'status-active' : 'status-inactive'}>
+                      {product.availability === 'in-stock' ? 'Yes' : 'No'}
                     </span>
                   </div>
                 </div>

@@ -1,16 +1,12 @@
 // Global error logging for uncaught exceptions and unhandled promise rejections
 process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception:', err);
-  // Optionally, write to a log file:
-  // require('fs').appendFileSync('server-error.log', `${new Date().toISOString()} Uncaught Exception: ${err.stack || err}\n`);
-  process.exit(1);
+  // Do NOT exit - log and continue so the server keeps running
 });
 
 process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-  // Optionally, write to a log file:
-  // require('fs').appendFileSync('server-error.log', `${new Date().toISOString()} Unhandled Rejection: ${reason}\n`);
-  process.exit(1);
+  // Do NOT exit - log and continue so the server keeps running
 });
 
 const express = require('express');
@@ -42,10 +38,7 @@ const errorHandler = require('./middleware/errorHandler');
 const app = express();
 
 // Middleware
-app.use(cors({
-  origin: ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002', 'http://localhost:5173'],
-  credentials: true
-}));
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

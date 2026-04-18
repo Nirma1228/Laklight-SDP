@@ -2,14 +2,19 @@ const { body, param, query, validationResult } = require('express-validator');
 
 // Validation error handler
 exports.validate = (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      success: false,
-      errors: errors.array()
-    });
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        message: errors.array()[0]?.msg || 'Validation failed',
+        errors: errors.array()
+      });
+    }
+    next();
+  } catch (err) {
+    next(err);
   }
-  next();
 };
 
 // User registration validation
@@ -17,7 +22,15 @@ exports.registerValidation = [
   body('fullName').notEmpty().trim().withMessage('Full name is required'),
   body('email').isEmail().normalizeEmail().withMessage('Valid email is required'),
   body('phone').notEmpty().withMessage('Phone number is required'),
-  body('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters'),
+  body('password')
+    .isStrongPassword({
+      minLength: 8,
+      minLowercase: 1,
+      minUppercase: 1,
+      minNumbers: 1,
+      minSymbols: 1
+    })
+    .withMessage('Password must be at least 8 characters long and include uppercase, lowercase, numbers, and symbols.'),
   body('userType').isIn(['customer', 'farmer', 'employee', 'admin']).withMessage('Invalid user type')
 ];
 
@@ -40,7 +53,7 @@ exports.productValidation = [
 exports.orderValidation = [
   body('items').isArray({ min: 1 }).withMessage('Order must contain at least one item'),
   body('deliveryAddress').notEmpty().withMessage('Delivery address is required'),
-  body('paymentMethod').isIn(['Card Payment', 'Online Banking', 'Cash on Delivery']).withMessage('Invalid payment method')
+  body('paymentMethod').isIn(['Card Payment', 'Stripe Card', 'Credit Card', 'Online Banking', 'Cash on Delivery']).withMessage('Invalid payment method')
 ];
 
 // Farmer submission validation

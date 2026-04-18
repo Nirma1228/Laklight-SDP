@@ -17,7 +17,7 @@ function UserManagement() {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         if (res.ok) {
-          const data = await response.json();
+          const data = await res.json();
           if (data.user) {
             setAdminName(data.user.full_name);
             localStorage.setItem('userName', data.user.full_name);
@@ -36,15 +36,46 @@ function UserManagement() {
     { label: 'Suppliers', path: '/admin/suppliers' },
     { label: 'Reports', path: '/admin/reports' }
   ];
-  const [users, setUsers] = useState([
-    { id: 1, name: 'Hirun Perera', email: 'Hirun@laklight.com', role: 'admin', status: 'active', phone: '0771234567', joinDate: '2023-01-15' },
-    { id: 2, name: 'Sarah Fdo', email: 'sarah@laklight.com', role: 'employee', status: 'active', phone: '0772345678', joinDate: '2023-02-20' },
-    { id: 3, name: 'Asoka Perera', email: 'asoka@email.com', role: 'customer', status: 'active', phone: '0773456789', joinDate: '2023-05-10' },
-    { id: 4, name: 'Kamal Herath', email: 'Kamal@farm.lk', role: 'supplier', status: 'active', phone: '0774567890', joinDate: '2023-03-15' },
-    { id: 5, name: 'Sachini Bandara', email: 'Sachini@laklight.com', role: 'employee', status: 'active', phone: '0775678901', joinDate: '2023-06-01' },
-    { id: 6, name: 'Dwini Adikari', email: 'duwini@supplier.lk', role: 'supplier', status: 'pending', phone: '0776789012', joinDate: '2024-01-10' },
-    { id: 7, name: 'Kusal Rathnayake', email: 'Kusal@email.com', role: 'customer', status: 'inactive', phone: '0777890123', joinDate: '2022-12-05' }
-  ])
+  const [users, setUsers] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  // Fetch users from backend
+  const fetchUsers = async () => {
+    setLoading(true)
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`${config.API_BASE_URL}/admin/users`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+
+      const data = await response.json()
+      if (data.success) {
+        // Map backend fields to frontend model
+        const mappedUsers = data.users.map(u => ({
+          id: u.id,
+          name: u.full_name,
+          email: u.email,
+          role: u.user_type, // Backend returns 'user_type'
+          status: u.status,
+          phone: u.phone,
+          joinDate: new Date(u.join_date).toISOString().split('T')[0]
+        }))
+        setUsers(mappedUsers)
+      } else {
+        throw new Error(data.message || 'Failed to fetch users')
+      }
+    } catch (err) {
+      console.error('Fetch users error:', err)
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchUsers()
+  }, [])
 
   const [showModal, setShowModal] = useState(false)
   const [editingUser, setEditingUser] = useState(null)
@@ -73,19 +104,129 @@ function UserManagement() {
     setShowModal(true)
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (editingUser) {
-      setUsers(users.map(u => u.id === editingUser.id ? { ...formData, id: u.id } : u))
-    } else {
-      setUsers([...users, { ...formData, id: Date.now() }])
+    setLoading(true)
+    try {
+      const token = localStorage.getItem('token')
+      let response;
+      if (editingUser) {
+        // Update existing user
+        response = await fetch(`${config.API_BASE_URL}/admin/users/${editingUser.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            fullName: formData.name,
+            phone: formData.phone
+          })
+        })
+      } else {
+        // Add new user
+        const password = prompt('Enter password for new user:');
+        if (!password) {
+          setLoading(false);
+          return;
+        }
+        response = await fetch(`${config.API_BASE_URL}/admin/users`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            fullName: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            password: password,
+            role: formData.role
+          })
+        })
+      }
+
+      const data = await response.json()
+      if (data.success) {
+        alert(editingUser ? 'User updated successfully' : 'User created successfully')
+        setShowModal(false)
+        fetchUsers() // Refresh list
+      } else {
+        alert(data.message || 'Action failed')
+      }
+    } catch (err) {
+      console.error('Submit user error:', err)
+      alert('Error saving user')
+    } finally {
+      setLoading(false)
     }
-    setShowModal(false)
   }
 
-  const handleDelete = (id) => {
+  const handleApprove = async (id) => {
+    if (!confirm('Approve this user account?')) return;
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`${config.API_BASE_URL}/admin/users/${id}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: 'active' })
+      })
+      if (response.ok) {
+        alert('User approved successfully');
+        fetchUsers(); // Refresh list
+      } else {
+        alert('Failed to approve user');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error approving user');
+    }
+  }
+
+  const handleReject = async (id) => {
+    if (!confirm('Reject this user (set to inactive)?')) return;
+    try {
+      const token = localStorage.getItem('token')
+      const response = await fetch(`${config.API_BASE_URL}/admin/users/${id}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: 'inactive' })
+      })
+      if (response.ok) {
+        alert('User rejected successfully');
+        fetchUsers();
+      } else {
+        alert('Failed to reject user');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error rejecting user');
+    }
+  }
+
+  const handleDelete = async (id) => {
     if (confirm('Are you sure you want to delete this user?')) {
-      setUsers(users.filter(u => u.id !== id))
+      try {
+        const token = localStorage.getItem('token')
+        const response = await fetch(`${config.API_BASE_URL}/admin/users/${id}`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+        })
+        if (response.ok) {
+          setUsers(users.filter(u => u.id !== id))
+        } else {
+          alert('Failed to delete user');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error deleting user');
+      }
     }
   }
 
@@ -221,6 +362,12 @@ function UserManagement() {
                     <td>{user.joinDate}</td>
                     <td>
                       <div className="action-buttons">
+                        {user.status === 'pending' && (
+                          <>
+                            <button className="btn btn-success btn-small" onClick={() => handleApprove(user.id)} style={{ backgroundColor: '#2e7d32', color: 'white' }}>Approve</button>
+                            <button className="btn btn-danger btn-small" onClick={() => handleReject(user.id)} style={{ backgroundColor: '#c62828', color: 'white' }}>Reject</button>
+                          </>
+                        )}
                         <button className="btn btn-warning btn-small" onClick={() => openEditModal(user)}>Edit</button>
                         <button className="btn btn-danger btn-small" onClick={() => handleDelete(user.id)}>Delete</button>
                       </div>

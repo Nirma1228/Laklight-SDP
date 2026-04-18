@@ -6,21 +6,28 @@ const { verifyToken, checkRole } = require('../middleware/auth');
 // All employee routes require employee or admin authentication
 
 // Application review routes
-router.get('/applications', verifyToken, checkRole('employee', 'administrator'), employeeController.getPendingApplications);
-router.get('/applications/:id', verifyToken, checkRole('employee', 'administrator'), employeeController.getApplicationDetails);
-router.put('/applications/:id/approve', verifyToken, checkRole('employee', 'administrator'), employeeController.approveApplication);
-router.put('/applications/:id/reject', verifyToken, checkRole('employee', 'administrator'), employeeController.rejectApplication);
+router.get('/applications', verifyToken, checkRole('employee', 'admin'), employeeController.getPendingApplications);
+router.get('/applications/:id', verifyToken, checkRole('employee', 'admin'), employeeController.getApplicationDetails);
+router.put('/applications/:id/approve', verifyToken, checkRole('employee', 'admin'), employeeController.approveApplication);
+router.put('/applications/:id/reject', verifyToken, checkRole('employee', 'admin'), employeeController.rejectApplication);
 
 // Inventory management routes - Specific routes BEFORE parameterized routes
-router.get('/inventory', verifyToken, checkRole('employee', 'administrator'), employeeController.getInventory);
-router.post('/inventory', verifyToken, checkRole('employee', 'administrator'), employeeController.addInventoryItem);
-router.get('/inventory/search', verifyToken, checkRole('employee', 'administrator'), employeeController.searchByLocation);
-router.get('/inventory/stats', verifyToken, checkRole('employee', 'administrator'), employeeController.getInventoryStats);
-router.get('/inventory/location/:location', verifyToken, checkRole('employee', 'administrator'), employeeController.getByLocation);
-router.get('/inventory/:id', verifyToken, checkRole('employee', 'administrator'), employeeController.getInventoryItem);
-router.put('/inventory/:id', verifyToken, checkRole('employee', 'administrator'), employeeController.updateInventory);
+router.get('/inventory', verifyToken, checkRole('employee', 'admin'), employeeController.getInventory);
+router.post('/inventory', verifyToken, checkRole('employee', 'admin'), employeeController.addInventoryItem);
+router.get('/inventory/search', verifyToken, checkRole('employee', 'admin'), employeeController.searchByLocation);
+router.get('/inventory/stats', verifyToken, checkRole('employee', 'admin'), employeeController.getInventoryStats);
+router.get('/inventory/location/:location', verifyToken, checkRole('employee', 'admin'), employeeController.getByLocation);
+router.get('/inventory/:id', verifyToken, checkRole('employee', 'admin'), employeeController.getInventoryItem);
+router.put('/inventory/:id', verifyToken, checkRole('employee', 'admin'), employeeController.updateInventory);
+router.delete('/inventory/:id', verifyToken, checkRole('employee', 'admin'), employeeController.deleteInventoryItem);
 
 // Alert routes
-router.get('/alerts', verifyToken, checkRole('employee', 'administrator'), employeeController.getAlerts);
+router.get('/alerts', verifyToken, checkRole('employee', 'admin'), employeeController.getAlerts);
+
+// Delivery routes
+router.get('/deliveries', verifyToken, checkRole('employee', 'admin'), employeeController.getDeliveries);
+router.put('/deliveries/:id/reschedule', verifyToken, checkRole('employee', 'admin'), employeeController.rescheduleDelivery);
+router.put('/deliveries/:id/approve-reschedule', verifyToken, checkRole('employee', 'admin'), employeeController.approveReschedule);
+router.put('/deliveries/:id/complete', verifyToken, checkRole('employee', 'admin'), employeeController.completeDelivery);
 
 module.exports = router;

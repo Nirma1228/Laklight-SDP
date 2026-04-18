@@ -14,4 +14,8 @@ router.delete('/submissions/:id', verifyToken, checkRole('farmer'), farmerContro
 router.get('/deliveries', verifyToken, checkRole('farmer'), farmerController.getDeliveries);
 router.put('/deliveries/:id', verifyToken, checkRole('farmer'), farmerController.updateDelivery);
 
+// Bank Details
+router.get('/bank-details', verifyToken, checkRole('farmer'), farmerController.getBankDetails);
+router.post('/bank-details', verifyToken, checkRole('farmer'), farmerController.saveBankDetails);
+
 module.exports = router;

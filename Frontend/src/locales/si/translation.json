@@ -1,0 +1,82 @@
+{
+  "farmerDashboard": {
+    "title": "ගොවි උපකරණ පුවරුව",
+    "welcomeMessage": "ඔබගේ සැපයුම්කරු පෝටලයට සාදරයෙන් පිළිගනිමු. ඔබගේ පළතුරු නිෂ්පාදන ඉදිරිපත් කර Laklight Food Products සමඟ ඔබගේ අයදුම්පත් නිරීක්ෂණය කරන්න.",
+    "approvedSupplier": "අනුමත සැපයුම්කරු",
+    "stats": {
+      "productsSubmitted": "ඉදිරිපත් කළ නිෂ්පාදන",
+      "productsSelected": "තෝරාගත් නිෂ්පාදන",
+      "deliveriesMade": "සිදු කළ බෙදාහැරීම්",
+      "qualityRating": "ගුණාත්මක ශ්‍රේණිගත කිරීම"
+    },
+    "submitProductSection": {
+      "title": "නිෂ්පාදන තොරතුරු ඉදිරිපත් කරන්න",
+      "subtitle": "ඔබට විකිණීමට අවශ්‍ය නිෂ්පාදන පිළිබඳ විස්තර එක් කරන්න",
+      "form": {
+        "product": "නිෂ්පාදනය",
+        "remove": "ඉවත් කරන්න",
+        "productType": "නිෂ්පාදන වර්ගය: *",
+        "selectType": "ප්‍රවර්ගය තෝරන්න",
+        "vegetables": "එළවළු",
+        "fruits": "පලතුරු",
+        "dairy": "කිරි නිෂ්පාදන",
+        "grains": "ධාන්‍ය",
+        "other": "වෙනත්",
+        "productName": "නිෂ්පාදනයේ නම: *",
+        "productNamePlaceholder": "උදා: අඹ",
+        "variety": "ප්‍රභේදය (විකල්ප):",
+        "varietyPlaceholder": "උදා: ඇල්පොන්සෝ",
+        "quantity": "ප්‍රමාණය: *",
+        "quantityPlaceholder": "ප්‍රමාණය",
+        "price": "ඒකකයක මිල (රු.): *",
+        "pricePlaceholder": "මිල රුපියල්",
+        "harvestDate": "අස්වැන්න නෙළන දිනය: *",
+        "qualityGrade": "ගුණාත්මක ශ්‍රේණිය: *",
+        "selectGrade": "ශ්‍රේණිය තෝරන්න",
+        "gradeA": "ශ්‍රේණිය A (ප්‍රිමියම්)",
+        "gradeB": "ශ්‍රේණිය B (සම්මත)",
+        "gradeC": "ශ්‍රේණිය C (ආර්ථික)",
+        "transportMethod": "ප්‍රවාහන ක්‍රමය: *",
+        "selectTransport": "ප්‍රවාහන ක්‍රමය තෝරන්න",
+        "companyTransport": "සමාගමේ ප්‍රවාහනය",
+        "selfDelivery": "කාර්ය භාරය",
+        "prefDate1": "ප්‍රියතම ප්‍රවාහන දිනය 1: *",
+        "prefDate1Hint": "අස්වැන්න නෙළන දිනට පසුව විය යුතුය",
+        "prefDate2": "ප්‍රියතම ප්‍රවාහන දිනය 2: (විකල්ප)",
+        "prefDate2Hint": "විකල්ප දිනය 1",
+        "prefDate3": "ප්‍රියතම ප්‍රවාහන දිනය 3: (විකල්ප)",
+        "prefDate3Hint": "විකල්ප දිනය 2",
+        "productImages": "නිෂ්පාදන පින්තූර (උපරිම 5):",
+        "uploadInstructions": "පින්තූර එකතු කිරීමට ක්ලික් කරන්න",
+        "uploadSubtext": "PNG, JPG උපරිම 5MB",
+        "additionalNotes": "අමතර සටහන්:",
+        "notesPlaceholder": "මෙම නිෂ්පාදනය පිළිබඳ විශේෂ තොරතුරු...",
+        "addAnother": "+ තවත් නිෂ්පාදනයක් එකතු කරන්න",
+        "submitAll": "සියලුම නිෂ්පාදන ඉදිරිපත් කරන්න"
+      }
+    },
+    "mySubmissionsSection": {
+      "title": "මගේ නිෂ්පාදන ඉදිරිපත් කිරීම්"
+    },
+    "deliveriesSection": {
+      "title": "බෙදාහැරීමේ කාලසටහන කළමනාකරණය"
+    },
+    "sidebar": {
+      "home": "ප්‍රධාන පුවරුව",
+      "submit": "නිෂ්පාදන ඉදිරිපත් කරන්න",
+      "submissions": "මගේ ඉතිහාසය",
+      "deliveries": "බෙදාහැරීම්",
+      "profile": "මගේ පැතිකඩ",
+      "bank": "බැංකු විස්තර",
+      "support": "උදව් සහ සහාය",
+      "logout": "පිටවෙන්න"
+    }
+  },
+  "header": {
+    "dashboard": "උපකරණ පුවරුව",
+    "myProducts": "මගේ නිෂ්පාදන",
+    "deliveries": "බෙදාහැරීම්",
+    "bankDetails": "බැංකු විස්තර",
+    "profile": "පැතිකඩ"
+  }
+}

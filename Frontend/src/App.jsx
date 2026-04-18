@@ -5,6 +5,7 @@ import Register from './pages/Register'
 import ForgotPassword from './pages/ForgotPassword'
 import LoggedHome from './pages/LoggedHome'
 import ProductCatalog from './pages/ProductCatalog'
+import PublicProductCatalog from './pages/PublicProductCatalog'
 import AdminDashboard from './pages/AdminDashboard'
 import CustomerDashboard from './pages/CustomerDashboard'
 import EmployeeDashboard from './pages/EmployeeDashboard'
@@ -33,9 +34,10 @@ function App() {
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/home" element={<LoggedHome />} />
       <Route path="/products" element={<ProductCatalog />} />
+      <Route path="/shop" element={<PublicProductCatalog />} />
       <Route path="/payment" element={<OnlinePayment />} />
       <Route path="/feedback" element={<Feedback />} />
-      
+
       {/* Admin Routes */}
       <Route path="/admin/dashboard" element={<AdminDashboard />} />
       <Route path="/admin/inventory" element={<AdminInventory />} />
@@ -51,13 +53,13 @@ function App() {
       <Route path="/admin/supplier-relations" element={<SupplierRelations />} />
       <Route path="/admin/suppliers" element={<SupplierRelations />} />
       <Route path="/admin/settings" element={<SystemSettings />} />
-      
+
       {/* Customer Routes */}
       <Route path="/customer/dashboard" element={<CustomerDashboard />} />
-      
+
       {/* Employee Routes */}
       <Route path="/employee/dashboard" element={<EmployeeDashboard />} />
-      
+
       {/* Farmer Routes */}
       <Route path="/farmer/dashboard" element={<FarmerDashboard />} />
       <Route path="/farmer/feedback" element={<FarmerFeedback />} />

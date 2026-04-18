@@ -10,6 +10,9 @@ router.post('/farmer-register', registerValidation, validate, authController.far
 router.post('/verify-otp', authController.verifyOTP);
 router.post('/resend-otp', authController.resendOTP);
 router.post('/login', loginValidation, validate, authController.login);
+router.post('/forgot-password', authController.requestPasswordReset);
+router.post('/verify-reset-otp', authController.verifyResetOTP);
+router.post('/reset-password', authController.resetPassword);
 
 // Protected routes
 router.get('/profile', verifyToken, authController.getProfile);
