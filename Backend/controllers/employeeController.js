@@ -47,7 +47,9 @@ exports.approveApplication = async (req, res) => {
     
     // If using farmer's date, status is 'selected' (approved)
     // If rescheduling, we set a temporary 'Action Required' status for the farmer to respond
-    const statusName = isUsingFarmerDate ? 'selected' : 'under-review';
+    // Applications that are rescheduled by employee are still considered 'selected' (approved) 
+    // but with a temporary 'Action Required' status on the delivery record itself
+    const statusName = 'selected';
     const statusId = await getId('submission_statuses', 'submission_status_id', 'status_name', statusName);
 
     // If employee uses farmer's proposed date → 'confirmed' (confirmed immediately)
@@ -267,12 +269,14 @@ exports.rescheduleDelivery = async (req, res) => {
       return res.status(400).json({ message: 'Scheduled date is required' });
     }
 
+    const statusId = await getId('delivery_statuses', 'delivery_status_id', 'status_name', 'Action Required');
+
     await db.query(
-      'UPDATE deliveries SET scheduled_date = ?, updated_at = NOW() WHERE delivery_id = ?',
-      [scheduledDate, deliveryId]
+      'UPDATE deliveries SET proposed_reschedule_date = ?, status_id = ?, updated_at = NOW() WHERE delivery_id = ?',
+      [scheduledDate, statusId, deliveryId]
     );
 
-    res.json({ success: true, message: 'Delivery rescheduled successfully' });
+    res.json({ success: true, message: 'Reschedule proposal sent to farmer' });
   } catch (error) {
     res.status(500).json({ message: 'Failed to reschedule delivery', error: error.message });
   }

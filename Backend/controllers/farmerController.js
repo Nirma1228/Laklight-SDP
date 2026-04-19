@@ -156,15 +156,14 @@ exports.getDeliveries = async (req, res) => {
              d.proposed_reschedule_date,
              DATE_FORMAT(d.scheduled_date, '%Y-%m-%d') as scheduleDate,
              DATE_FORMAT(fs.delivery_date, '%Y-%m-%d') as proposedDate,
-             fs.quantity, qg.grade_name, fs.custom_price
-      FROM delivery_schedules d
+             fs.quantity, fs.grade as grade_name, fs.custom_price, mu.unit_name as unit
+      FROM deliveries d
       JOIN delivery_statuses ds ON d.status_id = ds.delivery_status_id
       JOIN farmer_submissions fs ON d.submission_id = fs.submission_id
-      JOIN transport_methods tm ON fs.transport_method_id = tm.transport_method_id
-      JOIN quality_grades qg ON fs.grade_id = qg.grade_id
+      LEFT JOIN transport_methods tm ON fs.transport_method_id = tm.transport_method_id
+      LEFT JOIN measurement_units mu ON fs.unit_id = mu.unit_id
       WHERE fs.farmer_id = ?`, [req.user.userId]);
 
-    // Format the proposed_reschedule_date for frontend
     const formatted = deliveries.map(d => ({
       ...d,
       proposedRescheduleDate: d.proposed_reschedule_date ? 
@@ -206,6 +205,13 @@ exports.updateDelivery = async (req, res) => {
     if (rescheduleDate) { 
       updates.push('proposed_reschedule_date = ?'); 
       params.push(rescheduleDate); 
+      
+      // If farmer is the one rescheduling, set status to 'pending' 
+      // so employee sees it as a request in their dashboard
+      const [pendingRows] = await db.query('SELECT delivery_status_id FROM delivery_statuses WHERE status_name = ?', ['pending']);
+      if (pendingRows.length > 0) {
+        deliveryStatusId = pendingRows[0].delivery_status_id;
+      }
     }
     
     if (deliveryStatusId) { 

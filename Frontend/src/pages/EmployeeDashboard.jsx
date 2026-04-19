@@ -877,7 +877,8 @@ const EmployeeDashboard = () => {
           proposedDate: del.delivery_date ? new Date(del.delivery_date).toISOString().split('T')[0] : 
                         (del.final_delivery_date ? new Date(del.final_delivery_date).toISOString().split('T')[0] : ''),
           scheduleDate: del.scheduled_date ? new Date(del.scheduled_date).toISOString().split('T')[0] : 
-                        (del.final_delivery_date ? new Date(del.final_delivery_date).toISOString().split('T')[0] : '-'),
+                        (del.proposed_reschedule_date ? new Date(del.proposed_reschedule_date).toISOString().split('T')[0] : 
+                        (del.final_delivery_date ? new Date(del.final_delivery_date).toISOString().split('T')[0] : '-')),
           transport: del.transport_method || 'N/A',
           status: del.status || 'pending',
           proposed_reschedule_date: del.proposed_reschedule_date ? new Date(del.proposed_reschedule_date).toISOString().split('T')[0] : null,
@@ -1000,15 +1001,18 @@ const EmployeeDashboard = () => {
         fetchSupplierApplications();
         fetchDeliveries();
 
+        // Switch tab to deliveries to show the farmer's schedule request
+        showTab('deliveries');
+
         if (isUsingFarmerDate) {
           showNotification(`Application approved with farmer's proposed date!`, 'success', selectedApp.farmer_id || selectedApp.farmerId, {
             title: 'Application Approved',
-            message: `Your harvest submission for ${selectedApp.product_name || selectedApp.productName} has been approved for ${customScheduleDate}.`
+            message: `Your harvest submission for ${(selectedApp.product_name || selectedApp.productName || '').replace(/organic\s+/i, '')} has been approved for ${customScheduleDate}.`
           })
         } else {
           showNotification(`Application approved with reschedule date.`, 'info', selectedApp.farmer_id || selectedApp.farmerId, {
             title: 'Application Rescheduled',
-            message: `Your harvest submission for ${selectedApp.product_name || selectedApp.productName} was rescheduled to ${customScheduleDate}.`
+            message: `Your harvest submission for ${(selectedApp.product_name || selectedApp.productName || '').replace(/organic\s+/i, '')} was rescheduled to ${customScheduleDate}.`
           })
         }
         setSelectedApp(null)
@@ -1287,7 +1291,7 @@ const EmployeeDashboard = () => {
       // 3. 'confirmed schedule' - Farmer confirmed employee's reschedule
       // 4. 'completed' - Delivery done
 
-      const validStatuses = ['pending', 'scheduled delivery', 'confirmed', 'confirmed schedule', 'completed'];
+      const validStatuses = ['pending', 'scheduled delivery', 'confirmed', 'confirmed schedule', 'completed', 'action required', 'Action Required'];
 
       // If a specific status filter is selected
       if (deliveryStatusFilter !== 'all') {
@@ -2731,7 +2735,7 @@ const EmployeeDashboard = () => {
                 >
                   <option value="all">All Delivery Schedules</option>
                   <option value="scheduled delivery">Scheduled Delivery</option>
-                  <option value="pending">Pending Farmer Response</option>
+                  <option value="pending">Waiting for Farmer Response</option>
                   <option value="confirmed">Confirmed (Ready to Complete)</option>
                   <option value="confirmed schedule">Confirmed Schedule</option>
                   <option value="completed">Completed</option>
@@ -2775,10 +2779,11 @@ const EmployeeDashboard = () => {
                           <td>{delivery.scheduleDate === '-' ? '-' : <strong>{delivery.scheduleDate}</strong>}</td>
                           <td>{delivery.transport}</td>
                           <td>
-                            <span className={`status-badge status-${delivery.status}`}>
+                            <span className={`status-badge ${(['action required', 'Action Required', 'pending'].includes(delivery.status)) ? 'status-pending' : `status-${delivery.status.toLowerCase().replace(/\s+/g, '-')}`}`}>
                               {delivery.status === 'scheduled delivery' && 'Scheduled Delivery'}
+                              {(delivery.status === 'action required' || delivery.status === 'Action Required') && 'Waiting for Farmer Response'}
                               {delivery.status === 'pending' && delivery.proposed_reschedule_date && 'Farmer Counter-Proposed Date'}
-                              {delivery.status === 'pending' && !delivery.proposed_reschedule_date && 'Pending Farmer Response'}
+                              {delivery.status === 'pending' && !delivery.proposed_reschedule_date && 'Waiting for Farmer Response'}
                               {delivery.status === 'confirmed' && 'Confirmed'}
                               {delivery.status === 'confirmed schedule' && 'Confirmed Schedule'}
                               {delivery.status === 'completed' && 'Completed'}
@@ -2821,11 +2826,11 @@ const EmployeeDashboard = () => {
                                 </button>
                               </div>
                             )}
-                            {delivery.status === 'pending' && !delivery.proposed_reschedule_date && (
+                            {((delivery.status === 'pending' && !delivery.proposed_reschedule_date) || delivery.status === 'action required' || delivery.status === 'Action Required') && (
                               <div className="action-btn-group">
                                 <button
-                                  className="btn-action btn-secondary"
-                                  style={{ cursor: 'default', opacity: '0.7', pointerEvents: 'none' }}
+                                  className="btn-action btn-confirm"
+                                  style={{ cursor: 'default', pointerEvents: 'none', opacity: '0.9' }}
                                 >
                                   Waiting for Farmer Response
                                 </button>

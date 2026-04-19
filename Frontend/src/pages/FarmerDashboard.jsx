@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import { config } from '../config'
@@ -389,7 +389,7 @@ function FarmerDashboard() {
         const data = await response.json();
         const formattedDeliveries = data.deliveries.map(del => ({
           id: del.id || `DEL-${del.delivery_id}`,
-          product: del.product || `${del.product_name} - ${formatGrade(del.grade_name || '')}`,
+          product: del.product || (del.product_name ? del.product_name.replace(/organic\s+/i, '') : 'Unknown Product'),
           quantity: `${del.quantity}${del.unit || 'kg'}`,
           proposedDate: del.proposedDate || '',
           scheduleDate: del.scheduleDate || '',
@@ -563,7 +563,7 @@ function FarmerDashboard() {
   };
 
   const updateProduct = (id, field, value) => {
-    setProducts(products.map(p => {
+    setProducts(prevProducts => prevProducts.map(p => {
       if (p.id !== id) return p;
 
       // Check for duplicate dates when updating delivery options
@@ -818,28 +818,50 @@ function FarmerDashboard() {
                 {isNotificationOpen && (
                   <div className="notif-dropdown-v2 fade-in">
                     <div className="notif-header-v2">
-                      <h4>Notifications</h4>
+                      <div className="notif-title-row">
+                        <h4>Notifications</h4>
+                        {notifications.length > 0 && (
+                          <span className="notif-count-pill">{notifications.filter(n => !n.isRead).length} New</span>
+                        )}
+                      </div>
                       <button className="clear-all-btn" onClick={() => setNotifications([])}>Clear All</button>
                     </div>
                     <div className="notif-list-v2">
                       {notifications.length === 0 ? (
                         <div className="notif-empty-v2">
-                          <p>No new notifications</p>
+                          <div className="empty-notif-icon">
+                            <FontAwesomeIcon icon={faBell} />
+                          </div>
+                          <p>All caught up!</p>
+                          <span>No new notifications at the moment.</span>
                         </div>
                       ) : (
                         notifications.map(n => (
                           <div key={n.id} className={`notif-item-v2 ${n.type} ${!n.isRead ? 'unread' : ''}`} onClick={() => markAsRead(n.id)}>
-                            <div className="notif-item-header">
-                              <span className="notif-type-indicator"></span>
-                              <span className="notif-title">{n.title}</span>
-                              <button className="notif-remove-btn" onClick={(e) => { e.stopPropagation(); removeNotification(n.id); }}>×</button>
+                            <div className="notif-icon-v3">
+                              <FontAwesomeIcon icon={
+                                n.type === 'success' ? faCheckCircle : 
+                                n.type === 'error' ? faExclamationTriangle : 
+                                n.type === 'warning' ? faExclamationTriangle : faInfoCircle
+                              } />
                             </div>
-                            <p className="notif-msg">{n.message}</p>
-                            <span className="notif-time">{n.date}</span>
+                            <div className="notif-content-v3">
+                              <div className="notif-item-header">
+                                <span className="notif-title">{n.title}</span>
+                                <button className="notif-remove-btn" onClick={(e) => { e.stopPropagation(); removeNotification(n.id); }}>×</button>
+                              </div>
+                              <p className="notif-msg">{n.message}</p>
+                              <span className="notif-time">{n.date}</span>
+                            </div>
                           </div>
                         ))
                       )}
                     </div>
+                    {notifications.length > 0 && (
+                      <div className="notif-footer-v2">
+                        <button onClick={() => setIsNotificationOpen(false)}>Close View</button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -1095,13 +1117,18 @@ function FarmerDashboard() {
                                     value={product.deliveryDate}
                                     onChange={(e) => {
                                       const val = e.target.value;
-                                      updateProduct(product.id, 'deliveryDate', val);
-                                      // Suggest next days automatically but allow manual change
                                       if (val) {
                                         const d2 = getFutureDate(1, val);
                                         const d3 = getFutureDate(2, val);
-                                        updateProduct(product.id, 'proposedDate2', d2);
-                                        updateProduct(product.id, 'proposedDate3', d3);
+                                        // Update all three dates together to bypass individual validation conflicts
+                                        // that occur when suggested dates overlap with previous manual selections
+                                        setProducts(prev => prev.map(p => 
+                                          p.id === product.id 
+                                            ? { ...p, deliveryDate: val, proposedDate2: d2, proposedDate3: d3 }
+                                            : p
+                                        ));
+                                      } else {
+                                        updateProduct(product.id, 'deliveryDate', val);
                                       }
                                     }}
                                   />
@@ -1253,10 +1280,7 @@ function FarmerDashboard() {
                           {sub.status === 'selected' && sub.scheduleDate && (
                             <div className="confirmed-date-v2">
                               <p>Confirmed Pickup: {sub.scheduleDate}</p>
-                              <div className="footer-actions">
-                                <button className="btn-confirm-mini" onClick={() => handleConfirmSubmission(sub.id)}>Confirm</button>
-                                <button className="btn-reschedule-mini" onClick={() => handleRescheduleSubmission(sub.id, sub.scheduleDate)}>Reschedule</button>
-                              </div>
+                              <small className="notice-text">Review and manage in Delivery Schedule tab</small>
                             </div>
                           )}
                           {sub.status === 'confirmed' && (
@@ -1342,7 +1366,7 @@ function FarmerDashboard() {
                             <span className={`delivery-tag-v2 ${delivery.status}`}>{delivery.status}</span>
                           </div>
                           <div className="td-v2 text-center">
-                            {(delivery.status === 'pending' || (delivery.status === 'action required' && !delivery.proposedRescheduleDate)) && (
+                            {(delivery.status === 'action required' && !delivery.proposedRescheduleDate) && (
                               <div className="action-btns-v2">
                                 <button className="btn-confirm-v2" onClick={() => handleConfirmClick(delivery)}>
                                   <FontAwesomeIcon icon={faCheckCircle} /> Confirm
