@@ -348,13 +348,19 @@ const CustomerDashboard = () => {
     }
 
     try {
+      const productId = product.product_id || product.id;
+      if (!productId) {
+        toast.error('Could not identify product ID');
+        return;
+      }
+      
       const res = await fetch(`${config.API_BASE_URL}/cart/add`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ productId: product.id, quantity })
+        body: JSON.stringify({ productId: productId, quantity })
       });
       const data = await res.json();
       if (data.success) {
@@ -1057,7 +1063,12 @@ const CustomerDashboard = () => {
                     <input
                       type="tel"
                       value={checkoutData.contactNumber}
-                      onChange={(e) => setCheckoutData({ ...checkoutData, contactNumber: e.target.value })}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '' || /^[0-9\b]+$/.test(val)) {
+                          setCheckoutData({ ...checkoutData, contactNumber: val });
+                        }
+                      }}
                       placeholder="07XXXXXXXX"
                       pattern="[0-9]{10}"
                       required
@@ -1068,7 +1079,12 @@ const CustomerDashboard = () => {
                     <input
                       type="text"
                       value={checkoutData.postalCode}
-                      onChange={(e) => setCheckoutData({ ...checkoutData, postalCode: e.target.value })}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === '' || /^[0-9\b]+$/.test(val)) {
+                          setCheckoutData({ ...checkoutData, postalCode: val });
+                        }
+                      }}
                       placeholder="Enter postal code"
                       pattern="[0-9]{5}"
                       required

@@ -3,9 +3,10 @@ const router = express.Router();
 const farmerController = require('../controllers/farmerController');
 const { verifyToken, checkRole } = require('../middleware/auth');
 const { farmerSubmissionValidation, validate } = require('../middleware/validation');
+const upload = require('../config/multer');
 
 // All farmer routes require farmer authentication
-router.post('/submissions', verifyToken, checkRole('farmer'), farmerSubmissionValidation, validate, farmerController.submitProduct);
+router.post('/submissions', verifyToken, checkRole('farmer'), upload.array('images', 5), farmerController.submitProduct);
 router.get('/submissions', verifyToken, checkRole('farmer'), farmerController.getMySubmissions);
 router.get('/submissions/:id', verifyToken, checkRole('farmer'), farmerController.getSubmissionStatus);
 router.put('/submissions/:id', verifyToken, checkRole('farmer'), farmerController.updateSubmission);

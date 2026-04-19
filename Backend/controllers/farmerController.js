@@ -13,10 +13,21 @@ exports.submitProduct = async (req, res) => {
     const {
       productName, variety, category, quantity, unit,
       grade, customPrice, harvestDate, transport,
-      deliveryDate, proposedDate2, proposedDate3, storageInstructions, notes, images
+      deliveryDate, proposedDate2, proposedDate3, storageInstructions, notes
     } = req.body;
 
     console.log('📦 Received submission:', { productName, category, quantity, unit, grade });
+
+    // Handle uploaded files
+    let imageData = null;
+    if (req.files && req.files.length > 0) {
+      const filePaths = req.files.map(file => `/uploads/${file.filename}`);
+      imageData = JSON.stringify(filePaths);
+      console.log('🖼️ Uploaded images:', filePaths);
+    } else if (req.body.images) {
+      // Fallback for existing frontends sending JSON strings or array of paths
+      imageData = typeof req.body.images === 'string' ? req.body.images : JSON.stringify(req.body.images);
+    }
 
     // Helper to get ID (case-insensitive)
     const getPkId = async (table, pk, col, val) => {
@@ -37,21 +48,21 @@ exports.submitProduct = async (req, res) => {
 
     if (!catId) {
       console.error(`❌ Invalid category: '${category}'. Supported categories may be case-sensitive or missing.`);
+      // List available categories for debugging
+      const [allCats] = await db.query('SELECT category_name FROM product_categories');
+      console.log('Available categories in DB:', allCats.map(c => c.category_name));
       return res.status(400).json({ message: `Invalid category: '${category}'.` });
     }
     if (!unitId) {
       console.error(`❌ Invalid unit: '${unit}'`);
+      const [allUnits] = await db.query('SELECT unit_name FROM measurement_units');
+      console.log('Available units in DB:', allUnits.map(u => u.unit_name));
       return res.status(400).json({ message: `Invalid unit: '${unit}'.` });
     }
     if (!statusId) {
       console.error(`❌ Status 'under-review' not found in DB`);
       return res.status(500).json({ message: 'System error: status configuration missing.' });
     }
-
-    // Handle images
-    const imageData = images && Array.isArray(images) && images.length > 0
-      ? JSON.stringify(images)
-      : null;
 
     // Use common variety name column or default
     const finalVariety = variety || '';
@@ -60,14 +71,19 @@ exports.submitProduct = async (req, res) => {
     const gradeMap = {
       'grade-a': 'Grade A',
       'grade-b': 'Grade B',
-      'grade-c': 'Grade C'
+      'grade-c': 'Grade C',
+      'Grade A': 'Grade A',
+      'Grade B': 'Grade B',
+      'Grade C': 'Grade C'
     };
 
     const finalGrade = gradeMap[grade] || grade; // Fallback to original if not found
 
     const transportMap = {
       'self': 'Self Transport',
-      'company': 'Company Truck Pickup'
+      'company': 'Company Truck Pickup',
+      'Self Transport': 'Self Transport',
+      'Company Truck Pickup': 'Company Truck Pickup'
     };
 
     const finalTransport = transportMap[transport] || transport;
@@ -163,45 +179,66 @@ exports.getDeliveries = async (req, res) => {
 
 // Update delivery (Reschedule/Confirm)
 exports.updateDelivery = async (req, res) => {
+  const connection = await db.getConnection();
   try {
+    await connection.beginTransaction();
     const { rescheduleDate, status } = req.body;
-    let statusId = null;
+    let deliveryStatusId = null;
     
-    // If farmer is confirming the schedule (not requesting reschedule)
+    // Map incoming status to DB status
     if (status === 'confirmed') {
-      // Use 'confirmed schedule' status name
-      const [statusRows] = await db.query('SELECT delivery_status_id FROM delivery_statuses WHERE status_name = ?', ['confirmed']);
-      if (statusRows.length > 0) statusId = statusRows[0].delivery_status_id;
-    } else if (status) {
-      const [statusRows] = await db.query('SELECT delivery_status_id FROM delivery_statuses WHERE status_name = ?', [status]);
-      if (statusRows.length > 0) statusId = statusRows[0].delivery_status_id;
+      const [rows] = await db.query('SELECT delivery_status_id FROM delivery_statuses WHERE status_name = ?', ['confirmed']);
+      if (rows.length > 0) deliveryStatusId = rows[0].delivery_status_id;
+    } else if (status === 'rejected') {
+      const [rows] = await db.query('SELECT delivery_status_id FROM delivery_statuses WHERE status_name = ?', ['Action Required']);
+      if (rows.length > 0) deliveryStatusId = rows[0].delivery_status_id;
+    }
+
+    const [[delivery]] = await connection.query('SELECT * FROM deliveries WHERE delivery_id = ?', [req.params.id]);
+    if (!delivery) {
+      await connection.rollback();
+      return res.status(404).json({ message: 'Delivery not found' });
     }
 
     const updates = [];
     const params = [];
     
-    // If farmer is requesting a reschedule
     if (rescheduleDate) { 
       updates.push('proposed_reschedule_date = ?'); 
       params.push(rescheduleDate); 
-      // Status remains 'pending' - don't change it
     }
     
-    // If farmer is confirming (no reschedule date, just status change)
-    if (statusId && !rescheduleDate) { 
+    if (deliveryStatusId) { 
       updates.push('status_id = ?'); 
-      params.push(statusId); 
+      params.push(deliveryStatusId); 
     }
 
-    if (updates.length === 0) return res.status(400).json({ message: 'Nothing to update' });
+    // IF farmer accepts a reschedule from employee
+    if (status === 'confirmed' && delivery.proposed_reschedule_date) {
+      updates.push('scheduled_date = ?');
+      params.push(delivery.proposed_reschedule_date);
+      updates.push('proposed_reschedule_date = NULL');
+    }
 
-    params.push(req.params.id);
-    await db.query(`UPDATE deliveries SET ${updates.join(', ')}, updated_at = NOW() WHERE delivery_id = ?`, params);
+    if (updates.length > 0) {
+      params.push(req.params.id);
+      await connection.query(`UPDATE deliveries SET ${updates.join(', ')} WHERE delivery_id = ?`, params);
+    }
 
-    res.json({ success: true, message: 'Delivery updated' });
+    // Synchronize farmer_submissions status if confirmed
+    if (status === 'confirmed') {
+      const [ss] = await connection.query('SELECT submission_status_id FROM submission_statuses WHERE status_name = ?', ['selected']);
+      if (ss.length > 0) {
+        await connection.query('UPDATE farmer_submissions SET status_id = ? WHERE submission_id = ?', [ss[0].submission_status_id, delivery.submission_id]);
+      }
+    }
+
+    await connection.commit();
+    res.json({ success: true, message: 'Delivery updated successfully' });
   } catch (error) {
+    await connection.rollback();
     res.status(500).json({ message: 'Update failed', error: error.message });
-  }
+  } finally { connection.release(); }
 };
 exports.getSubmissionStatus = async (req, res) => {
   try {

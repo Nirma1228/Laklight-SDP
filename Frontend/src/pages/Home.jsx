@@ -263,7 +263,9 @@ function Home() {
               <Link to="/login" className="btn btn-primary-premium">Get Started Now</Link>
             </div>
           </div>
-          <div className="cta-visual reveal-on-scroll"></div>
+          <div className="cta-visual reveal-on-scroll">
+            <img src="/images/farmer_banner.png" alt="Agriculture Professionals" className="cta-img" />
+          </div>
         </div>
       </section>
 
@@ -285,7 +287,7 @@ function Home() {
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
               {products.map((product) => (
-                <div key={product.id} className="bg-white rounded-xl shadow-lg overflow-hidden transition-all hover:-translate-y-2 hover:shadow-xl border border-gray-100 flex flex-col">
+                <div key={product.product_id || product.id} className="bg-white rounded-xl shadow-lg overflow-hidden transition-all hover:-translate-y-2 hover:shadow-xl border border-gray-100 flex flex-col">
                   <div 
                     className="h-64 overflow-hidden bg-gradient-to-b from-green-50 to-green-100 relative group flex items-center justify-center p-2 cursor-zoom-in"
                     onClick={() => setSelectedImage(product.image_url ? (product.image_url.startsWith('http') ? product.image_url : product.image_url) : '/images/placeholder.png')}

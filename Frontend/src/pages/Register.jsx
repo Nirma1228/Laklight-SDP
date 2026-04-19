@@ -51,10 +51,20 @@ function Register() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }))
+    
+    // Custom validation: Phone and Postal Code should only contain numbers
+    if (name === 'phone' || name === 'postalCode') {
+      const numericValue = value.replace(/\D/g, '')
+      setFormData(prev => ({
+        ...prev,
+        [name]: numericValue
+      }))
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: type === 'checkbox' ? checked : value
+      }))
+    }
     setLocalError('') // Clear error when user types
   }
 

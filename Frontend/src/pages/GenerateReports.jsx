@@ -56,112 +56,128 @@ function GenerateReports() {
     <div>
       <Header isLoggedIn={true} />
       <div className="main-content">
-        <div className="page-header">
+        <div className="page-header decorative-header">
           <div className="header-info">
-            <h1 className="page-title">
-              <i className="fa-solid fa-file-invoice-dollar title-icon"></i>
-              Generate Reports
+            <h1 className="page-title animate-fade-in">
+              <div className="title-icon-wrapper">
+                <i className="fa-solid fa-chart-pie title-icon"></i>
+              </div>
+              <span className="title-text">Analytics & Reports</span>
             </h1>
-            <p className="page-description">Select report type and parameters to generate comprehensive analytics</p>
+            <p className="page-description">Generate comprehensive business intelligence and operational insights</p>
           </div>
-          <button className="btn btn-secondary back-btn" onClick={() => navigate('/admin/dashboard')}>
-            <i className="fa-solid fa-arrow-left"></i>
-            BACK TO DASHBOARD
+          <button className="btn-back-dashboard" onClick={() => navigate('/admin/dashboard')}>
+            <i className="fa-solid fa-house"></i>
+            <span>Back to Dashboard</span>
           </button>
         </div>
 
-        <div className="report-container">
-          <div className="report-selector glass-card">
-            <h2 className="section-title">
-              <i className="fa-solid fa-gear"></i>
-              Report Configuration
-            </h2>
+        <div className="report-layout-grid">
+          <div className="report-config-sidebar card-beautified">
+            <div className="card-header-beautified">
+              <h3><i className="fa-solid fa-sliders-h"></i> Configuration</h3>
+            </div>
+            
+            <div className="config-body">
+              <div className="form-group-beautified">
+                <label>Report Module</label>
+                <div className="custom-select-wrapper">
+                  <select
+                    value={selectedReport}
+                    onChange={(e) => setSelectedReport(e.target.value)}
+                    className="custom-select"
+                  >
+                    <option value="">Select Module</option>
+                    {reports.map(report => (
+                      <option key={report.id} value={report.id}>{report.name}</option>
+                    ))}
+                  </select>
+                  <i className="fa-solid fa-chevron-down select-arrow"></i>
+                </div>
+              </div>
 
-            <div className="form-group">
-              <label htmlFor="reportType">Report Type *</label>
-              <div className="select-wrapper">
-                <i className="fa-solid fa-list-check select-icon"></i>
-                <select
-                  id="reportType"
-                  value={selectedReport}
-                  onChange={(e) => handleReportSelect(e.target.value)}
-                  className="form-control"
+              <div className="form-group-beautified">
+                <label>Temporal Analysis</label>
+                <div className="custom-select-wrapper">
+                  <select
+                    value={dateRange}
+                    onChange={(e) => setDateRange(e.target.value)}
+                    className="custom-select"
+                  >
+                    <option value="today">Today's Data</option>
+                    <option value="week">Current Week</option>
+                    <option value="month">Monthly Overview</option>
+                    <option value="quarter">Quarterly Review</option>
+                    <option value="year">Annual Summary</option>
+                    <option value="custom">Custom Range</option>
+                  </select>
+                  <i className="fa-solid fa-calendar-alt select-arrow"></i>
+                </div>
+              </div>
+
+              <div className="form-group-beautified">
+                <label>Output Format</label>
+                <div className="format-pills">
+                  <button className="format-pill active"><i className="fa-solid fa-file-pdf"></i> PDF</button>
+                  <button className="format-pill"><i className="fa-solid fa-file-excel"></i> XLSX</button>
+                  <button className="format-pill"><i className="fa-solid fa-file-csv"></i> CSV</button>
+                </div>
+              </div>
+
+              <div className="config-footer">
+                <button
+                  className="btn-generate-premium"
+                  onClick={handleGenerate}
+                  disabled={!selectedReport}
                 >
-                  <option value="">Select Report Type</option>
-                  {reports.map(report => (
-                    <option key={report.id} value={report.id}>{report.name}</option>
-                  ))}
-                </select>
+                  <i className="fa-solid fa-bolt"></i>
+                  PROCEED TO REPORT
+                </button>
+                <p className="helper-text"><i className="fa-solid fa-circle-info"></i> All reports are generated with real-time data</p>
               </div>
             </div>
-
-            <div className="form-group">
-              <label htmlFor="dateRange">Date Range *</label>
-              <div className="select-wrapper">
-                <i className="fa-solid fa-calendar-days select-icon"></i>
-                <select
-                  id="dateRange"
-                  value={dateRange}
-                  onChange={(e) => setDateRange(e.target.value)}
-                  className="form-control"
-                >
-                  <option value="today">Today</option>
-                  <option value="week">This Week</option>
-                  <option value="month">This Month</option>
-                  <option value="quarter">This Quarter</option>
-                  <option value="year">This Year</option>
-                  <option value="custom">Custom Range</option>
-                </select>
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="format">Export Format</label>
-              <div className="select-wrapper">
-                <i className="fa-solid fa-file-export select-icon"></i>
-                <select id="format" className="form-control">
-                  <option value="pdf">PDF Document</option>
-                  <option value="excel">Excel Spreadsheet</option>
-                  <option value="csv">CSV File</option>
-                </select>
-              </div>
-            </div>
-
-            <button
-              className="btn btn-primary generate-btn"
-              onClick={handleGenerate}
-              disabled={!selectedReport}
-            >
-              <i className="fa-solid fa-wand-magic-sparkles"></i>
-              Generate Report
-            </button>
           </div>
 
-          <div className="report-preview glass-card">
-            <h2 className="section-title">
-              <i className="fa-solid fa-layer-group"></i>
-              Report Types
-            </h2>
+          <div className="report-display-main">
+            <div className="display-header">
+              <h2><i className="fa-solid fa-cubes"></i> Available Analytical Modules</h2>
+              <div className="search-reports">
+                <i className="fa-solid fa-magnifying-glass"></i>
+                <input type="text" placeholder="Filter report types..." />
+              </div>
+            </div>
 
-            <div className="report-types-grid">
+            <div className="reports-bento-grid">
               {reports.map(report => (
                 <div
                   key={report.id}
-                  className={`report-type-card ${selectedReport === report.id ? 'selected' : ''}`}
-                  onClick={() => handleReportSelect(report.id)}
+                  className={`report-bento-card ${selectedReport === report.id ? 'active-module' : ''}`}
+                  onClick={() => setSelectedReport(report.id)}
                 >
-                  <div className="report-card-icon" style={{ backgroundColor: `${report.color}15`, color: report.color }}>
+                  <div className="module-icon" style={{ '--accent-color': report.color }}>
                     <i className={report.icon}></i>
                   </div>
-                  <div className="report-card-name">{report.name}</div>
-                  <div className="report-card-desc">{report.description}</div>
-                  {selectedReport === report.id && (
-                    <div className="selection-indicator">
-                      <i className="fa-solid fa-circle-check"></i>
+                  <div className="module-info">
+                    <h4 className="module-name">{report.name}</h4>
+                    <p className="module-desc">{report.description}</p>
+                    <div className="module-footer">
+                      <span className="tag">Analytics</span>
+                      {selectedReport === report.id && <span className="selected-tag">Selected</span>}
                     </div>
-                  )}
+                  </div>
+                  <div className="module-bg-shade" style={{ background: report.color }}></div>
                 </div>
               ))}
+            </div>
+
+            <div className="insights-footer card-beautified">
+              <div className="insight-item">
+                <div className="insight-icon"><i className="fa-solid fa-lightbulb"></i></div>
+                <div className="insight-text">
+                  <strong>Did you know?</strong>
+                  <p>Comparing Quarterly reviews often reveals seasonal supply trends with higher accuracy.</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

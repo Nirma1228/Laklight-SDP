@@ -44,20 +44,33 @@ exports.approveApplication = async (req, res) => {
   try {
     await connection.beginTransaction();
     const { scheduledDate, notes, isUsingFarmerDate } = req.body;
-    const statusId = await getId('submission_statuses', 'submission_status_id', 'status_name', 'selected');
+    
+    // If using farmer's date, status is 'selected' (approved)
+    // If rescheduling, we set a temporary 'Action Required' status for the farmer to respond
+    const statusName = isUsingFarmerDate ? 'selected' : 'under-review';
+    const statusId = await getId('submission_statuses', 'submission_status_id', 'status_name', statusName);
 
-    // If employee uses farmer's proposed date → 'scheduled delivery' (confirmed immediately)
-    // If employee reschedules → 'pending' (waiting for farmer to confirm)
-    let deliveryStatusName = isUsingFarmerDate ? 'confirmed' : 'pending';
+    // If employee uses farmer's proposed date → 'confirmed' (confirmed immediately)
+    // If employee reschedules → 'Action Required' (waiting for farmer to confirm/reject)
+    let deliveryStatusName = isUsingFarmerDate ? 'confirmed' : 'Action Required';
     const deliveryStatusId = await getId('delivery_statuses', 'delivery_status_id', 'status_name', deliveryStatusName);
 
     await connection.query('UPDATE farmer_submissions SET status_id = ?, notes = ? WHERE submission_id = ?', [statusId, notes, req.params.id]);
 
     const [[sub]] = await connection.query('SELECT * FROM farmer_submissions WHERE submission_id = ?', [req.params.id]);
 
+    // Delete any existing delivery record for this submission to avoid duplicates before inserting new one
+    await connection.query('DELETE FROM deliveries WHERE submission_id = ?', [req.params.id]);
+
     await connection.query(
-      'INSERT INTO deliveries (submission_id, scheduled_date, transport_method_id, status_id) VALUES (?, ?, ?, ?)',
-      [req.params.id, scheduledDate || sub.delivery_date, sub.transport_method_id, deliveryStatusId]
+      'INSERT INTO deliveries (submission_id, scheduled_date, proposed_reschedule_date, transport_method_id, status_id) VALUES (?, ?, ?, ?, ?)',
+      [
+        req.params.id, 
+        isUsingFarmerDate ? scheduledDate : null, 
+        isUsingFarmerDate ? null : scheduledDate, 
+        sub.transport_method_id, 
+        deliveryStatusId
+      ]
     );
 
     await connection.commit();
@@ -275,10 +288,12 @@ exports.approveReschedule = async (req, res) => {
       return res.status(400).json({ message: 'Scheduled date is required' });
     }
 
-    // Update scheduled_date and clear proposed_reschedule_date
+    const statusId = await getId('delivery_statuses', 'delivery_status_id', 'status_name', 'confirmed schedule');
+
+    // Update scheduled_date, clear proposed_reschedule_date, and update status
     await db.query(
-      'UPDATE deliveries SET scheduled_date = ?, proposed_reschedule_date = NULL, updated_at = NOW() WHERE delivery_id = ?',
-      [scheduledDate, deliveryId]
+      'UPDATE deliveries SET scheduled_date = ?, proposed_reschedule_date = NULL, status_id = ?, updated_at = NOW() WHERE delivery_id = ?',
+      [scheduledDate, statusId, deliveryId]
     );
 
     res.json({ success: true, message: 'Farmer\'s reschedule request approved' });

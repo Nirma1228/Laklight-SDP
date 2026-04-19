@@ -16,7 +16,12 @@ import './FarmerDashboard.css'
 // Utility: get today's date in YYYY-MM-DD
 const getToday = () => new Date().toISOString().slice(0, 10);
 
-
+// Utility: get future date
+const getFutureDate = (days, baseDate = null) => {
+  const d = baseDate ? new Date(baseDate) : new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+};
 
 const getAuthToken = () => {
   return localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -73,7 +78,7 @@ function FarmerDashboard() {
     harvestDate: '',
     grade: '',
     transport: '',
-    deliveryDate: '',
+    deliveryDate: getFutureDate(3),
     proposedDate2: '',
     proposedDate3: '',
     storage: '',
@@ -348,6 +353,7 @@ function FarmerDashboard() {
           proposedDate3: sub.proposed_date_3 ? new Date(sub.proposed_date_3).toISOString().split('T')[0] : '',
           storageInstructions: sub.storage_instructions || '',
           notes: sub.notes || '',
+          images: sub.images, // Store image data (stringified JSON array)
           rejectionReason: sub.rejection_reason || '',
           scheduleDate: sub.schedule_date ? new Date(sub.schedule_date).toISOString().split('T')[0] : ''
         }));
@@ -557,9 +563,24 @@ function FarmerDashboard() {
   };
 
   const updateProduct = (id, field, value) => {
-    setProducts(products.map(p =>
-      p.id === id ? { ...p, [field]: value } : p
-    ));
+    setProducts(products.map(p => {
+      if (p.id !== id) return p;
+
+      // Check for duplicate dates when updating delivery options
+      if (field === 'deliveryDate' || field === 'proposedDate2' || field === 'proposedDate3') {
+        const otherDates = [];
+        if (field !== 'deliveryDate') otherDates.push(p.deliveryDate);
+        if (field !== 'proposedDate2') otherDates.push(p.proposedDate2);
+        if (field !== 'proposedDate3') otherDates.push(p.proposedDate3);
+
+        if (value && otherDates.includes(value)) {
+          toast.warning('This date is already selected as another delivery option. Please pick a different date.');
+          return p;
+        }
+      }
+
+      return { ...p, [field]: value };
+    }));
   };
 
   // Helper to convert file to base64
@@ -586,38 +607,34 @@ function FarmerDashboard() {
       if (!token) return
 
       const promises = validProducts.map(async (p) => {
-        // Here we ensure all required product details are captured correctly.
-        // Convert files to base64 if they exist
-        let base64Images = [];
-        if (p.images && p.images.length > 0) {
-          const imagePromises = Array.from(p.images).map(file => fileToBase64(file));
-          base64Images = await Promise.all(imagePromises);
-        }
+        const formData = new FormData();
+        formData.append('productName', p.name);
+        formData.append('category', p.category);
+        formData.append('variety', p.variety || '');
+        formData.append('quantity', p.quantity);
+        formData.append('unit', p.unit);
+        formData.append('grade', p.grade);
+        formData.append('customPrice', p.customPrice || '');
+        formData.append('harvestDate', p.harvestDate);
+        formData.append('transport', p.transport);
+        formData.append('deliveryDate', p.deliveryDate);
+        formData.append('proposedDate2', p.proposedDate2 || '');
+        formData.append('proposedDate3', p.proposedDate3 || '');
+        formData.append('storageInstructions', p.storage || '');
+        formData.append('notes', p.notes || '');
 
-        // Prepare payload matching backend expectation
-        const payload = {
-          productName: p.name,
-          category: p.category,
-          quantity: p.quantity,
-          unit: p.unit,
-          grade: p.grade,
-          customPrice: p.customPrice,
-          harvestDate: p.harvestDate,
-          transport: p.transport,
-          deliveryDate: p.deliveryDate,
-          proposedDate2: p.proposedDate2,
-          proposedDate3: p.proposedDate3,
-          notes: p.notes,
-          images: base64Images // Now including the actual base64 image data
+        if (p.images && p.images.length > 0) {
+          Array.from(p.images).forEach((file) => {
+            formData.append('images', file);
+          });
         }
 
         return fetch(`${config.API_BASE_URL}/farmer/submissions`, {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
           },
-          body: JSON.stringify(payload)
+          body: formData
         }).then(async res => {
           if (!res.ok) {
             const errorData = await res.json().catch(() => ({}));
@@ -1067,24 +1084,48 @@ function FarmerDashboard() {
 
                           <div className="form-row-v2">
                             <div className="form-group-v2">
-                              <label>Preferred Delivery Dates (Pick 3)</label>
-                              <div className="date-selection-v2">
-                                <input
-                                  type="date"
-                                  required
-                                  value={product.deliveryDate}
-                                  onChange={(e) => updateProduct(product.id, 'deliveryDate', e.target.value)}
-                                />
-                                <input
-                                  type="date"
-                                  value={product.proposedDate2}
-                                  onChange={(e) => updateProduct(product.id, 'proposedDate2', e.target.value)}
-                                />
-                                <input
-                                  type="date"
-                                  value={product.proposedDate3}
-                                  onChange={(e) => updateProduct(product.id, 'proposedDate3', e.target.value)}
-                                />
+                              <label>Preferred Delivery Dates (Pick 3) - After Harvest Date</label>
+                              <div className="date-selection-v2" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                                <div>
+                                  <small style={{ display: 'block', color: '#666' }}>Delivery Date 1</small>
+                                  <input
+                                    type="date"
+                                    required
+                                    min={product.harvestDate ? product.harvestDate : getToday()}
+                                    value={product.deliveryDate}
+                                    onChange={(e) => {
+                                      const val = e.target.value;
+                                      updateProduct(product.id, 'deliveryDate', val);
+                                      // Suggest next days automatically but allow manual change
+                                      if (val) {
+                                        const d2 = getFutureDate(1, val);
+                                        const d3 = getFutureDate(2, val);
+                                        updateProduct(product.id, 'proposedDate2', d2);
+                                        updateProduct(product.id, 'proposedDate3', d3);
+                                      }
+                                    }}
+                                  />
+                                </div>
+                                <div>
+                                  <small style={{ display: 'block', color: '#666' }}>Delivery Date 2</small>
+                                  <input
+                                    type="date"
+                                    required
+                                    min={product.harvestDate ? product.harvestDate : getToday()}
+                                    value={product.proposedDate2}
+                                    onChange={(e) => updateProduct(product.id, 'proposedDate2', e.target.value)}
+                                  />
+                                </div>
+                                <div>
+                                  <small style={{ display: 'block', color: '#666' }}>Delivery Date 3</small>
+                                  <input
+                                    type="date"
+                                    required
+                                    min={product.harvestDate ? product.harvestDate : getToday()}
+                                    value={product.proposedDate3}
+                                    onChange={(e) => updateProduct(product.id, 'proposedDate3', e.target.value)}
+                                  />
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -1183,6 +1224,30 @@ function FarmerDashboard() {
                               <span style={{ fontSize: '0.85rem' }}>Storage: <em>{sub.storageInstructions}</em></span>
                             </div>
                           )}
+
+                          {/* Render Submission Images */}
+                          {sub.images && (
+                            <div className="submission-images-preview" style={{ display: 'flex', gap: '5px', marginTop: '10px' }}>
+                              {(() => {
+                                try {
+                                  const parsedImages = typeof sub.images === 'string' ? JSON.parse(sub.images) : sub.images;
+                                  if (Array.isArray(parsedImages)) {
+                                    return parsedImages.map((img, idx) => (
+                                      <img 
+                                        key={idx} 
+                                        src={`${config.API_BASE_URL.replace('/api', '')}${img}`} 
+                                        alt={`Product ${idx}`} 
+                                        style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #ddd' }}
+                                        onClick={() => window.open(`${config.API_BASE_URL.replace('/api', '')}${img}`, '_blank')}
+                                      />
+                                    ));
+                                  }
+                                } catch (e) {
+                                  return null;
+                                }
+                              })()}
+                            </div>
+                          )}
                         </div>
                         <div className="sub-footer-v2">
                           {sub.status === 'selected' && sub.scheduleDate && (
@@ -1276,19 +1341,50 @@ function FarmerDashboard() {
                           <div className="td-v2">
                             <span className={`delivery-tag-v2 ${delivery.status}`}>{delivery.status}</span>
                           </div>
-                          <div className="td-v2">
-                            {delivery.status === 'pending' && !delivery.proposedRescheduleDate && (
+                          <div className="td-v2 text-center">
+                            {(delivery.status === 'pending' || (delivery.status === 'action required' && !delivery.proposedRescheduleDate)) && (
                               <div className="action-btns-v2">
-                                <button className="btn-confirm-v2" onClick={() => handleConfirmClick(delivery)}>Confirm</button>
-                                <button className="btn-reschedule-v2" onClick={() => handleRescheduleClick(delivery)}>Reschedule</button>
+                                <button className="btn-confirm-v2" onClick={() => handleConfirmClick(delivery)}>
+                                  <FontAwesomeIcon icon={faCheckCircle} /> Confirm
+                                </button>
+                                <button className="btn-reschedule-v2" onClick={() => handleRescheduleClick(delivery)}>
+                                  <FontAwesomeIcon icon={faCalendarAlt} /> Reschedule
+                                </button>
                               </div>
                             )}
+
+                            {delivery.status === 'action required' && delivery.proposedRescheduleDate && (
+                              <div className="reschedule-action-box">
+                                <div className="reschedule-info">
+                                  <FontAwesomeIcon icon={faExclamationTriangle} className="warn-icon" />
+                                  <span>Employee proposed: <strong>{delivery.proposedRescheduleDate}</strong></span>
+                                </div>
+                                <div className="action-btns-v2 compact">
+                                  <button className="btn-confirm-v2" onClick={() => handleConfirmClick(delivery)}>
+                                    Accept Date
+                                  </button>
+                                  <button className="btn-reschedule-v2" onClick={() => handleRescheduleClick(delivery)}>
+                                    Reschedule Again
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
                             {delivery.status === 'confirmed' && (
-                              <span className="status-text-v2">
-                                {delivery.transport.toLowerCase().includes('self') ? 'Ready for Drop-off' : 'Scheduled for Pickup'}
+                              <div className="status-badge-container">
+                                <span className="status-text-v2 success">
+                                  <FontAwesomeIcon icon={faCalendarCheck} /> Ready
+                                </span>
+                                <small className="status-subtext">
+                                  {delivery.transport.toLowerCase().includes('self') ? 'Drop-off' : 'Pickup'} scheduled
+                                </small>
+                              </div>
+                            )}
+                            {(delivery.status === 'completed' || delivery.status === 'delivered') && (
+                              <span className="status-text-v2 success">
+                                <FontAwesomeIcon icon={faCheckCircle} /> Completed
                               </span>
                             )}
-                            {delivery.status === 'completed' && <span className="status-text-v2 success">Completed</span>}
                           </div>
                         </div>
                       ))
@@ -1590,7 +1686,12 @@ function FarmerDashboard() {
                     type="text"
                     required
                     value={bankDetails.accountNumber}
-                    onChange={(e) => setBankDetails({ ...bankDetails, accountNumber: e.target.value })}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === '' || /^[0-9\b]+$/.test(val)) {
+                        setBankDetails({ ...bankDetails, accountNumber: val });
+                      }
+                    }}
                     placeholder="Your account number"
                   />
                 </div>

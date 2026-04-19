@@ -2436,3 +2436,58 @@
  . d a s h b o a r d - m a i n - v 2   { 
  
      f l e x - g r o w :   1 ; 
+/* Delivery Status & Reschedule UI */
+.reschedule-action-box {
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 12px;
+  padding: 1rem;
+  margin: 0.5rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.reschedule-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: #92400e;
+}
+
+.reschedule-info strong {
+  color: #b45309;
+  text-decoration: underline;
+}
+
+.warn-icon {
+  color: #f59e0b;
+}
+
+.action-btns-v2.compact {
+  gap: 0.5rem;
+}
+
+.status-badge-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.status-subtext {
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.delivery-tag-v2.action.required {
+  background: #fee2e2;
+  color: #ef4444;
+  border: 1px solid #fecaca;
+}
+
+.status-text-v2.success {
+  color: #10b981;
+  font-weight: 700;
+}

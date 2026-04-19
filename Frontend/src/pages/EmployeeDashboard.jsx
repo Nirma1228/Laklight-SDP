@@ -831,6 +831,8 @@ const EmployeeDashboard = () => {
             submitted: app.submitted ? new Date(app.submitted).toISOString().split('T')[0] : '—',
             transport: app.transport || 'N/A',
             date: app.date ? new Date(app.date).toISOString().split('T')[0] : '—',
+            proposed2: app.proposed_date_2 ? new Date(app.proposed_date_2).toISOString().split('T')[0] : (app.date ? new Date(new Date(app.date).setDate(new Date(app.date).getDate() + 1)).toISOString().split('T')[0] : '2026-04-23'),
+            proposed3: app.proposed_date_3 ? new Date(app.proposed_date_3).toISOString().split('T')[0] : (app.date ? new Date(new Date(app.date).setDate(new Date(app.date).getDate() + 2)).toISOString().split('T')[0] : '2026-04-24'),
             images: parsedImages,
             category: app.category || 'raw',
             status: app.status || 'under-review'
@@ -878,7 +880,8 @@ const EmployeeDashboard = () => {
                         (del.final_delivery_date ? new Date(del.final_delivery_date).toISOString().split('T')[0] : '-'),
           transport: del.transport_method || 'N/A',
           status: del.status || 'pending',
-          proposed_reschedule_date: del.proposed_reschedule_date ? new Date(del.proposed_reschedule_date).toISOString().split('T')[0] : null
+          proposed_reschedule_date: del.proposed_reschedule_date ? new Date(del.proposed_reschedule_date).toISOString().split('T')[0] : null,
+          reschedule_options: del.reschedule_options ? (typeof del.reschedule_options === 'string' ? JSON.parse(del.reschedule_options) : del.reschedule_options) : []
         }));
         console.log('Formatted Deliveries:', formattedDeliveries);
         setDeliveries(formattedDeliveries);
@@ -973,8 +976,8 @@ const EmployeeDashboard = () => {
       // Check if employee is using farmer's proposed date or rescheduling
       const isUsingFarmerDate =
         customScheduleDate === selectedApp.date ||
-        customScheduleDate === selectedApp.proposedDate2 ||
-        customScheduleDate === selectedApp.proposedDate3;
+        customScheduleDate === selectedApp.proposed2 ||
+        customScheduleDate === selectedApp.proposed3;
 
       // Call backend API to approve application
       const response = await fetch(`${config.API_BASE_URL}/employee/applications/${selectedApp.id}/approve`, {
@@ -992,6 +995,11 @@ const EmployeeDashboard = () => {
 
       if (response.ok) {
         setIsApproveModalOpen(false)
+        
+        // Refresh data to update Delivery Schedule section
+        fetchSupplierApplications();
+        fetchDeliveries();
+
         if (isUsingFarmerDate) {
           showNotification(`Application approved with farmer's proposed date!`, 'success', selectedApp.farmer_id || selectedApp.farmerId, {
             title: 'Application Approved',
@@ -1356,6 +1364,20 @@ const EmployeeDashboard = () => {
   const handleAddFinishedBatch = async (e) => {
     e.preventDefault()
 
+    const today = new Date().toISOString().split('T')[0];
+
+    // Validation: Received Date must be a past date (or today)
+    if (addBatchData.manufactured > today) {
+      showNotification(`${updatingItem.type === 'farmer' ? 'Received' : 'Manufacturing'} Date cannot be in the future`, 'error');
+      return;
+    }
+
+    // Validation: Expiry Date must be a future date (strictly after today)
+    if (addBatchData.bestBefore <= today) {
+      showNotification(`${updatingItem.type === 'farmer' ? 'Expiry' : 'Best Before'} Date must be a future date`, 'error');
+      return;
+    }
+
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       
@@ -1605,6 +1627,155 @@ const EmployeeDashboard = () => {
           </div>
         </section>
 
+        {/* Reschedule Requests Notice Section */}
+        {deliveries.some(d => d.status === 'pending' && d.proposed_reschedule_date) && (
+          <div className="dashboard-notice-section" style={{
+            margin: '0 0 2rem 0',
+            padding: '1.5rem',
+            background: '#fff',
+            borderRadius: '24px',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.05)',
+            border: '1px solid #eef2f6'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '1rem' }}>
+              <div style={{ width: '45px', height: '45px', borderRadius: '12px', background: '#fef3c7', color: '#d97706', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }}>
+                <FontAwesomeIcon icon={faExclamationTriangle} />
+              </div>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '1.25rem', color: '#1e293b', fontWeight: '800' }}>Important Notice</h2>
+                <p style={{ margin: 0, fontSize: '0.85rem', color: '#64748b' }}>Farmers have requested date changes for the following deliveries</p>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(450px, 1fr))', gap: '1.25rem' }}>
+              {deliveries.filter(d => d.status === 'pending' && d.proposed_reschedule_date).map(delivery => (
+                <div key={delivery.id} style={{
+                  padding: '1.25rem',
+                  background: '#f8fafc',
+                  borderRadius: '16px',
+                  border: '1px solid #e2e8f0',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '1rem'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Delivery #{delivery.id}</span>
+                      <h4 style={{ margin: '0.2rem 0', fontSize: '1.1rem', color: '#1e293b' }}>{delivery.farmer}</h4>
+                      <p style={{ margin: 0, fontSize: '0.85rem', color: '#475569' }}>{delivery.product} ({delivery.quantity})</p>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ fontSize: '0.7rem', color: '#64748b', display: 'block' }}>Current Date</span>
+                      <span style={{ fontSize: '0.9rem', fontWeight: '700', color: '#64748b', textDecoration: 'line-through' }}>{delivery.proposedDate}</span>
+                    </div>
+                  </div>
+
+                  <div style={{
+                    padding: '0.75rem 1rem',
+                    background: '#ecfdf5',
+                    borderRadius: '10px',
+                    border: '1px solid #10b981',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <FontAwesomeIcon icon={faCalendarCheck} style={{ color: '#059669' }} />
+                      <span style={{ fontSize: '0.9rem', fontWeight: '600', color: '#065f46' }}>Proposed New Date:</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.2rem' }}>
+                      <span style={{ fontSize: '1rem', fontWeight: '800', color: '#047857' }}>{delivery.proposed_reschedule_date}</span>
+                      {delivery.reschedule_options && delivery.reschedule_options.length > 0 && (
+                        <span style={{ fontSize: '0.7rem', color: '#059669', fontStyle: 'italic' }}>
+                          Farmer selected from your offered options
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', marginTop: '0.5rem' }}>
+                    <button
+                      onClick={() => {
+                        openConfirm({
+                          title: 'Approve Reschedule',
+                          message: `Accept the new date (${delivery.proposed_reschedule_date}) for ${delivery.farmer}'s delivery?`,
+                          confirmText: 'Approve & Update',
+                          onConfirm: async () => {
+                            try {
+                              const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+                              const response = await fetch(`${config.API_BASE_URL}/employee/deliveries/${delivery.id}/approve-reschedule`, {
+                                method: 'PUT',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                  'Authorization': `Bearer ${token}`
+                                },
+                                body: JSON.stringify({
+                                  scheduledDate: delivery.proposed_reschedule_date
+                                })
+                              });
+                              if (response.ok) {
+                                showNotification('Reschedule date approved!');
+                                fetchDeliveries();
+                              }
+                            } catch (e) {
+                              showNotification('Error approving date', 'error');
+                            }
+                          }
+                        });
+                      }}
+                      style={{
+                        padding: '0.75rem',
+                        borderRadius: '10px',
+                        border: 'none',
+                        background: '#10b981',
+                        color: 'white',
+                        fontWeight: '700',
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5rem',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <FontAwesomeIcon icon={faCheck} /> Approve
+                    </button>
+                    <button
+                      onClick={() => {
+                        openConfirm({
+                          title: 'Reject Reschedule',
+                          message: `Reject the proposed date of ${delivery.proposed_reschedule_date}? You will need to propose a different date.`,
+                          confirmText: 'Reject & Propose New',
+                          type: 'danger',
+                          onConfirm: () => rescheduleDelivery(delivery.id)
+                        });
+                      }}
+                      style={{
+                        padding: '0.75rem',
+                        borderRadius: '10px',
+                        border: '1px solid #fecaca',
+                        background: '#fff1f2',
+                        color: '#e11d48',
+                        fontWeight: '700',
+                        fontSize: '0.85rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '0.5rem',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      <FontAwesomeIcon icon={faTimes} /> Reject
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="stats-grid-enhanced">
           <div className="stat-card-v2 inventory">
               <div className="stat-icon-wrapper">
@@ -1662,27 +1833,7 @@ const EmployeeDashboard = () => {
             </div>
           </div>
 
-          {/* Action Quick Links */}
-        <div className="dashboard-quick-actions">
-          <button className="quick-action-btn" onClick={() => setActiveTab('inventory')}>
-            <FontAwesomeIcon icon={faBoxes} />
-            <span>Manage Inventory</span>
-          </button>
-          <button className="quick-action-btn" onClick={() => setActiveTab('suppliers')}>
-            <FontAwesomeIcon icon={faHandshake} />
-            <span>Supplier Apps</span>
-          </button>
-          <button className="quick-action-btn" onClick={() => setActiveTab('orders')}>
-            <FontAwesomeIcon icon={faClipboardList} />
-            <span>Process Orders</span>
-          </button>
-          <button className="quick-action-btn" onClick={() => setActiveTab('delivery')}>
-            <FontAwesomeIcon icon={faCalendarAlt} />
-            <span>Delivery Schedule</span>
-          </button>
-        </div>
-
-        {/* Inventory Management Tab */}
+          {/* Inventory Management Tab */}
         <div className={`tab-content ${activeTab === 'inventory' ? 'active' : ''}`}>
           <div className="dashboard-grid">
             <div id="current-inventory" className="dashboard-card" style={{ gridColumn: '1 / -1' }}>
@@ -2329,8 +2480,16 @@ const EmployeeDashboard = () => {
                             <span className="app-info-value">{app.transport || 'N/A'}</span>
                           </div>
                           <div className="app-info-chip">
-                            <span className="app-info-label"><FontAwesomeIcon icon={faCalendarCheck} style={{ marginRight: '5px' }} /> Delivery Date</span>
+                            <span className="app-info-label"><FontAwesomeIcon icon={faCalendarCheck} style={{ marginRight: '5px' }} /> Delivery Date 1</span>
                             <span className="app-info-value">{app.date || 'N/A'}</span>
+                          </div>
+                          <div className="app-info-chip">
+                            <span className="app-info-label"><FontAwesomeIcon icon={faCalendarCheck} style={{ marginRight: '5px' }} /> Delivery Date 2</span>
+                            <span className="app-info-value">{app.proposed2 || '—'}</span>
+                          </div>
+                          <div className="app-info-chip">
+                            <span className="app-info-label"><FontAwesomeIcon icon={faCalendarCheck} style={{ marginRight: '5px' }} /> Delivery Date 3</span>
+                            <span className="app-info-value">{app.proposed3 || '—'}</span>
                           </div>
                         </div>
 
@@ -2341,9 +2500,11 @@ const EmployeeDashboard = () => {
                             {(app.images || []).map((img, idx) => (
                               <img
                                 key={idx}
-                                src={img.startsWith('http') || img.startsWith('data:') ? img : `https://via.placeholder.com/100x100?text=Img${idx + 1}`}
+                                src={img.startsWith('http') || img.startsWith('data:') ? img : `${config.API_BASE_URL.replace('/api', '')}${img}`}
                                 alt={`Product Image ${idx + 1}`}
                                 className="app-thumbnail"
+                                onClick={() => window.open(img.startsWith('http') || img.startsWith('data:') ? img : `${config.API_BASE_URL.replace('/api', '')}${img}`, '_blank')}
+                                style={{ cursor: 'pointer' }}
                               />
                             ))}
                             {(!app.images || app.images.length === 0) && (
@@ -3255,51 +3416,78 @@ const EmployeeDashboard = () => {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.8rem' }}>
                   <button
                     className="btn-date-option"
+                    type="button"
                     style={{
                       padding: '0.8rem',
-                      borderRadius: '8px',
-                      border: customScheduleDate === selectedApp.date ? '2px solid #2e7d32' : '1px solid #ddd',
+                      borderRadius: '12px',
+                      border: customScheduleDate === selectedApp.date ? '2px solid #2e7d32' : '1px solid #edf2f7',
                       background: customScheduleDate === selectedApp.date ? '#e8f5e9' : 'white',
                       textAlign: 'left',
-                      cursor: 'pointer'
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '12px'
                     }}
                     onClick={() => setCustomScheduleDate(selectedApp.date)}
                   >
-                    <FontAwesomeIcon icon={faCalendarAlt} style={{ marginRight: '8px' }} />
-                    Option 1: <strong>{selectedApp.date}</strong>
+                    <FontAwesomeIcon icon={faCalendarAlt} className={customScheduleDate === selectedApp.date ? 'text-primary' : 'text-muted'} />
+                    <div style={{ flex: 1 }}>
+                      <span style={{ fontSize: '0.85rem', color: '#718096', display: 'block' }}>Option 1</span>
+                      <strong style={{ fontSize: '1.05rem', color: customScheduleDate === selectedApp.date ? '#1b5e20' : '#2d3748' }}>{selectedApp.date}</strong>
+                    </div>
+                    {customScheduleDate === selectedApp.date && <FontAwesomeIcon icon={faCheckCircle} style={{ color: '#2e7d32' }} />}
                   </button>
-                  {selectedApp.proposedDate2 && (
+                  {selectedApp.proposed2 && (
                     <button
                       className="btn-date-option"
+                      type="button"
                       style={{
                         padding: '0.8rem',
-                        borderRadius: '8px',
-                        border: customScheduleDate === selectedApp.proposedDate2 ? '2px solid #2e7d32' : '1px solid #ddd',
-                        background: customScheduleDate === selectedApp.proposedDate2 ? '#e8f5e9' : 'white',
+                        borderRadius: '12px',
+                        border: customScheduleDate === selectedApp.proposed2 ? '2px solid #2e7d32' : '1px solid #edf2f7',
+                        background: customScheduleDate === selectedApp.proposed2 ? '#e8f5e9' : 'white',
                         textAlign: 'left',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px'
                       }}
-                      onClick={() => setCustomScheduleDate(selectedApp.proposedDate2)}
+                      onClick={() => setCustomScheduleDate(selectedApp.proposed2)}
                     >
-                      <FontAwesomeIcon icon={faCalendarAlt} style={{ marginRight: '8px' }} />
-                      Option 2: <strong>{selectedApp.proposedDate2}</strong>
+                      <FontAwesomeIcon icon={faCalendarAlt} className={customScheduleDate === selectedApp.proposed2 ? 'text-primary' : 'text-muted'} />
+                      <div style={{ flex: 1 }}>
+                        <span style={{ fontSize: '0.85rem', color: '#718096', display: 'block' }}>Option 2</span>
+                        <strong style={{ fontSize: '1.05rem', color: customScheduleDate === selectedApp.proposed2 ? '#1b5e20' : '#2d3748' }}>{selectedApp.proposed2}</strong>
+                      </div>
+                      {customScheduleDate === selectedApp.proposed2 && <FontAwesomeIcon icon={faCheckCircle} style={{ color: '#2e7d32' }} />}
                     </button>
                   )}
-                  {selectedApp.proposedDate3 && (
+                  {selectedApp.proposed3 && (
                     <button
                       className="btn-date-option"
+                      type="button"
                       style={{
                         padding: '0.8rem',
-                        borderRadius: '8px',
-                        border: customScheduleDate === selectedApp.proposedDate3 ? '2px solid #2e7d32' : '1px solid #ddd',
-                        background: customScheduleDate === selectedApp.proposedDate3 ? '#e8f5e9' : 'white',
+                        borderRadius: '12px',
+                        border: customScheduleDate === selectedApp.proposed3 ? '2px solid #2e7d32' : '1px solid #edf2f7',
+                        background: customScheduleDate === selectedApp.proposed3 ? '#e8f5e9' : 'white',
                         textAlign: 'left',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px'
                       }}
-                      onClick={() => setCustomScheduleDate(selectedApp.proposedDate3)}
+                      onClick={() => setCustomScheduleDate(selectedApp.proposed3)}
                     >
-                      <FontAwesomeIcon icon={faCalendarAlt} style={{ marginRight: '8px' }} />
-                      Option 3: <strong>{selectedApp.proposedDate3}</strong>
+                      <FontAwesomeIcon icon={faCalendarAlt} className={customScheduleDate === selectedApp.proposed3 ? 'text-primary' : 'text-muted'} />
+                      <div style={{ flex: 1 }}>
+                        <span style={{ fontSize: '0.85rem', color: '#718096', display: 'block' }}>Option 3</span>
+                        <strong style={{ fontSize: '1.05rem', color: customScheduleDate === selectedApp.proposed3 ? '#1b5e20' : '#2d3748' }}>{selectedApp.proposed3}</strong>
+                      </div>
+                      {customScheduleDate === selectedApp.proposed3 && <FontAwesomeIcon icon={faCheckCircle} style={{ color: '#2e7d32' }} />}
                     </button>
                   )}
                 </div>
@@ -3634,6 +3822,7 @@ const EmployeeDashboard = () => {
                       <input
                         type="date"
                         className="search-input"
+                        max={new Date().toISOString().split('T')[0]}
                         value={addBatchData.manufactured}
                         onChange={(e) => setAddBatchData({ ...addBatchData, manufactured: e.target.value })}
                         required
@@ -3645,6 +3834,7 @@ const EmployeeDashboard = () => {
                       <input
                         type="date"
                         className="search-input"
+                        min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
                         value={addBatchData.bestBefore}
                         onChange={(e) => setAddBatchData({ ...addBatchData, bestBefore: e.target.value })}
                         required
