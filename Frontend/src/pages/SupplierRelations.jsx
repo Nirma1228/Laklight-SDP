@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { config } from '../config';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faUsers, faBoxes, faShoppingCart, faUserTie, faChartBar
+} from '@fortawesome/free-solid-svg-icons';
 import './SupplierRelations.css';
 
 function SupplierRelations() {
@@ -249,7 +253,56 @@ function SupplierRelations() {
 
   return (
     <div className="supplier-relations">
-      <Header isLoggedIn={true} />
+      <Header
+        isLoggedIn={true}
+        customLinks={[
+          {
+            label: (
+              <>
+                <FontAwesomeIcon icon={faUsers} style={{ marginRight: '8px' }} />
+                USER MANAGEMENT
+              </>
+            ),
+            path: '/admin/users'
+          },
+          {
+            label: (
+              <>
+                <FontAwesomeIcon icon={faBoxes} style={{ marginRight: '8px' }} />
+                INVENTORY
+              </>
+            ),
+            path: '/admin/inventory'
+          },
+          {
+            label: (
+              <>
+                <FontAwesomeIcon icon={faShoppingCart} style={{ marginRight: '8px' }} />
+                ORDER MANAGEMENT
+              </>
+            ),
+            path: '/admin/orders'
+          },
+          {
+            label: (
+              <>
+                <FontAwesomeIcon icon={faUserTie} style={{ marginRight: '8px' }} />
+                SUPPLIER RELATIONS
+              </>
+            ),
+            path: '/admin/suppliers'
+          },
+          {
+            label: (
+              <>
+                <FontAwesomeIcon icon={faChartBar} style={{ marginRight: '8px' }} />
+                ANALYTICS & REPORTS
+              </>
+            ),
+            path: '/admin/reports'
+          }
+        ]}
+      />
 
       <main className="dashboard">
         <div className="page-header">

@@ -3,6 +3,10 @@ import { useNavigate, Link } from 'react-router-dom'
 import Header from '../components/Header'
 import { useToast } from '../components/ToastNotification'
 import { config } from '../config'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import {
+  faUsers, faBoxes, faShoppingCart, faUserTie, faChartBar
+} from '@fortawesome/free-solid-svg-icons'
 import './UserManagement.css'
 
 function UserManagement() {
@@ -335,7 +339,56 @@ function UserManagement() {
 
   return (
     <div className="user-management">
-      <Header isLoggedIn={true} customLinks={adminLinks} />
+      <Header
+        isLoggedIn={true}
+        customLinks={[
+          {
+            label: (
+              <>
+                <FontAwesomeIcon icon={faUsers} style={{ marginRight: '8px' }} />
+                USER MANAGEMENT
+              </>
+            ),
+            path: '/admin/users'
+          },
+          {
+            label: (
+              <>
+                <FontAwesomeIcon icon={faBoxes} style={{ marginRight: '8px' }} />
+                INVENTORY
+              </>
+            ),
+            path: '/admin/inventory'
+          },
+          {
+            label: (
+              <>
+                <FontAwesomeIcon icon={faShoppingCart} style={{ marginRight: '8px' }} />
+                ORDER MANAGEMENT
+              </>
+            ),
+            path: '/admin/orders'
+          },
+          {
+            label: (
+              <>
+                <FontAwesomeIcon icon={faUserTie} style={{ marginRight: '8px' }} />
+                SUPPLIER RELATIONS
+              </>
+            ),
+            path: '/admin/suppliers'
+          },
+          {
+            label: (
+              <>
+                <FontAwesomeIcon icon={faChartBar} style={{ marginRight: '8px' }} />
+                ANALYTICS & REPORTS
+              </>
+            ),
+            path: '/admin/reports'
+          }
+        ]}
+      />
 
       {/* Main Content */}
       <div className="main-content">

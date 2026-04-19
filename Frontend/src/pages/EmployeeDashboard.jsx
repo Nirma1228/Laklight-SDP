@@ -11,7 +11,7 @@ import {
   faBell, faSync, faLeaf, faCubes, faClock, faPlus,
   faCalendar, faCalendarAlt, faCalendarCheck, faMapMarkerAlt,
   faImage, faCheck, faTimes, faShoppingCart, faMoneyBillWave, faSeedling,
-  faBox, faPrint, faMinus, faUsers, faShieldAlt, faTrash, faPaperPlane
+  faBox, faPrint, faMinus, faUsers, faShieldAlt, faTrash, faPaperPlane, faChartBar
 } from '@fortawesome/free-solid-svg-icons'
 import { formatSriLankanDate } from '../utils/dateFormatter'
 import './EmployeeDashboard.css'
@@ -1517,6 +1517,15 @@ const EmployeeDashboard = () => {
           {
             label: (
               <>
+                <FontAwesomeIcon icon={faChartBar} style={{ marginRight: '8px' }} />
+                Analytics & Reports
+              </>
+            ),
+            onClick: () => navigate('/admin/reports')
+          },
+          {
+            label: (
+              <>
                 <FontAwesomeIcon icon={faUser} style={{ marginRight: '8px' }} />
                 Profile
               </>
@@ -1621,6 +1630,10 @@ const EmployeeDashboard = () => {
                   <button className="hero-btn hero-btn-secondary" onClick={() => showTab('deliveries')}>
                     <FontAwesomeIcon icon={faTruck} />
                     View Deliveries
+                  </button>
+                  <button className="hero-btn hero-btn-secondary" onClick={() => navigate('/admin/reports')} style={{ background: 'rgba(220,38,38,0.85)', border: '1px solid rgba(220,38,38,0.4)' }}>
+                    <FontAwesomeIcon icon={faChartBar} />
+                    Analytics & Reports
                   </button>
                 </div>
               </div>

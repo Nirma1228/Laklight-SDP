@@ -2,6 +2,10 @@ import { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { config } from '../config';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import {
+  faUsers, faBoxes, faShoppingCart, faUserTie, faChartBar
+} from '@fortawesome/free-solid-svg-icons';
 import './SystemSettings.css';
 
 function SystemSettings() {
@@ -121,7 +125,56 @@ function SystemSettings() {
 
   return (
     <div className="system-settings">
-      <Header isLoggedIn={true} customLinks={adminLinks} />
+      <Header
+        isLoggedIn={true}
+        customLinks={[
+          {
+            label: (
+              <>
+                <FontAwesomeIcon icon={faUsers} style={{ marginRight: '8px' }} />
+                USER MANAGEMENT
+              </>
+            ),
+            path: '/admin/users'
+          },
+          {
+            label: (
+              <>
+                <FontAwesomeIcon icon={faBoxes} style={{ marginRight: '8px' }} />
+                INVENTORY
+              </>
+            ),
+            path: '/admin/inventory'
+          },
+          {
+            label: (
+              <>
+                <FontAwesomeIcon icon={faShoppingCart} style={{ marginRight: '8px' }} />
+                ORDER MANAGEMENT
+              </>
+            ),
+            path: '/admin/orders'
+          },
+          {
+            label: (
+              <>
+                <FontAwesomeIcon icon={faUserTie} style={{ marginRight: '8px' }} />
+                SUPPLIER RELATIONS
+              </>
+            ),
+            path: '/admin/suppliers'
+          },
+          {
+            label: (
+              <>
+                <FontAwesomeIcon icon={faChartBar} style={{ marginRight: '8px' }} />
+                ANALYTICS & REPORTS
+              </>
+            ),
+            path: '/admin/reports'
+          }
+        ]}
+      />
 
       <main className="main-content">
         <div className="settings-layout">

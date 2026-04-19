@@ -6,6 +6,10 @@ import { useToast } from '../components/ToastNotification'
 import { config } from '../config'
 import { generatePDFReport } from '../utils/pdfGenerator'
 import { formatSriLankanDate } from '../utils/dateFormatter'
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
+import {
+  faUsers, faBoxes, faShoppingCart, faUserTie, faChartBar
+} from '@fortawesome/free-solid-svg-icons'
 import './GenerateReports.css'
 
 function GenerateReports() {
@@ -13,6 +17,7 @@ function GenerateReports() {
   const [selectedReport, setSelectedReport] = useState('')
   const [dateRange, setDateRange] = useState('month')
   const [isExporting, setIsExporting] = useState(false)
+  const [filterText, setFilterText] = useState('')
 
   const reports = [
     { id: 'inventory-raw', name: 'Raw Materials Inventory', description: 'Track fruits and other unprocessed stock', icon: 'fa-solid fa-apple-whole', color: '#e53935' },
@@ -197,9 +202,57 @@ function GenerateReports() {
     }
   }
 
+  const adminNavLinks = [
+    {
+      label: (
+        <>
+          <FontAwesomeIcon icon={faUsers} style={{ marginRight: '8px' }} />
+          USER MANAGEMENT
+        </>
+      ),
+      path: '/admin/users'
+    },
+    {
+      label: (
+        <>
+          <FontAwesomeIcon icon={faBoxes} style={{ marginRight: '8px' }} />
+          INVENTORY
+        </>
+      ),
+      path: '/admin/inventory'
+    },
+    {
+      label: (
+        <>
+          <FontAwesomeIcon icon={faShoppingCart} style={{ marginRight: '8px' }} />
+          ORDER MANAGEMENT
+        </>
+      ),
+      path: '/admin/orders'
+    },
+    {
+      label: (
+        <>
+          <FontAwesomeIcon icon={faUserTie} style={{ marginRight: '8px' }} />
+          SUPPLIER RELATIONS
+        </>
+      ),
+      path: '/admin/suppliers'
+    },
+    {
+      label: (
+        <>
+          <FontAwesomeIcon icon={faChartBar} style={{ marginRight: '8px' }} />
+          ANALYTICS & REPORTS
+        </>
+      ),
+      path: '/admin/reports'
+    }
+  ]
+
   return (
     <div>
-      <Header isLoggedIn={true} />
+      <Header isLoggedIn={true} customLinks={adminNavLinks} />
       <div className="main-content">
         <div className="page-header decorative-header">
           <div className="header-info">
@@ -211,7 +264,7 @@ function GenerateReports() {
             </h1>
             <p className="page-description">Generate comprehensive business intelligence and operational insights</p>
           </div>
-          <button className="btn-back-dashboard" onClick={() => navigate('/admin/dashboard')}>
+          <button className="btn-back-dashboard" onClick={() => navigate('/admin-dashboard')}>
             <i className="fa-solid fa-house"></i>
             <span>Back to Dashboard</span>
           </button>
@@ -296,31 +349,69 @@ function GenerateReports() {
               <h2><i className="fa-solid fa-cubes"></i> Available Analytical Modules</h2>
               <div className="search-reports">
                 <i className="fa-solid fa-magnifying-glass"></i>
-                <input type="text" placeholder="Filter report types..." />
+                <input
+                  type="text"
+                  placeholder="Filter report types..."
+                  value={filterText}
+                  onChange={(e) => setFilterText(e.target.value)}
+                />
+                {filterText && (
+                  <button
+                    onClick={() => setFilterText('')}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: '0.85rem', marginLeft: '4px' }}
+                    title="Clear filter"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
             </div>
 
             <div className="reports-bento-grid">
-              {reports.map(report => (
-                <div
-                  key={report.id}
-                  className={`report-bento-card ${selectedReport === report.id ? 'active-module' : ''}`}
-                  onClick={() => setSelectedReport(report.id)}
-                >
-                  <div className="module-icon" style={{ '--accent-color': report.color }}>
-                    <i className={report.icon}></i>
-                  </div>
-                  <div className="module-info">
-                    <h4 className="module-name">{report.name}</h4>
-                    <p className="module-desc">{report.description}</p>
-                    <div className="module-footer">
-                      <span className="tag">Analytics</span>
-                      {selectedReport === report.id && <span className="selected-tag">Selected</span>}
+              {reports
+                .filter(r =>
+                  r.name.toLowerCase().includes(filterText.toLowerCase()) ||
+                  r.description.toLowerCase().includes(filterText.toLowerCase())
+                )
+                .map(report => (
+                  <div
+                    key={report.id}
+                    className={`report-bento-card ${selectedReport === report.id ? 'active-module' : ''}`}
+                    onClick={() => setSelectedReport(report.id)}
+                  >
+                    <div className="module-icon" style={{ '--accent-color': report.color }}>
+                      <i className={report.icon}></i>
                     </div>
+                    <div className="module-info">
+                      <h4 className="module-name">{report.name}</h4>
+                      <p className="module-desc">{report.description}</p>
+                      <div className="module-footer">
+                        <span className="tag">Analytics</span>
+                        {selectedReport === report.id && <span className="selected-tag">Selected ✓</span>}
+                      </div>
+                    </div>
+                    <div className="module-bg-shade" style={{ background: report.color }}></div>
                   </div>
-                  <div className="module-bg-shade" style={{ background: report.color }}></div>
+                ))
+              }
+              {reports.filter(r =>
+                r.name.toLowerCase().includes(filterText.toLowerCase()) ||
+                r.description.toLowerCase().includes(filterText.toLowerCase())
+              ).length === 0 && (
+                <div style={{
+                  gridColumn: '1 / -1',
+                  textAlign: 'center',
+                  padding: '3rem',
+                  color: '#94a3b8',
+                  background: '#f8fafc',
+                  borderRadius: '16px',
+                  border: '1px dashed #e2e8f0'
+                }}>
+                  <i className="fa-solid fa-magnifying-glass" style={{ fontSize: '2rem', marginBottom: '1rem', display: 'block' }}></i>
+                  <p style={{ fontWeight: '600', margin: 0 }}>No reports match <strong>"{filterText}"</strong></p>
+                  <p style={{ fontSize: '0.85rem', margin: '0.5rem 0 0' }}>Try a different keyword like "Sales", "Inventory", or "Supplier"</p>
                 </div>
-              ))}
+              )}
             </div>
 
             <div className="insights-footer card-beautified">
