@@ -7,7 +7,7 @@ import { useToast } from '../components/ToastNotification'
 import './CustomerDashboard.css'
 
 // Product Card Component (read-only for public view)
-const ProductCard = ({ product, onLoginPrompt }) => {
+const ProductCard = ({ product, onLoginPrompt, backendUrl }) => {
   const handleAddToCart = () => {
     onLoginPrompt()
   }
@@ -22,11 +22,16 @@ const ProductCard = ({ product, onLoginPrompt }) => {
     'out-of-stock': 'Out of Stock'
   }[availability]
 
+  const imageUrl = product.image_url || product.image;
+  const displayImage = imageUrl 
+    ? (imageUrl.startsWith('http') ? imageUrl : `${backendUrl}${imageUrl}`)
+    : '/images/placeholder.png';
+
   return (
     <div className="product-card">
       <div className="product-img" style={{ height: '200px', padding: '1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <img
-          src={product.image_url || product.image || '/images/placeholder.png'}
+          src={displayImage}
           alt={product.name}
           style={{ height: '100%', width: 'auto', objectFit: 'contain', borderRadius: '8px' }}
         />
@@ -64,6 +69,7 @@ const PublicProductCatalog = () => {
   const [featuredSearch, setFeaturedSearch] = useState('')
   const [featuredCategory, setFeaturedCategory] = useState('')
   const [featuredSort, setFeaturedSort] = useState('')
+  const backendUrl = config.API_BASE_URL.replace('/api', '')
 
   // Fetch all products from API (same endpoint as CustomerDashboard)
   useEffect(() => {
@@ -211,6 +217,7 @@ const PublicProductCatalog = () => {
                   key={product.product_id || product.id}
                   product={product}
                   onLoginPrompt={handleLoginPrompt}
+                  backendUrl={backendUrl}
                 />
               ))}
             </div>

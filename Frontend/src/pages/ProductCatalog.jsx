@@ -8,6 +8,8 @@ function ProductCatalog() {
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
 
+  const BACKEND_URL = config.API_BASE_URL.replace('/api', '')
+
   useEffect(() => {
     fetchProducts()
   }, [])
@@ -27,7 +29,7 @@ function ProductCatalog() {
           stock: p.stock_quantity,
           description: p.description,
           availability: p.stock_quantity > 10 ? 'in-stock' : p.stock_quantity > 0 ? 'low-stock' : 'out-of-stock',
-          image: p.image_url
+          image: p.image_url ? (p.image_url.startsWith('http') ? p.image_url : `${BACKEND_URL}${p.image_url}`) : null
         })))
       }
     } catch (err) {
@@ -66,10 +68,11 @@ function ProductCatalog() {
     data.append('image', file)
 
     try {
-      const response = await fetch('http://localhost:5000/api/products/upload', {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+      const response = await fetch(`${config.API_BASE_URL}/products/upload`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+          'Authorization': `Bearer ${token}`
         },
         body: data
       })
@@ -128,6 +131,10 @@ function ProductCatalog() {
     e.preventDefault()
     
     // Prepare the update object with exact numeric types
+    const imageUrlToSave = formData.image.startsWith(BACKEND_URL) 
+      ? formData.image.replace(BACKEND_URL, '') 
+      : formData.image
+
     const updatedData = {
       name: formData.name,
       category: formData.category,
@@ -135,7 +142,7 @@ function ProductCatalog() {
       unit: formData.unit,
       stock: Number(formData.stock),
       description: formData.description,
-      image_url: formData.image,
+      image_url: imageUrlToSave,
       availability: formData.availability === 'in-stock' ? 'In Stock' : 'Out of Stock'
     }
 
@@ -458,14 +465,22 @@ function ProductCatalog() {
                     ) : formData.image ? (
                       <div className="image-preview-wrapper">
                         <img 
-                          src={formData.image.startsWith('http') ? formData.image : `http://localhost:5000${formData.image}`} 
+                          src={formData.image.startsWith('http') ? formData.image : `${BACKEND_URL}${formData.image}`} 
                           alt="Preview" 
                           className="preview-img" 
                         />
+                        <div 
+                          className="image-edit-overlay"
+                          onClick={() => setFormData({ ...formData, image: '' })}
+                        >
+                          <i className="fas fa-camera"></i>
+                          <span>Change</span>
+                        </div>
                         <button 
                           type="button" 
                           className="remove-img-btn"
                           onClick={() => setFormData({ ...formData, image: '' })}
+                          title="Remove image"
                         >
                           &times;
                         </button>

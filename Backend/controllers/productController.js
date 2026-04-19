@@ -66,7 +66,7 @@ exports.searchProducts = async (req, res) => {
 // FR22: Add (Admin)
 exports.addProduct = async (req, res) => {
   try {
-    const { name, category, description, price, unit, stock } = req.body;
+    const { name, category, description, price, unit, stock, availability, image_url } = req.body;
     const categoryId = await getCategoryId(category);
     const unitId = await getUnitId(unit);
 
@@ -74,7 +74,7 @@ exports.addProduct = async (req, res) => {
 
     const [result] = await db.query(
       'INSERT INTO products (name, category_id, description, price, unit_id, stock_quantity, image_url, is_available) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [name, categoryId, description, price, unitId, stock || 0, req.body.image_url || null, availability === 'In Stock' ? 1 : 0]
+      [name, categoryId, description, price, unitId, stock || 0, image_url || null, (availability === 'in-stock' || availability === 'low-stock' || availability === 'In Stock') ? 1 : 0]
     );
 
     res.status(201).json({ success: true, productId: result.insertId });
@@ -98,7 +98,7 @@ exports.updateProduct = async (req, res) => {
     if (description) { items.push('description = ?'); params.push(description); }
     if (availability !== undefined) { 
       items.push('is_available = ?'); 
-      params.push(availability === 'In Stock' || availability === 'in-stock' ? 1 : 0); 
+      params.push((availability === 'In Stock' || availability === 'in-stock' || availability === 'low-stock') ? 1 : 0); 
     }
     if (req.body.image_url !== undefined) { items.push('image_url = ?'); params.push(req.body.image_url); }
 

@@ -10,7 +10,7 @@ import { faShoppingBag, faBoxOpen, faUser, faShoppingCart } from '@fortawesome/f
 import './CustomerDashboard.css'
 
 // Product Card Component
-const ProductCard = ({ product, onAddToCart, onImageClick }) => {
+const ProductCard = ({ product, onAddToCart, onImageClick, backendUrl }) => {
   const [quantity, setQuantity] = useState(1)
   const [added, setAdded] = useState(false)
 
@@ -25,15 +25,20 @@ const ProductCard = ({ product, onAddToCart, onImageClick }) => {
     setTimeout(() => setAdded(false), 400)
   }
 
+  const imageUrl = product.image_url || product.image;
+  const displayImage = imageUrl 
+    ? (imageUrl.startsWith('http') ? imageUrl : `${backendUrl}${imageUrl}`)
+    : '/images/placeholder.png';
+
   return (
     <div className="product-card">
       <div 
         className="product-img cursor-zoom-in" 
         style={{ height: '100px', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-        onClick={() => onImageClick(product.image_url ? (product.image_url.startsWith('http') ? product.image_url : product.image_url) : '/images/placeholder.png')}
+        onClick={() => onImageClick(displayImage)}
       >
         <img
-          src={product.image_url ? (product.image_url.startsWith('http') ? product.image_url : product.image_url) : '/images/placeholder.png'}
+          src={displayImage}
           alt={product.name}
           style={{ height: '100%', width: 'auto', objectFit: 'contain', borderRadius: '8px' }}
         />
@@ -87,6 +92,8 @@ const CustomerDashboard = () => {
   const [featuredSort, setFeaturedSort] = useState('')
   const [activeDashboardView, setActiveDashboardView] = useState('none')
   const [selectedZoomImage, setSelectedZoomImage] = useState(null)
+  
+  const backendUrl = config.API_BASE_URL.replace('/api', '')
 
   // Load user data from localStorage and Database
   useEffect(() => {
@@ -733,6 +740,7 @@ const CustomerDashboard = () => {
                   product={product}
                   onAddToCart={addToCart}
                   onImageClick={(url) => setSelectedZoomImage(url)}
+                  backendUrl={backendUrl}
                 />
               ))}
             </div>
@@ -769,7 +777,7 @@ const CustomerDashboard = () => {
                   <div key={item.cart_id} className="cart-item">
                     <div className="cart-item-image">
                       {item.image_url ? (
-                        <img src={item.image_url.startsWith('http') ? item.image_url : item.image_url} alt={item.name} />
+                        <img src={item.image_url.startsWith('http') ? item.image_url : `${backendUrl}${item.image_url}`} alt={item.name} />
                       ) : (
                         <span>🧃</span>
                       )}

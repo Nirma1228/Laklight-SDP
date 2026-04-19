@@ -45,8 +45,11 @@ exports.productValidation = [
   body('name').notEmpty().trim().withMessage('Product name is required'),
   body('category').isIn(['beverages', 'desserts', 'vegetables', 'fruits', 'other']).withMessage('Invalid category'),
   body('price').isFloat({ min: 0 }).withMessage('Price must be a positive number'),
-  body('unit').isIn(['kg', 'g', 'bottle', 'pack', 'units', 'piece']).withMessage('Invalid unit'),
-  body('stock').isInt({ min: 0 }).withMessage('Stock must be a non-negative integer')
+  body('unit').isIn(['kg', 'g', 'bottle', 'pack', 'unit', 'units', 'piece']).withMessage('Invalid unit'),
+  body('stock').isInt({ min: 0 }).withMessage('Stock must be a non-negative integer'),
+  body('image_url').optional({ checkFalsy: true }).isString(),
+  body('description').optional({ checkFalsy: true }).isString(),
+  body('availability').optional({ checkFalsy: true }).isIn(['in-stock', 'low-stock', 'out-of-stock', 'In Stock', 'Out of Stock'])
 ];
 
 // Order validation
