@@ -97,6 +97,53 @@
   background: #c82333;
 }
 
+/* Confirmation Modal Specific Styles */
+.confirm-modal .modal-content {
+  max-width: 450px;
+  border-radius: 20px !important;
+  overflow: hidden;
+  animation: modalPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes modalPop {
+  from { transform: scale(0.8); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.confirm-header-danger { background: #fee2e2 !important; color: #991b1b !important; padding: 1.5rem !important; border-bottom: 2px solid #fecaca !important; }
+.confirm-header-warning { background: #fef3c7 !important; color: #92400e !important; padding: 1.5rem !important; border-bottom: 2px solid #fde68a !important; }
+.confirm-header-success { background: #dcfce7 !important; color: #166534 !important; padding: 1.5rem !important; border-bottom: 2px solid #bbf7d0 !important; }
+
+.confirm-icon {
+  margin-right: 12px;
+  font-size: 1.4rem;
+}
+
+.confirm-modal-body {
+  padding: 2.5rem 2rem !important;
+  font-size: 1.15rem !important;
+  color: #374151 !important;
+  line-height: 1.6 !important;
+  text-align: center;
+}
+
+.confirm-modal .modal-footer {
+  padding: 1.5rem !important;
+  background: #f9fafb !important;
+  display: flex !important;
+  justify-content: center !important;
+  gap: 1.5rem !important;
+}
+
+.confirm-modal .btn {
+  min-width: 130px;
+  border-radius: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  padding: 0.8rem 1.5rem;
+}
+
 .btn-small {
   padding: 0.5rem 1rem;
   font-size: 0.9rem;
@@ -304,6 +351,11 @@
 .role-supplier {
   background: #f3e5f5;
   color: #7b1fa2;
+}
+
+.role-farmer {
+  background: #fff7ed;
+  color: #c2410c;
 }
 
 .status-badge {

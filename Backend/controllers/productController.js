@@ -17,8 +17,8 @@ exports.getAllProducts = async (req, res) => {
     const [products] = await db.query(`
       SELECT p.*, p.product_id as id, c.category_name as category, u.unit_name as unit 
       FROM products p
-      JOIN product_categories c ON p.category_id = c.category_id
-      JOIN measurement_units u ON p.unit_id = u.unit_id
+      LEFT JOIN product_categories c ON p.category_id = c.category_id
+      LEFT JOIN measurement_units u ON p.unit_id = u.unit_id
       ORDER BY c.category_name, p.name
     `);
 
@@ -34,8 +34,8 @@ exports.getProductById = async (req, res) => {
     const [products] = await db.query(`
       SELECT p.*, p.product_id as id, c.category_name as category, u.unit_name as unit 
       FROM products p
-      JOIN product_categories c ON p.category_id = c.category_id
-      JOIN measurement_units u ON p.unit_id = u.unit_id
+      LEFT JOIN product_categories c ON p.category_id = c.category_id
+      LEFT JOIN measurement_units u ON p.unit_id = u.unit_id
       WHERE p.product_id = ?`, [req.params.id]);
 
     if (products.length === 0) return res.status(404).json({ message: 'Product not found' });
@@ -52,8 +52,8 @@ exports.searchProducts = async (req, res) => {
     const [products] = await db.query(`
       SELECT p.*, p.product_id as id, c.category_name as category, u.unit_name as unit 
       FROM products p
-      JOIN product_categories c ON p.category_id = c.category_id
-      JOIN measurement_units u ON p.unit_id = u.unit_id
+      LEFT JOIN product_categories c ON p.category_id = c.category_id
+      LEFT JOIN measurement_units u ON p.unit_id = u.unit_id
       WHERE (p.name LIKE ? OR p.description LIKE ?)`,
       [`%${query}%`, `%${query}%`]);
 
@@ -101,7 +101,7 @@ exports.updateProduct = async (req, res) => {
     if (items.length === 0) return res.status(400).json({ message: 'No fields to update' });
 
     params.push(req.params.id);
-    await db.query(`UPDATE products SET ${items.join(', ')} WHERE product_id = ?`, params);
+    await db.query(`UPDATE products SET ${items.join(', ')} WHERE id = ?`, params);
     res.json({ success: true, message: 'Updated successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Update failed', error: error.message });

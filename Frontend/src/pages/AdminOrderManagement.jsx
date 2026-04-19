@@ -28,23 +28,28 @@ function AdminOrderManagement() {
       const data = await res.json();
       if (data.success) {
         // Map backend orders to frontend model
-        const mapped = data.orders.map(o => ({
-          id: o.id,
-          orderIdNum: o.order_number || `ORD-${o.id}`,
-          customer: {
-            name: o.customer_name,
-            phone: o.phone || 'N/A',
-            email: o.email || 'N/A',
-            address: o.delivery_address
-          },
-          productsSummary: o.product_summary || 'No items',
-          amount: o.net_amount,
-          payment: o.payment_status.charAt(0).toUpperCase() + o.payment_status.slice(1),
-          status: o.order_status,
-          date: new Date(o.order_date).toLocaleDateString(),
-          dateTime: new Date(o.order_date).toLocaleString(),
-          paymentMethod: o.payment_method
-        }));
+        const mapped = data.orders.map(o => {
+          // Normalise status names to lowercase for consistent comparison
+          const currentStatus = o.order_status ? o.order_status : 'Pending';
+          
+          return {
+            id: o.order_id, // Use order_id
+            orderIdNum: o.order_number || `ORD-${o.order_id}`,
+            customer: {
+              name: o.customer_name,
+              phone: o.phone || 'N/A',
+              email: o.email || 'N/A',
+              address: o.delivery_address || 'N/A'
+            },
+            productsSummary: o.product_summary || 'No items',
+            amount: Number(o.net_amount),
+            payment: o.payment_status ? (o.payment_status.charAt(0).toUpperCase() + o.payment_status.slice(1)) : 'Unpaid',
+            status: currentStatus,
+            date: new Date(o.order_date).toLocaleDateString(),
+            dateTime: new Date(o.order_date).toLocaleString(),
+            paymentMethod: o.payment_method || 'Cash on Delivery'
+          };
+        });
         setOrders(mapped);
       }
     } catch (err) {
@@ -60,7 +65,7 @@ function AdminOrderManagement() {
 
   const stats = {
     pending: orders.filter(o => o.status === 'Pending').length,
-    processing: orders.filter(o => o.status === 'Processing' || o.status === 'Confirmed').length,
+    processing: orders.filter(o => o.status === 'Processing' || o.status === 'Ready').length,
     delivered: orders.filter(o => o.status === 'Delivered').length,
     revenue: orders.filter(o => o.payment === 'Paid').reduce((sum, o) => sum + Number(o.amount), 0)
   };
@@ -78,8 +83,9 @@ function AdminOrderManagement() {
           products: data.items.map(i => ({
             name: i.name,
             quantity: i.quantity,
-            price: i.price_at_purchase
-          }))
+            price: Number(i.price_at_purchase)
+          })),
+          amount: Number(data.order.net_amount)
         });
         setShowModal(true);
       }
@@ -107,11 +113,11 @@ function AdminOrderManagement() {
       });
       const data = await res.json();
       if (data.success) {
-        setOrders(orders.map(order =>
+        setOrders(prevOrders => prevOrders.map(order =>
           order.id === orderId ? { ...order, status: newStatus } : order
         ));
         if (selectedOrder && selectedOrder.id === orderId) {
-          setSelectedOrder({ ...selectedOrder, status: newStatus });
+          setSelectedOrder(prev => ({ ...prev, status: newStatus }));
         }
       } else {
         alert(data.message || 'Status update failed');
@@ -205,8 +211,8 @@ function AdminOrderManagement() {
               >
                 <option value="">All Status</option>
                 <option value="Pending">Pending</option>
-                <option value="Confirmed">Confirmed</option>
                 <option value="Processing">Processing</option>
+                <option value="Ready">Ready</option>
                 <option value="Shipped">Shipped</option>
                 <option value="Delivered">Delivered</option>
                 <option value="Cancelled">Cancelled</option>
@@ -289,7 +295,7 @@ function AdminOrderManagement() {
                   <td className="order-items">
                     {order.productsSummary}
                   </td>
-                  <td className="order-amount">Rs. {order.amount.toLocaleString()}</td>
+                  <td className="order-amount">Rs. {Number(order.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                   <td>
                     <span className={`payment-badge ${getPaymentClass(order.payment)}`}>
                       {order.payment}
@@ -306,7 +312,7 @@ function AdminOrderManagement() {
                       <button className="btn btn-info btn-small" onClick={() => viewOrder(order)}>
                         View
                       </button>
-                      {order.status === 'Pending' && (
+                      {(order.status === 'Pending' || order.status === 'pending') && (
                         <button
                           className="btn btn-success btn-small"
                           onClick={() => updateOrderStatus(order.id, 'Confirmed')}
@@ -314,7 +320,7 @@ function AdminOrderManagement() {
                           Confirm
                         </button>
                       )}
-                      {order.status === 'Processing' && (
+                      {(order.status === 'Processing' || order.status === 'processing' || order.status === 'Confirmed') && (
                         <button
                           className="btn btn-success btn-small"
                           onClick={() => updateOrderStatus(order.id, 'Shipped')}
@@ -322,7 +328,7 @@ function AdminOrderManagement() {
                           Ship
                         </button>
                       )}
-                      {order.status === 'Shipped' && (
+                      {(order.status === 'Shipped' || order.status === 'shipped') && (
                         <button
                           className="btn btn-success btn-small"
                           onClick={() => updateOrderStatus(order.id, 'Delivered')}

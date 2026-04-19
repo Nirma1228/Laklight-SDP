@@ -9,17 +9,30 @@ const getId = async (table, pk, col, val) => {
 exports.getPendingApplications = async (req, res) => {
   try {
     const [apps] = await db.query(`
-      SELECT fs.*, fs.submission_id as id, u.full_name as farmer_name, ss.status_name as status, 
-             mu.unit_name as unit, qg.grade_name as grade, pc.category_name as category,
-             tm.method_name as transport_method
-       FROM farmer_submissions fs
-       JOIN users u ON fs.farmer_id = u.user_id
-       JOIN submission_statuses ss ON fs.status_id = ss.submission_status_id
-       JOIN measurement_units mu ON fs.unit_id = mu.unit_id
-       LEFT JOIN quality_grades qg ON fs.grade_id = qg.grade_id
-       JOIN product_categories pc ON fs.category_id = pc.category_id
-       LEFT JOIN transport_methods tm ON fs.transport_method_id = tm.transport_method_id
-       WHERE ss.status_name = 'under-review'`);
+      SELECT 
+        fs.submission_id AS id,
+        u.full_name AS farmerName,
+        fs.product_name AS product,
+        fs.quantity,
+        mu.unit_name AS unit,
+        fs.custom_price AS price,
+        fs.harvest_date,
+        fs.delivery_date AS date,
+        fs.storage_instructions,
+        fs.images,
+        fs.notes,
+        fs.submission_date AS submitted,
+        ss.status_name AS status,
+        tm.method_name AS transport,
+        c.category_name AS category
+      FROM farmer_submissions fs
+      JOIN users u ON fs.farmer_id = u.user_id
+      JOIN submission_statuses ss ON fs.status_id = ss.submission_status_id
+      LEFT JOIN measurement_units mu ON fs.unit_id = mu.unit_id
+      LEFT JOIN transport_methods tm ON fs.transport_method_id = tm.transport_method_id
+      LEFT JOIN product_categories c ON fs.category_id = c.category_id
+      WHERE ss.status_name = 'under-review'
+    `);
     res.json({ success: true, count: apps.length, applications: apps });
   } catch (error) {
     res.status(500).json({ message: 'Fetch failed', error: error.message });
@@ -59,15 +72,20 @@ exports.approveApplication = async (req, res) => {
 
 exports.addRawMaterial = async (req, res) => {
   try {
-    const { materialName, gradeName, quantity, expiryDate, location, unitName } = req.body;
-    const gradeId = await getId('quality_grades', 'grade_id', 'grade_name', gradeName);
+    const { material_name, materialName, quantity, expiryDate, expiry_date, location, storage_location, unitName, received_date } = req.body;
+    
+    // Support both Material Name and material_name for flexibility
+    const name = material_name || materialName;
+    const qty = quantity;
+    const exp = expiry_date || expiryDate;
+    const loc = storage_location || location;
+    const rcv = received_date || new Date();
+
     const unitId = await getId('measurement_units', 'unit_id', 'unit_name', unitName || 'kg');
 
-    if (!gradeId) return res.status(400).json({ message: 'Invalid Grade' });
-
     await db.query(
-      'INSERT INTO inventory_raw (material_name, grade_id, quantity_units, unit_id, received_date, expiry_date, storage_location) VALUES (?, ?, ?, ?, NOW(), ?, ?)',
-      [materialName, gradeId, quantity, unitId || 1, expiryDate, location]
+      'INSERT INTO inventory_raw (material_name, grade_id, quantity_units, unit_id, received_date, expiry_date, storage_location) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [name, 1, qty, unitId || 1, rcv, exp, loc]
     );
     res.json({ success: true, message: 'Raw stock added' });
   } catch (error) {
@@ -91,19 +109,35 @@ exports.addFinishedProduct = async (req, res) => {
 exports.getInventory = async (req, res) => {
   try {
     const [raw] = await db.query(`
-      SELECT ir.*, COALESCE(fs.product_name, ir.material_name) as material_name, qg.grade_name as grade 
-      FROM inventory_raw ir 
-      LEFT JOIN farmer_submissions fs ON ir.submission_id = fs.submission_id
-      JOIN quality_grades qg ON ir.grade_id = qg.grade_id`);
+      SELECT ir.*,
+             ir.material_name,
+             mu.unit_name,
+             ir.received_date,
+             ir.expiry_date,
+             ir.storage_location
+      FROM inventory_raw ir
+      LEFT JOIN measurement_units mu ON ir.unit_id = mu.unit_id
+      ORDER BY ir.raw_inventory_id ASC`);
 
     const [finished] = await db.query(`
-      SELECT ifin.*, p.name 
-      FROM inventory_finished ifin 
-      JOIN products p ON ifin.product_id = p.product_id`);
+      SELECT ifin.*,
+             p.name,
+             pc.category_name as category,
+             ifin.manufactured_date,
+             ifin.expiry_date,
+             ifin.storage_location,
+             ifin.batch_number,
+             ifin.quantity_units
+      FROM inventory_finished ifin
+      JOIN products p ON ifin.product_id = p.product_id
+      LEFT JOIN product_categories pc ON p.category_id = pc.category_id
+      ORDER BY ifin.finished_inventory_id ASC`);
 
+    console.log('Backend getInventory Raw Count:', raw.length);
     res.json({ success: true, raw, finished });
   } catch (error) {
-    res.status(500).json({ message: 'Fetch failed', error: error.message });
+    console.error('getInventory error:', error.message);
+    res.status(500).json({ success: false, message: 'Fetch failed', error: error.message });
   }
 };
 exports.getApplicationDetails = async (req, res) => {
@@ -160,7 +194,7 @@ exports.updateInventory = async (req, res) => {
   try {
     const { quantity, location, type } = req.body;
     const table = type === 'raw' ? 'inventory_raw' : 'inventory_finished';
-    const pk = type === 'raw' ? 'raw_inventory_id' : 'finished_inventory_id';
+    const pk = 'id';
 
     await db.query(`UPDATE ${table} SET quantity_units = ?, storage_location = ? WHERE ${pk} = ?`, [quantity, location, req.params.id]);
     res.json({ success: true, message: 'Stock updated' });
@@ -173,7 +207,7 @@ exports.deleteInventoryItem = async (req, res) => {
   try {
     const { type } = req.query;
     const table = type === 'raw' ? 'inventory_raw' : 'inventory_finished';
-    const pk = type === 'raw' ? 'raw_inventory_id' : 'finished_inventory_id';
+    const pk = 'id';
 
     await db.query(`DELETE FROM ${table} WHERE ${pk} = ?`, [req.params.id]);
     res.json({ success: true, message: 'Item deleted' });
@@ -192,17 +226,17 @@ exports.getAlerts = async (req, res) => {
 exports.getDeliveries = async (req, res) => {
   try {
     const [deliveries] = await db.query(`
-      SELECT d.*, d.delivery_id, d.proposed_reschedule_date, fs.product_name, fs.quantity, u.full_name as farmer_name,
-             mu.unit_name as unit, qg.grade_name as grade, ds.status_name as status,
-             tm.method_name as transport_method, fs.delivery_date
+      SELECT d.*, d.delivery_id, d.proposed_reschedule_date, fs.product_name, fs.quantity, fs.custom_price, u.full_name as farmer_name,
+             mu.unit_name as unit, ds.status_name as status,
+             tm.method_name AS transport_method,
+             fs.delivery_date
       FROM deliveries d
       JOIN farmer_submissions fs ON d.submission_id = fs.submission_id
       JOIN users u ON fs.farmer_id = u.user_id
       LEFT JOIN measurement_units mu ON fs.unit_id = mu.unit_id
-      LEFT JOIN quality_grades qg ON fs.grade_id = qg.grade_id
       JOIN delivery_statuses ds ON d.status_id = ds.delivery_status_id
-      LEFT JOIN transport_methods tm ON d.transport_method_id = tm.transport_method_id
-      ORDER BY d.created_at DESC
+      LEFT JOIN transport_methods tm ON fs.transport_method_id = tm.transport_method_id
+      ORDER BY d.delivery_id DESC
     `);
     res.json({ success: true, count: deliveries.length, deliveries });
   } catch (error) {

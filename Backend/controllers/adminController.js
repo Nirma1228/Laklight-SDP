@@ -10,15 +10,17 @@ const getId = async (table, pk, col, val) => {
 exports.getAllUsers = async (req, res) => {
   try {
     const [users] = await db.query(`
-      SELECT u.user_id as id, u.full_name, u.email, u.phone, u.address, u.city, u.postal_code, u.district, r.role_name as user_type, s.status_name as status, u.join_date 
+      SELECT u.user_id as id, u.full_name, u.email, u.phone, u.address, 
+             u.profile_image, u.last_login, r.role_name as user_type, s.status_name as status, u.join_date 
       FROM users u
-      JOIN user_roles r ON u.role_id = r.role_id
-      JOIN account_statuses s ON u.status_id = s.status_id
-      ORDER BY u.join_date DESC
+      LEFT JOIN user_roles r ON u.role_id = r.role_id
+      LEFT JOIN account_statuses s ON u.status_id = s.status_id
+      ORDER BY u.user_id ASC
     `);
     res.json({ success: true, count: users.length, users });
   } catch (error) {
-    res.status(500).json({ message: 'Fetch failed', error: error.message });
+    console.error('getAllUsers error:', error.message);
+    res.status(500).json({ success: false, message: 'Fetch failed', error: error.message });
   }
 };
 
@@ -99,8 +101,8 @@ exports.deleteUser = async (req, res) => {
 exports.createUser = async (req, res) => {
   try {
     const { fullName, email, phone, password, role, address, city, postalCode, district } = req.body;
-    const roleId = await getId('user_roles', 'role_id', 'role_name', role);
-    const activeStatusId = await getId('account_statuses', 'status_id', 'status_name', 'active');
+    const roleId = await getId('user_roles', 'id', 'role_name', role);
+    const activeStatusId = await getId('account_statuses', 'id', 'status_name', 'active');
     const hash = await bcrypt.hash(password, 10);
     await db.query(
       'INSERT INTO users (full_name, email, phone, password_hash, role_id, status_id, address, city, postal_code, district) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', 
@@ -112,7 +114,7 @@ exports.createUser = async (req, res) => {
 
 exports.getUserDetails = async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT u.*, r.role_name as role, s.status_name as status FROM users u JOIN user_roles r ON u.role_id = r.role_id JOIN account_statuses s ON u.status_id = s.status_id WHERE u.user_id = ?', [req.params.id]);
+    const [rows] = await db.query('SELECT u.*, r.role_name as role, s.status_name as status FROM users u JOIN user_roles r ON u.role_id = r.id JOIN account_statuses s ON u.status_id = s.id WHERE u.id = ?', [req.params.id]);
     if (rows.length === 0) return res.status(404).json({ message: 'User not found' });
     res.json({ success: true, user: rows[0] });
   } catch (error) { res.status(500).json({ message: 'Fetch failed', error: error.message }); }
@@ -122,7 +124,7 @@ exports.updateUser = async (req, res) => {
   try {
     const { fullName, phone, address, city, postalCode, district } = req.body;
     await db.query(
-      'UPDATE users SET full_name = ?, phone = ?, address = ?, city = ?, postal_code = ?, district = ? WHERE user_id = ?', 
+      'UPDATE users SET full_name = ?, phone = ?, address = ?, city = ?, postal_code = ?, district = ? WHERE id = ?', 
       [fullName, phone, address, city, postalCode, district, req.params.id]
     );
     res.json({ success: true, message: 'User updated' });
@@ -131,9 +133,9 @@ exports.updateUser = async (req, res) => {
 
 exports.changeUserRole = async (req, res) => {
   try {
-    const roleId = await getId('user_roles', 'role_id', 'role_name', req.body.role);
+    const roleId = await getId('user_roles', 'id', 'role_name', req.body.role);
     if (!roleId) return res.status(400).json({ message: 'Invalid role' });
-    await db.query('UPDATE users SET role_id = ? WHERE user_id = ?', [roleId, req.params.id]);
+    await db.query('UPDATE users SET role_id = ? WHERE id = ?', [roleId, req.params.id]);
     res.json({ success: true, message: 'Role changed' });
   } catch (error) { res.status(500).json({ message: 'Update failed', error: error.message }); }
 };

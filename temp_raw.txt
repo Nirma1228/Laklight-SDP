@@ -1,0 +1,60 @@
+﻿      // â”€â”€ Group raw rows into product â†’ batches[] â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      const rawMap = {};
+      (data.raw || []).forEach(item => {
+        const name = item.material_name || `Item #${item.id}`;
+        if (!rawMap[name]) {
+          rawMap[name] = { id: item.id, name, category: 'raw', batches: [] };
+        }
+        const expDate = item.expiry_date ? new Date(item.expiry_date) : null;
+        const today   = new Date(); today.setHours(0,0,0,0);
+        const daysUntilExpiry = expDate
+          ? Math.ceil((expDate - today) / (1000 * 60 * 60 * 24))
+          : 999;
+        const stockNum = parseFloat(item.quantity_kg) || 0;
+        const unit     = item.unit_name || 'kg';
+
+        rawMap[name].batches.push({
+          id:             item.id,
+          location:       item.storage_location || 'Unknown',
+          stock:          `${stockNum.toFixed(2)} ${unit}`,
+          stockVal:       stockNum,
+          receivedDate:   item.received_date
+            ? new Date(item.received_date).toISOString().split('T')[0]
+            : 'â€”',
+          expiry: expDate ? expDate.toISOString().split('T')[0] : 'â€”',
+          daysUntilExpiry,
+          status: daysUntilExpiry <= 5 ? 'critical'
+            : daysUntilExpiry <= 14 ? 'warning' : 'good'
+        });
+      });
+      const finalFarmerProducts = Object.values(rawMap);
+      console.log('Final grouped farmer products:', finalFarmerProducts.length);
+      setFarmerProducts(finalFarmerProducts);
+
+      // â”€â”€ Group finished rows into product â†’ batches[] â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+      const finMap = {};
+      (data.finished || []).forEach(item => {
+        const name = item.name || `Product #${item.id}`;
+        if (!finMap[name]) {
+          finMap[name] = { id: item.id, name, category: (item.category || 'processed').toLowerCase(), batches: [] };
+        }
+        finMap[name].batches.push({
+          id:           item.id,
+          location:     item.storage_location || 'Finished Goods',
+          batch:        item.batch_number || `B${new Date().getFullYear()}`,
+          manufactured: item.manufactured_date
+            ? new Date(item.manufactured_date).toISOString().split('T')[0]
+            : 'â€”',
+          bestBefore:   item.expiry_date
+            ? new Date(item.expiry_date).toISOString().split('T')[0]
+            : 'â€”',
+          quantity:     Number(item.quantity_units) || 0,
+          stockVal:     Number(item.quantity_units) || 0,
+          status:       'good'
+        });
+      });
+      const finalFinishedProducts = Object.values(finMap);
+      console.log('Final grouped finished products:', finalFinishedProducts.length);
+      setFinishedProducts(finalFinishedProducts);
+      setFinishedProducts(Object.values(finMap));
+    } catch (err) {

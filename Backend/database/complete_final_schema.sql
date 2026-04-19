@@ -1,9 +1,15 @@
+-- =============================================================
+-- LAKLIGHT FOOD PRODUCTS - 3NF NORMALIZED MASTER SCHEMA (v6.0)
+-- Optimized for: Performance, Data Integrity, and Unique Descriptive Primary Keys
+-- =============================================================
 
 DROP DATABASE IF EXISTS laklight_food_products;
 CREATE DATABASE laklight_food_products CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE laklight_food_products;
 
+-- ============================================
 -- 1. REFERENCE TABLES (3NF - Static Data)
+-- ============================================
 
 CREATE TABLE user_roles (
     role_id INT PRIMARY KEY AUTO_INCREMENT,
@@ -55,7 +61,9 @@ CREATE TABLE transport_methods (
     method_name VARCHAR(100) UNIQUE NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- ============================================
 -- 2. IDENTITY & SECURITY
+-- ============================================
 
 CREATE TABLE users (
     user_id INT PRIMARY KEY AUTO_INCREMENT,
@@ -66,9 +74,6 @@ CREATE TABLE users (
     role_id INT NOT NULL,
     status_id INT NOT NULL,
     address TEXT,
-    city VARCHAR(100),
-    postal_code VARCHAR(20),
-    district VARCHAR(100),
     profile_image VARCHAR(255),
     last_login DATETIME NULL,
     join_date DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -91,8 +96,9 @@ CREATE TABLE otp_verifications (
     INDEX idx_otp_auth (email, otp, flow_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- ============================================
 -- 3. PRODUCT CATALOG
- 
+-- ============================================
 
 CREATE TABLE products (
     product_id INT PRIMARY KEY AUTO_INCREMENT,
@@ -112,7 +118,9 @@ CREATE TABLE products (
     INDEX idx_product_name (name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- ============================================
 -- 4. SALES & ORDER FULFILLMENT
+-- ============================================
 
 CREATE TABLE cart (
     cart_id INT PRIMARY KEY AUTO_INCREMENT,
@@ -164,9 +172,9 @@ CREATE TABLE payments (
     FOREIGN KEY (status_id) REFERENCES payment_statuses(payment_status_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-
+-- ============================================
 -- 6. FARMER RELATIONS
-
+-- ============================================
 
 CREATE TABLE farmer_profiles (
     farmer_profile_id INT PRIMARY KEY AUTO_INCREMENT,
@@ -230,7 +238,9 @@ CREATE TABLE deliveries (
     FOREIGN KEY (status_id) REFERENCES delivery_statuses(delivery_status_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- ============================================
 -- 7. INVENTORY CONTROL
+-- ============================================
 
 CREATE TABLE raw_material_types (
     material_type_id INT PRIMARY KEY AUTO_INCREMENT,
@@ -263,8 +273,9 @@ CREATE TABLE inventory_finished (
     FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-
+-- ============================================
 -- 7. ENGAGEMENT & SYSTEM
+-- ============================================
 
 CREATE TABLE feedback (
     feedback_id INT PRIMARY KEY AUTO_INCREMENT,
@@ -330,9 +341,9 @@ CREATE TABLE supply_history (
     FOREIGN KEY (supplier_id) REFERENCES suppliers(supplier_id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-
+-- ============================================
 -- 8. REFERENCE DATA & SEEDING
-
+-- ============================================
 
 -- Static Tables
 INSERT INTO user_roles (role_name) VALUES ('customer'), ('farmer'), ('employee'), ('admin');

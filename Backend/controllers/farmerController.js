@@ -53,6 +53,9 @@ exports.submitProduct = async (req, res) => {
       ? JSON.stringify(images)
       : null;
 
+    // Use common variety name column or default
+    const finalVariety = variety || '';
+
     // Mappings to match Database ENUMs/Expectations
     const gradeMap = {
       'grade-a': 'Grade A',
@@ -60,31 +63,32 @@ exports.submitProduct = async (req, res) => {
       'grade-c': 'Grade C'
     };
 
+    const finalGrade = gradeMap[grade] || grade; // Fallback to original if not found
+
     const transportMap = {
       'self': 'Self Transport',
       'company': 'Company Truck Pickup'
     };
 
-    const finalGrade = gradeMap[grade] || grade; // Fallback to original if not found
     const finalTransport = transportMap[transport] || transport;
 
-    const gradeId = await getPkId('quality_grades', 'grade_id', 'grade_name', finalGrade);
     const transportMethodId = await getPkId('transport_methods', 'transport_method_id', 'method_name', finalTransport);
 
-    console.log(`📝 Mapped Data: Grade='${grade}'->'${finalGrade}' (ID: ${gradeId}), Transport='${transport}'->'${finalTransport}' (ID: ${transportMethodId})`);
+    console.log(`📝 Mapped Data: Variety='${finalVariety}', Grade='${grade}'->'${finalGrade}', Transport='${transport}'->'${finalTransport}' (ID: ${transportMethodId})`);
 
     // Insert
     const [result] = await db.query(
       `INSERT INTO farmer_submissions 
-       (farmer_id, product_name, category_id, quantity, unit_id, grade_id, custom_price, harvest_date, transport_method_id, delivery_date, proposed_date_2, proposed_date_3, storage_instructions, images, notes, status_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       (farmer_id, product_name, variety, category_id, quantity, unit_id, grade, custom_price, harvest_date, transport_method_id, delivery_date, proposed_date_2, proposed_date_3, storage_instructions, images, notes, status_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         farmerId,
         productName,
+        finalVariety,
         catId,
         quantity,
         unitId,
-        gradeId,
+        finalGrade || null,
         customPrice || null,
         harvestDate,
         transportMethodId || null,
@@ -110,17 +114,20 @@ exports.submitProduct = async (req, res) => {
 exports.getMySubmissions = async (req, res) => {
   try {
     const [submissions] = await db.query(`
-      SELECT fs.*, fs.submission_id as id, ss.status_name as status, pc.category_name as category, mu.unit_name as unit, qg.grade_name as grade
+      SELECT fs.*, fs.submission_id as id, ss.status_name as status, pc.category_name as category, mu.unit_name as unit, 
+             tm.method_name as transport_method
       FROM farmer_submissions fs
-      JOIN submission_statuses ss ON fs.status_id = ss.submission_status_id
-      JOIN product_categories pc ON fs.category_id = pc.category_id
-      JOIN measurement_units mu ON fs.unit_id = mu.unit_id
-      LEFT JOIN quality_grades qg ON fs.grade_id = qg.grade_id
+      LEFT JOIN submission_statuses ss ON fs.status_id = ss.submission_status_id
+      LEFT JOIN product_categories pc ON fs.category_id = pc.category_id
+      LEFT JOIN measurement_units mu ON fs.unit_id = mu.unit_id
+      LEFT JOIN transport_methods tm ON fs.transport_method_id = tm.transport_method_id
       WHERE fs.farmer_id = ? 
       ORDER BY fs.submission_date DESC`, [req.user.userId]);
 
+    console.log(`🔍 Found ${submissions.length} submissions for farmer ${req.user.userId}`);
     res.json({ success: true, submissions });
   } catch (error) {
+    console.error('Fetch submissions error:', error);
     res.status(500).json({ message: 'Fetch failed', error: error.message });
   }
 };
@@ -133,15 +140,13 @@ exports.getDeliveries = async (req, res) => {
              d.proposed_reschedule_date,
              DATE_FORMAT(d.scheduled_date, '%Y-%m-%d') as scheduleDate,
              DATE_FORMAT(fs.delivery_date, '%Y-%m-%d') as proposedDate,
-             fs.quantity, qg.grade_name,
-             CONCAT(fs.product_name, ' (', qg.grade_name, ')') as product
-      FROM deliveries d
+             fs.quantity, qg.grade_name, fs.custom_price
+      FROM delivery_schedules d
       JOIN delivery_statuses ds ON d.status_id = ds.delivery_status_id
       JOIN farmer_submissions fs ON d.submission_id = fs.submission_id
-      LEFT JOIN transport_methods tm ON d.transport_method_id = tm.transport_method_id
-      LEFT JOIN quality_grades qg ON fs.grade_id = qg.grade_id
-      WHERE fs.farmer_id = ?
-      ORDER BY d.scheduled_date DESC`, [req.user.userId]);
+      JOIN transport_methods tm ON fs.transport_method_id = tm.transport_method_id
+      JOIN quality_grades qg ON fs.grade_id = qg.grade_id
+      WHERE fs.farmer_id = ?`, [req.user.userId]);
 
     // Format the proposed_reschedule_date for frontend
     const formatted = deliveries.map(d => ({

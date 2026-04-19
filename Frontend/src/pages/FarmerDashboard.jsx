@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react'
+﻿import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import { config } from '../config'
 import { useToast } from '../components/ToastNotification'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { useTranslation } from 'react-i18next'
 import {
   faBell, faCalendarAlt, faCamera, faCheckCircle,
   faFlagCheckered, faInfoCircle, faCalendarCheck,
@@ -40,10 +39,28 @@ const formatTransport = (t) => {
   return map[t] || t;
 };
 
+const formatStatus = (s) => {
+  if (!s) return 'Pending';
+  return s.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+};
+
 function FarmerDashboard() {
   const navigate = useNavigate()
   const toast = useToast()
-  const { t } = useTranslation()
+
+  // Initialize data on component mount
+  useEffect(() => {
+    const token = getAuthToken();
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+    fetchProfile();
+    fetchSubmissions();
+    fetchDeliveries();
+    fetchBankDetails();
+    fetchDeliveryHistory();
+  }, []);
 
   const [products, setProducts] = useState([{
     id: 1,
@@ -72,21 +89,59 @@ function FarmerDashboard() {
   const [newDeliveryDate, setNewDeliveryDate] = useState('')
   const [isBankModalOpen, setIsBankModalOpen] = useState(false)
   const [bankDetails, setBankDetails] = useState({
-    accountHolderName: '',
-    bankName: '',
-    branchName: '',
-    accountNumber: ''
+    accountHolderName: 'Randila Pamod',
+    bankName: 'Sampath Bank',
+    branchName: 'Gokarella',
+    accountNumber: '1234567890'
   })
   const [isBankLoading, setIsBankLoading] = useState(false)
   const [isBankWarningDismissed, setIsBankWarningDismissed] = useState(false)
   const [activeTab, setActiveTab] = useState('home') // 'home', 'submit', 'submissions', 'deliveries'
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false)
+  const [notifications, setNotifications] = useState([])
+
+  // Load notifications from localStorage
+  useEffect(() => {
+    const savedNotifs = localStorage.getItem('farmer_notifications');
+    if (savedNotifs) {
+      setNotifications(JSON.parse(savedNotifs));
+    }
+  }, []);
+
+  // Save notifications to localStorage
+  useEffect(() => {
+    localStorage.setItem('farmer_notifications', JSON.stringify(notifications));
+  }, [notifications]);
+
+  const addNotification = (title, message, type = 'info') => {
+    const newNotif = {
+      id: Date.now(),
+      title,
+      message,
+      type,
+      date: new Date().toLocaleString(),
+      isRead: false
+    };
+    setNotifications(prev => [newNotif, ...prev]);
+  };
+
+  const removeNotification = (id) => {
+    setNotifications(prev => prev.filter(n => n.id !== id));
+  };
+
+  const markAsRead = (id) => {
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+  };
 
   const [farmerProfile, setFarmerProfile] = useState({
-    fullName: 'Loading...',
+    fullName: 'Randila Pamod',
     farmName: 'Laklight Supplier',
-    email: '',
-    phone: '',
-    address: '',
+    email: 'nethmini1228@gmail.com',
+    phone: '0705282626',
+    address: 'Kandulawa, Gokarella',
+    city: 'Gokarella',
+    postalCode: '',
+    district: '',
     licenseNumber: 'PENDING',
     memberSince: '',
     qualityRating: 'N/A'
@@ -95,7 +150,10 @@ function FarmerDashboard() {
   const [editFormData, setEditFormData] = useState({
     fullName: '',
     phone: '',
-    address: ''
+    address: '',
+    city: '',
+    postalCode: '',
+    district: ''
   })
 
   // Fetch farmer profile from backend
@@ -115,13 +173,16 @@ function FarmerDashboard() {
         const user = data.user;
         setFarmerProfile({
           fullName: user.full_name,
-          farmName: user.farmName || 'Laklight Supplier', // Backend might not have farmName yet, using fallback
+          farmName: user.farmName || 'Laklight Supplier', 
           email: user.email,
           phone: user.phone,
           address: user.address,
-          licenseNumber: user.licenseNumber || 'VERIFIED-001',
+          city: user.city,
+          postalCode: user.postal_code,
+          district: user.district,
+          licenseNumber: user.licenseNumber || `F-${user.id.toString().padStart(4, '0')}`,
           memberSince: new Date(user.join_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-          qualityRating: '4.8/5.0' // Placeholder as rating logic might be separate
+          qualityRating: '4.8/5.0' 
         });
       }
     } catch (error) {
@@ -193,30 +254,33 @@ function FarmerDashboard() {
       setEditFormData({
         fullName: farmerProfile.fullName,
         phone: farmerProfile.phone,
-        address: farmerProfile.address
-      })
+        address: farmerProfile.address,
+        city: farmerProfile.city || '',
+        postalCode: farmerProfile.postalCode || '',
+        district: farmerProfile.district || ''
+      });
     }
-    setIsEditingProfile(!isEditingProfile)
-  }
+    setIsEditingProfile(!isEditingProfile);
+  };
 
   const handleCloseProfileModal = () => {
     setIsProfileModalOpen(false);
     setIsEditingProfile(false); // Reset to view mode when closed
-  }
+  };
 
   const handleEditChange = (e) => {
-    const { name, value } = e.target
+    const { name, value } = e.target;
     setEditFormData(prev => ({
       ...prev,
       [name]: value
-    }))
-  }
+    }));
+  };
 
   const handleProfileUpdate = async (e) => {
-    e.preventDefault()
+    e.preventDefault();
     try {
-      const token = getAuthToken()
-      if (!token) return
+      const token = getAuthToken();
+      if (!token) return;
 
       const response = await fetch(`${config.API_BASE_URL}/auth/profile`, {
         method: 'PUT',
@@ -227,30 +291,37 @@ function FarmerDashboard() {
         body: JSON.stringify({
           fullName: editFormData.fullName,
           phone: editFormData.phone,
-          address: editFormData.address
+          address: editFormData.address,
+          city: editFormData.city,
+          postal_code: editFormData.postalCode,
+          district: editFormData.district
         })
-      })
+      });
 
       if (response.ok) {
-        alert('Profile updated successfully!')
-        setIsEditingProfile(false)
-        fetchProfile() // Refresh profile data
+        alert('Profile updated successfully!');
+        setIsEditingProfile(false);
+        fetchProfile(); // Refresh profile data
       } else {
-        const data = await response.json()
-        alert(data.message || 'Failed to update profile')
+        const data = await response.json();
+        alert(data.message || 'Failed to update profile');
       }
     } catch (error) {
-      console.error('Error updating profile:', error)
-      alert('Connection error. Please try again later.')
+      console.error('Error updating profile:', error);
+      alert('Connection error. Please try again later.');
     }
-  }
+  };
 
   // Fetch submissions from database
   const fetchSubmissions = async () => {
     try {
       const token = getAuthToken();
-      if (!token) return;
+      if (!token) {
+        console.warn('No token found, skipping fetchSubmissions');
+        return;
+      }
 
+      console.log('Fetching submissions from backend...');
       const response = await fetch(`${config.API_BASE_URL}/farmer/submissions`, {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -259,26 +330,32 @@ function FarmerDashboard() {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('Submissions received:', data.submissions);
         const formattedSubmissions = data.submissions.map(sub => ({
           id: sub.id,
           product: sub.product_name,
-          grade: formatGrade(sub.grade),
+          variety: sub.variety || '',
+          grade: formatGrade(sub.grade_enum || sub.grade || ''),
           quantity: `${sub.quantity}${sub.unit || 'kg'}`,
           price: `LKR ${sub.custom_price || sub.price || '0'}`,
           harvestDate: sub.harvest_date ? new Date(sub.harvest_date).toISOString().split('T')[0] : '',
           status: sub.status || 'under-review',
-          date: sub.created_at ? new Date(sub.created_at).toISOString().split('T')[0] : '',
-          transport: formatTransport(sub.transport),
+          date: sub.submission_date ? new Date(sub.submission_date).toISOString().split('T')[0] : '',
+          transport: formatTransport(sub.transport_method || ''),
           category: sub.category,
           deliveryDate: sub.delivery_date ? new Date(sub.delivery_date).toISOString().split('T')[0] : '',
           proposedDate2: sub.proposed_date_2 ? new Date(sub.proposed_date_2).toISOString().split('T')[0] : '',
           proposedDate3: sub.proposed_date_3 ? new Date(sub.proposed_date_3).toISOString().split('T')[0] : '',
+          storageInstructions: sub.storage_instructions || '',
+          notes: sub.notes || '',
           rejectionReason: sub.rejection_reason || '',
           scheduleDate: sub.schedule_date ? new Date(sub.schedule_date).toISOString().split('T')[0] : ''
         }));
         setSubmissions(formattedSubmissions);
         // Update localStorage as backup
         localStorage.setItem('supplier_applications', JSON.stringify(formattedSubmissions));
+      } else {
+        console.error('Failed to fetch submissions:', response.status);
       }
     } catch (error) {
       console.error('Error fetching submissions:', error);
@@ -311,10 +388,19 @@ function FarmerDashboard() {
           proposedDate: del.proposedDate || '',
           scheduleDate: del.scheduleDate || '',
           transport: formatTransport(del.transport_method || del.transport),
-          status: del.status || 'pending',
-          proposedRescheduleDate: del.proposedRescheduleDate || null
+          status: (del.status || 'pending').toLowerCase(),
+          proposedRescheduleDate: del.proposedRescheduleDate || null,
+          sellPrice: del.custom_price || del.unit_price || del.price || 'N/A'
         }));
-        setDeliveries(formattedDeliveries);
+
+        // Filter for active (non-completed) deliveries
+        const activeDeliveries = formattedDeliveries.filter(d => d.status !== 'completed' && d.status !== 'delivered');
+        // Filter for completed deliveries for historical records
+        const historicalDeliveries = formattedDeliveries.filter(d => d.status === 'completed' || d.status === 'delivered');
+
+        setDeliveries(activeDeliveries);
+        setDeliveryHistory(historicalDeliveries);
+
         // Update localStorage as backup
         localStorage.setItem('delivery_list', JSON.stringify(formattedDeliveries));
       }
@@ -323,44 +409,45 @@ function FarmerDashboard() {
       // Fall back to localStorage if fetch fails
       const saved = localStorage.getItem('delivery_list');
       if (saved) {
-        setDeliveries(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        setDeliveries(parsed.filter(d => d.status !== 'completed'));
+        setDeliveryHistory(parsed.filter(d => d.status === 'completed'));
       }
     }
   };
 
-  const [submissions, setSubmissions] = useState([
-    { id: 101, product: 'Alphonso Mangoes', category: 'fruits', quantity: '500kg', price: 'LKR 450/kg', status: 'selected', date: '2024-03-15', grade: 'Grade A', scheduleDate: '2024-03-25' },
-    { id: 102, product: 'Smooth Cayenne Pineapple', category: 'fruits', quantity: '200kg', price: 'LKR 300/unit', status: 'under-review', date: '2024-03-18', grade: 'Grade A' },
-    { id: 103, product: 'Red Lady Papaya', category: 'fruits', quantity: '150kg', price: 'LKR 180/kg', status: 'not-selected', date: '2024-03-10', grade: 'Grade B', rejectionReason: 'Quantity too high for current demand.' },
-  ]);
+  const fetchDeliveryHistory = () => {
+    // This is now handled within fetchDeliveries for data consistency
+    // But we keep the function call for future dedicated endpoint expansion if needed
+  };
+
+  const [submissions, setSubmissions] = useState([]);
+
+  const [deliveries, setDeliveries] = useState([]);
+
+  const [deliveryHistory, setDeliveryHistory] = useState([]);
 
   const handleConfirmSubmission = (id) => {
     const updated = submissions.map(s =>
       s.id === id ? { ...s, status: 'confirmed' } : s
-    )
-    setSubmissions(updated)
+    );
+    setSubmissions(updated);
     // Synchronize back to the shared storage
-    localStorage.setItem('supplier_applications', JSON.stringify(updated))
-    toast.success('✅ Delivery date confirmed! Your product is now scheduled for pickup.')
-  }
+    localStorage.setItem('supplier_applications', JSON.stringify(updated));
+    toast.success('✅ Delivery date confirmed! Your product is now scheduled for pickup.');
+  };
 
   const handleRescheduleSubmission = (id, currentProposed) => {
-    const newDate = window.prompt('Please enter your preferred reschedule date (YYYY-MM-DD):', currentProposed)
+    const newDate = window.prompt('Please enter your preferred reschedule date (YYYY-MM-DD):', currentProposed);
     if (newDate) {
       const updated = submissions.map(s =>
         s.id === id ? { ...s, scheduleDate: newDate, status: 'under-review' } : s
-      )
-      setSubmissions(updated)
-      localStorage.setItem('supplier_applications', JSON.stringify(updated))
-      toast.info('📅 Reschedule request sent! The operations team will review your suggested date.')
+      );
+      setSubmissions(updated);
+      localStorage.setItem('supplier_applications', JSON.stringify(updated));
+      toast.info('📅 Reschedule request sent! The operations team will review your suggested date.');
     }
-  }
-
-  const [deliveries, setDeliveries] = useState([
-    { id: 'DEL-2038', product: 'Mango (Grade A)', quantity: '100.00kg', scheduleDate: '2026-03-20', transport: 'self', status: 'completed' },
-    { id: 'DEL-2041', product: 'Tomato (Grade C)', quantity: '148.00kg', scheduleDate: '2026-03-23', transport: 'company', status: 'confirmed' },
-    { id: 'DEL-2042', product: 'Papaya (Grade A)', quantity: '500.00kg', scheduleDate: '2026-03-22', transport: 'company', status: 'pending' },
-  ]);
+  };
 
   // Check for updates and notify farmer on load
   useEffect(() => {
@@ -372,27 +459,9 @@ function FarmerDashboard() {
     const negotiationCount = deliveries.filter(d => d.status === 'pending-confirmation').length;
 
     if (negotiationCount > 0) {
-      setTimeout(() => alert(`🔔 Action Required: You have ${negotiationCount} delivery schedule(s) pending your confirmation. Please check the Delivery Schedule section.`), 1000);
-    } else if (approvedCount > 0) {
-      // Optional: only notify if we haven't acknowledged them? 
-      // For simplicity, just a gentle reminder or rely on the visual badges.
+      addNotification('Action Required', `You have ${negotiationCount} delivery schedule(s) pending confirmation.`, 'warning');
     }
-  }, []);
-
-  // Auto-save deliveries to localStorage as backup
-  useEffect(() => {
-    if (deliveries.length > 0) {
-      localStorage.setItem('delivery_list', JSON.stringify(deliveries))
-    }
-  }, [deliveries])
-
-  // Fetch all data on mount
-  useEffect(() => {
-    fetchProfile();
-    fetchBankDetails();
-    fetchSubmissions();
-    fetchDeliveries();
-  }, []);
+  }, [submissions, deliveries]);
 
   // Check for notifications when submissions change
   useEffect(() => {
@@ -403,23 +472,21 @@ function FarmerDashboard() {
         if (lastNotified === sub.status) return; // Already notified for this status
 
         if (sub.status === 'selected') {
-          toast.success(`Your product "${sub.product}" was selected!`);
+          addNotification('Product Selected!', `Your product "${sub.product}" was selected by the operations team.`, 'success');
         } else if (sub.status === 'not-selected') {
-          toast.error(`Your product "${sub.product}" was not selected. Reason: ${sub.rejectionReason || 'No reason provided.'}`);
+          addNotification('Application Rejected', `Your product "${sub.product}" was not selected. Reason: ${sub.rejectionReason || 'No reason provided.'}`, 'error');
         }
         localStorage.setItem(`notified_${sub.id}`, sub.status);
       });
   }, [submissions]);
 
-  const removeNotification = () => {}; // No longer needed but keeping dummy to prevent broken refs during cleanup
-
   const handleRescheduleClick = (delivery) => {
-    setSelectedDelivery(delivery)
-    setIsRescheduleModalOpen(true)
+    setSelectedDelivery(delivery);
+    setIsRescheduleModalOpen(true);
     // Set current scheduled date as default
-    const currentDate = delivery.scheduleDate ? new Date(delivery.scheduleDate).toISOString().split('T')[0] : ''
-    setNewDeliveryDate(currentDate)
-  }
+    const currentDate = delivery.scheduleDate ? new Date(delivery.scheduleDate).toISOString().split('T')[0] : '';
+    setNewDeliveryDate(currentDate);
+  };
 
   // Reschedule delivery handler (with backend update)
   const handleRescheduleSubmit = async (e) => {
@@ -479,21 +546,31 @@ function FarmerDashboard() {
       storage: '',
       images: null,
       notes: ''
-    }
-    setProducts([...products, newProduct])
-  }
+    };
+    setProducts([...products, newProduct]);
+  };
 
   const removeProduct = (id) => {
     if (products.length > 1) {
-      setProducts(products.filter(p => p.id !== id))
+      setProducts(products.filter(p => p.id !== id));
     }
-  }
+  };
 
   const updateProduct = (id, field, value) => {
     setProducts(products.map(p =>
       p.id === id ? { ...p, [field]: value } : p
-    ))
-  }
+    ));
+  };
+
+  // Helper to convert file to base64
+  const fileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = error => reject(error);
+    });
+  };
 
   const handleSubmitAll = async (e) => {
     e.preventDefault()
@@ -508,7 +585,15 @@ function FarmerDashboard() {
       const token = getAuthToken()
       if (!token) return
 
-      const promises = validProducts.map(p => {
+      const promises = validProducts.map(async (p) => {
+        // Here we ensure all required product details are captured correctly.
+        // Convert files to base64 if they exist
+        let base64Images = [];
+        if (p.images && p.images.length > 0) {
+          const imagePromises = Array.from(p.images).map(file => fileToBase64(file));
+          base64Images = await Promise.all(imagePromises);
+        }
+
         // Prepare payload matching backend expectation
         const payload = {
           productName: p.name,
@@ -523,7 +608,7 @@ function FarmerDashboard() {
           proposedDate2: p.proposedDate2,
           proposedDate3: p.proposedDate3,
           notes: p.notes,
-          images: [] // Placeholder until file upload is fully implemented
+          images: base64Images // Now including the actual base64 image data
         }
 
         return fetch(`${config.API_BASE_URL}/farmer/submissions`, {
@@ -628,71 +713,56 @@ function FarmerDashboard() {
 
   return (
     <div className="farmer-dashboard">
-      <Header
-        isLoggedIn={true}
-        customLinks={[
-          { label: t('header.dashboard'), onClick: () => setActiveTab('home') },
-          { label: t('header.myProducts'), onClick: () => setActiveTab('submissions') },
-          { label: t('header.deliveries'), onClick: () => setActiveTab('deliveries') },
-          { label: t('header.bankDetails'), onClick: () => setIsBankModalOpen(true) },
-          { label: t('header.profile'), onClick: () => setIsProfileModalOpen(true) }
-        ]}
-      />
-
       {/* Dashboard Main Layout */}
       <div className="dashboard-container-v2">
         {/* Sidebar */}
         <aside className="dashboard-sidebar-v2">
           <div className="sidebar-brand">
-            <FontAwesomeIcon icon={faSeedling} className="brand-icon" />
-            <span>Laklight Farmer</span>
+            <img src="/images/Logo.png" alt="Laklight" className="brand-logo-img" />
           </div>
 
           <nav className="sidebar-nav-v2">
             <button
-              className={`nav-item-v2 ${activeTab === 'home' ? 'active' : ''}`}
+              className={`nav-item-v2 ${activeTab === 'home' && !isBankModalOpen && !isProfileModalOpen ? 'active' : ''}`}
               onClick={() => setActiveTab('home')}
             >
               <FontAwesomeIcon icon={faHome} />
-              <span>{t('farmerDashboard.sidebar.home') || 'Home'}</span>
+              <span>DASHBOARD</span>
             </button>
             <button
-              className={`nav-item-v2 ${activeTab === 'submit' ? 'active' : ''}`}
+              className={`nav-item-v2 ${activeTab === 'submit' && !isBankModalOpen && !isProfileModalOpen ? 'active' : ''}`}
               onClick={() => setActiveTab('submit')}
             >
-              <FontAwesomeIcon icon={faPaperPlane} />
-              <span>{t('farmerDashboard.sidebar.submit') || 'Submit Stock'}</span>
+              <FontAwesomeIcon icon={faSeedling} />
+              <span>MY PRODUCTS</span>
             </button>
             <button
-              className={`nav-item-v2 ${activeTab === 'submissions' ? 'active' : ''}`}
-              onClick={() => setActiveTab('submissions')}
-            >
-              <FontAwesomeIcon icon={faHistory} />
-              <span>{t('farmerDashboard.sidebar.submissions') || 'History'}</span>
-            </button>
-            <button
-              className={`nav-item-v2 ${activeTab === 'deliveries' ? 'active' : ''}`}
+              className={`nav-item-v2 ${activeTab === 'deliveries' && !isBankModalOpen && !isProfileModalOpen ? 'active' : ''}`}
               onClick={() => setActiveTab('deliveries')}
             >
               <FontAwesomeIcon icon={faTruck} />
-              <span>{t('farmerDashboard.sidebar.deliveries') || 'Deliveries'}</span>
+              <span>DELIVERIES</span>
             </button>
-          </nav>
-
-          <div className="sidebar-divider"></div>
-
-          <nav className="sidebar-nav-v2 secondary">
-            <button className="nav-item-v2" onClick={() => setIsProfileModalOpen(true)}>
-              <FontAwesomeIcon icon={faUser} />
-              <span>{t('farmerDashboard.sidebar.profile') || 'My Profile'}</span>
-            </button>
-            <button className="nav-item-v2" onClick={() => setIsBankModalOpen(true)}>
+            <button
+              className={`nav-item-v2 ${isBankModalOpen ? 'active' : ''}`}
+              onClick={() => setIsBankModalOpen(true)}
+            >
               <FontAwesomeIcon icon={faCreditCard} />
-              <span>{t('farmerDashboard.sidebar.bank') || 'Payment Setup'}</span>
+              <span>BANK DETAILS</span>
             </button>
-            <button className="nav-item-v2" onClick={() => navigate('/support')}>
-              <FontAwesomeIcon icon={faQuestionCircle} />
-              <span>{t('farmerDashboard.sidebar.support') || 'Support'}</span>
+            <button
+              className={`nav-item-v2 ${isProfileModalOpen ? 'active' : ''}`}
+              onClick={() => setIsProfileModalOpen(true)}
+            >
+              <FontAwesomeIcon icon={faUser} />
+              <span>PROFILE</span>
+            </button>
+            <button
+              className={`nav-item-v2 ${activeTab === 'submissions' && !isBankModalOpen && !isProfileModalOpen ? 'active' : ''}`}
+              onClick={() => setActiveTab('submissions')}
+            >
+              <FontAwesomeIcon icon={faHistory} />
+              <span>MY HISTORY</span>
             </button>
           </nav>
 
@@ -703,20 +773,75 @@ function FarmerDashboard() {
               navigate('/login');
             }}>
               <FontAwesomeIcon icon={faSignOutAlt} />
-              <span>{t('farmerDashboard.sidebar.logout') || 'Logout'}</span>
+              <span>Logout</span>
             </button>
           </div>
         </aside>
 
         {/* Main Content Area */}
         <main className="dashboard-main-v2">
+          {/* Top Header with Notifications */}
+          <div className="dashboard-header-v2">
+            <div className="header-search-v2">
+              <input type="text" placeholder="Search resources..." className="top-search-input" />
+            </div>
+
+            <div className="header-controls-v2">
+              <div className="notif-wrapper-v2">
+                <button
+                  className={`notif-trigger-v2 ${notifications.some(n => !n.isRead) ? 'has-new' : ''}`}
+                  onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                >
+                  <FontAwesomeIcon icon={faBell} />
+                  {notifications.filter(n => !n.isRead).length > 0 && (
+                    <span className="notif-badge-v2">{notifications.filter(n => !n.isRead).length}</span>
+                  )}
+                </button>
+
+                {isNotificationOpen && (
+                  <div className="notif-dropdown-v2 fade-in">
+                    <div className="notif-header-v2">
+                      <h4>Notifications</h4>
+                      <button className="clear-all-btn" onClick={() => setNotifications([])}>Clear All</button>
+                    </div>
+                    <div className="notif-list-v2">
+                      {notifications.length === 0 ? (
+                        <div className="notif-empty-v2">
+                          <p>No new notifications</p>
+                        </div>
+                      ) : (
+                        notifications.map(n => (
+                          <div key={n.id} className={`notif-item-v2 ${n.type} ${!n.isRead ? 'unread' : ''}`} onClick={() => markAsRead(n.id)}>
+                            <div className="notif-item-header">
+                              <span className="notif-type-indicator"></span>
+                              <span className="notif-title">{n.title}</span>
+                              <button className="notif-remove-btn" onClick={(e) => { e.stopPropagation(); removeNotification(n.id); }}>×</button>
+                            </div>
+                            <p className="notif-msg">{n.message}</p>
+                            <span className="notif-time">{n.date}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="header-user-v2">
+                <div className="user-text-v2">
+                  <span className="user-name-v2">{farmerProfile.fullName}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
           {/* Top Banner Notifications */}
           <div className="dashboard-top-notifs">
             {!bankDetails.accountNumber && !isBankWarningDismissed && (
-              <div className="top-banner-v2 warning">
-                <div className="banner-icon"><FontAwesomeIcon icon={faExclamationTriangle} /></div>
+              <div className="top-banner-v2 warning fade-in">
                 <div className="banner-content">
-                  <strong>Payment Setup Required:</strong> Please enter your bank details to ensure you can receive secure payments.
+                  <div className="banner-icon"><FontAwesomeIcon icon={faExclamationTriangle} /></div>
+                  <span><strong>Payment Setup Required:</strong> Please enter your bank details to ensure you can receive secure payments.</span>
                 </div>
                 <div className="banner-actions">
                   <button className="banner-btn-primary" onClick={() => setIsBankModalOpen(true)}>Setup Now</button>
@@ -738,15 +863,15 @@ function FarmerDashboard() {
                     className="hero-image-v2"
                   />
                   <div className="hero-content-v2">
-                    <div className="hero-badge-v2">Welcome back, {farmerProfile.fullName.split(' ')[0]}!</div>
+                    <span className="welcome-chip-v2">Welcome back, {farmerProfile.fullName}!</span>
                     <h1 className="hero-title-v2">Manage Your Harvest Smarter</h1>
                     <p className="hero-subtitle-v2">Track your fresh produce submissions and logistics from one central dashboard.</p>
                     <div className="hero-actions-v2">
-                      <button className="hero-btn-primary" onClick={() => setActiveTab('submit')}>
+                      <button className="btn-hero-primary" onClick={() => setActiveTab('submit')}>
                         <FontAwesomeIcon icon={faPaperPlane} style={{ marginRight: '8px' }} />
                         Submit New Produce
                       </button>
-                      <button className="hero-btn-secondary" onClick={() => setActiveTab('deliveries')}>
+                      <button className="btn-hero-secondary" onClick={() => setActiveTab('deliveries')}>
                         <FontAwesomeIcon icon={faTruck} style={{ marginRight: '8px' }} />
                         View Deliveries
                       </button>
@@ -850,39 +975,39 @@ function FarmerDashboard() {
 
                           <div className="form-grid-v2">
                             <div className="form-group-v2">
-                              <label>{t('farmerDashboard.submitProductSection.form.productType') || 'Product Type *'}</label>
+                              <label>Product Type *</label>
                               <select
                                 required
                                 value={product.category}
                                 onChange={(e) => updateProduct(product.id, 'category', e.target.value)}
                               >
-                                <option value="">{t('farmerDashboard.submitProductSection.form.selectType') || 'Select Type'}</option>
-                                <option value="fruits">{t('farmerDashboard.submitProductSection.form.fruits') || 'Fruits'}</option>
-                                <option value="vegetables">{t('farmerDashboard.submitProductSection.form.vegetables') || 'Vegetables'}</option>
-                                <option value="dairy">{t('farmerDashboard.submitProductSection.form.dairy') || 'Dairy'}</option>
-                                <option value="grains">{t('farmerDashboard.submitProductSection.form.grains') || 'Grains'}</option>
-                                <option value="other">{t('farmerDashboard.submitProductSection.form.other') || 'Other'}</option>
+                                <option value="">Select Type</option>
+                                <option value="fruits">Fruits</option>
+                                <option value="vegetables">Vegetables</option>
+                                <option value="dairy">Dairy</option>
+                                <option value="grains">Grains</option>
+                                <option value="other">Other</option>
                               </select>
                             </div>
 
                             <div className="form-group-v2">
-                              <label>{t('farmerDashboard.submitProductSection.form.productName') || 'Produce Name *'}</label>
+                              <label>Produce Name *</label>
                               <input
                                 type="text"
                                 required
                                 value={product.name}
                                 onChange={(e) => updateProduct(product.id, 'name', e.target.value)}
-                                placeholder={t('farmerDashboard.submitProductSection.form.productNamePlaceholder') || 'e.g. Mangoes'}
+                                placeholder='e.g. Mangoes'
                               />
                             </div>
 
                             <div className="form-group-v2">
-                              <label>{t('farmerDashboard.submitProductSection.form.variety') || 'Variety'}</label>
+                              <label>Variety</label>
                               <input
                                 type="text"
                                 value={product.variety || ''}
                                 onChange={(e) => updateProduct(product.id, 'variety', e.target.value)}
-                                placeholder={t('farmerDashboard.submitProductSection.form.varietyPlaceholder') || 'e.g. Alphonso'}
+                                placeholder='e.g. Alphonso'
                               />
                             </div>
 
@@ -907,12 +1032,12 @@ function FarmerDashboard() {
                             </div>
 
                             <div className="form-group-v2">
-                              <label>Expected Price (LKR per unit)</label>
+                              <label>Expected Sell Price (LKR per unit)</label>
                               <input
                                 type="number"
                                 value={product.customPrice}
                                 onChange={(e) => updateProduct(product.id, 'customPrice', e.target.value)}
-                                placeholder="Optional"
+                                placeholder="Enter your price"
                               />
                             </div>
 
@@ -924,20 +1049,6 @@ function FarmerDashboard() {
                                 value={product.harvestDate || ''}
                                 onChange={(e) => updateProduct(product.id, 'harvestDate', e.target.value)}
                               />
-                            </div>
-
-                            <div className="form-group-v2">
-                              <label>Quality Grade *</label>
-                              <select
-                                required
-                                value={product.grade || ''}
-                                onChange={(e) => updateProduct(product.id, 'grade', e.target.value)}
-                              >
-                                <option value="">Select Grade</option>
-                                <option value="grade-a">Grade A (Premium)</option>
-                                <option value="grade-b">Grade B (Standard)</option>
-                                <option value="grade-c">Grade C (Processing)</option>
-                              </select>
                             </div>
 
                             <div className="form-group-v2">
@@ -975,6 +1086,29 @@ function FarmerDashboard() {
                                   onChange={(e) => updateProduct(product.id, 'proposedDate3', e.target.value)}
                                 />
                               </div>
+                            </div>
+                          </div>
+
+                          <div className="form-row-v2" style={{ marginTop: '1rem' }}>
+                            <div className="form-group-v2">
+                              <label>Additional Notes</label>
+                              <textarea
+                                placeholder="Add any special instructions or notes about this product..."
+                                value={product.notes || ''}
+                                onChange={(e) => updateProduct(product.id, 'notes', e.target.value)}
+                                style={{
+                                  width: '100%',
+                                  minHeight: '80px',
+                                  padding: '12px',
+                                  borderRadius: '12px',
+                                  border: '1px solid #e2e8f0',
+                                  backgroundColor: '#f8fafc',
+                                  fontSize: '0.95rem',
+                                  resize: 'vertical',
+                                  outline: 'none',
+                                  transition: 'border-color 0.2s'
+                                }}
+                              />
                             </div>
                           </div>
 
@@ -1030,9 +1164,9 @@ function FarmerDashboard() {
                         <div className="sub-header-v2">
                           <div>
                             <span className="sub-category-v2">{sub.category}</span>
-                            <h4>{sub.product}</h4>
+                            <h4>{sub.product} {sub.variety && <small style={{ fontWeight: 'normal', color: '#666' }}>({sub.variety})</small>}</h4>
                           </div>
-                          <span className={`status-badge-v2 ${sub.status}`}>{sub.status}</span>
+                          <span className={`status-badge-v2 ${sub.status}`}>{formatStatus(sub.status)}</span>
                         </div>
                         <div className="sub-body-v2">
                           <div className="sub-info-row-v2">
@@ -1044,6 +1178,11 @@ function FarmerDashboard() {
                             <span>Harvest: <strong>{sub.harvestDate}</strong></span>
                             <span>&nbsp;&nbsp;Delivery: <strong>{sub.deliveryDate}</strong></span>
                           </div>
+                          {sub.storageInstructions && (
+                            <div className="sub-info-row-v2" style={{ marginTop: '5px' }}>
+                              <span style={{ fontSize: '0.85rem' }}>Storage: <em>{sub.storageInstructions}</em></span>
+                            </div>
+                          )}
                         </div>
                         <div className="sub-footer-v2">
                           {sub.status === 'selected' && sub.scheduleDate && (
@@ -1070,6 +1209,40 @@ function FarmerDashboard() {
                     ))
                   )}
                 </div>
+
+                {/* Delivery History Section */}
+                <div className="section-header-standalone" style={{ marginTop: '3rem' }}>
+                  <h2>Delivery History</h2>
+                  <p>Historical records of your completed deliveries and payments.</p>
+                </div>
+                <div className="deliveries-container-v2">
+                  <div className="deliveries-table-v2">
+                    <div className="table-header-v2">
+                      <div className="th-v2">Product</div>
+                      <div className="th-v2">Quantity</div>
+                      <div className="th-v2">Total Paid</div>
+                      <div className="th-v2">Completion Date</div>
+                      <div className="th-v2">Transport</div>
+                      <div className="th-v2">Status</div>
+                    </div>
+                    {deliveryHistory.length === 0 ? (
+                      <div className="table-empty-v2">No completed delivery records found.</div>
+                    ) : (
+                      deliveryHistory.map(history => (
+                        <div key={history.id} className="table-row-v2 completed">
+                          <div className="td-v2 font-bold">{history.product}</div>
+                          <div className="td-v2">{history.quantity}</div>
+                          <div className="td-v2">LKR {history.sellPrice}</div>
+                          <div className="td-v2">{history.scheduleDate || 'N/A'}</div>
+                          <div className="td-v2">{formatTransport(history.transport)}</div>
+                          <div className="td-v2">
+                            <span className="delivery-tag-v2 completed">Completed</span>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
               </div>
             )}
 
@@ -1084,6 +1257,7 @@ function FarmerDashboard() {
                     <div className="table-header-v2">
                       <div className="th-v2">Product</div>
                       <div className="th-v2">Quantity</div>
+                      <div className="th-v2">Sell Price</div>
                       <div className="th-v2">Scheduled Date</div>
                       <div className="th-v2">Transport</div>
                       <div className="th-v2">Status</div>
@@ -1096,6 +1270,7 @@ function FarmerDashboard() {
                         <div key={delivery.id} className={`table-row-v2 ${delivery.status}`}>
                           <div className="td-v2 font-bold">{delivery.product}</div>
                           <div className="td-v2">{delivery.quantity}</div>
+                          <div className="td-v2">LKR {delivery.sellPrice}</div>
                           <div className="td-v2">{delivery.scheduleDate || 'TBD'}</div>
                           <div className="td-v2">{formatTransport(delivery.transport)}</div>
                           <div className="td-v2">
@@ -1233,9 +1408,40 @@ function FarmerDashboard() {
                           value={editFormData.address}
                           onChange={handleEditChange}
                           required
-                          rows="3"
+                          rows="2"
                           className="edit-input"
                         ></textarea>
+                      </div>
+                      <div className="profile-detail-item">
+                        <label>City *</label>
+                        <input
+                          type="text"
+                          name="city"
+                          value={editFormData.city}
+                          onChange={handleEditChange}
+                          required
+                          className="edit-input"
+                        />
+                      </div>
+                      <div className="profile-detail-item">
+                        <label>Postal Code</label>
+                        <input
+                          type="text"
+                          name="postalCode"
+                          value={editFormData.postalCode}
+                          onChange={handleEditChange}
+                          className="edit-input"
+                        />
+                      </div>
+                      <div className="profile-detail-item">
+                        <label>District</label>
+                        <input
+                          type="text"
+                          name="district"
+                          value={editFormData.district}
+                          onChange={handleEditChange}
+                          className="edit-input"
+                        />
                       </div>
                     </div>
                   </form>
@@ -1255,11 +1461,11 @@ function FarmerDashboard() {
                     <div className="profile-details-grid">
                       <div className="profile-detail-item">
                         <label>Farmer ID / License</label>
-                        <p>{farmerProfile.licenseNumber}</p>
+                        <p>{farmerProfile.licenseNumber || 'F-0001'}</p>
                       </div>
                       <div className="profile-detail-item">
                         <label>Contact Number</label>
-                        <p>{farmerProfile.phone}</p>
+                        <p>{farmerProfile.phone || 'N/A'}</p>
                       </div>
                       <div className="profile-detail-item">
                         <label>Email Address</label>
@@ -1267,15 +1473,21 @@ function FarmerDashboard() {
                       </div>
                       <div className="profile-detail-item">
                         <label>Member Since</label>
-                        <p>{farmerProfile.memberSince}</p>
+                        <p>{farmerProfile.memberSince || 'Apr 2026'}</p>
                       </div>
                       <div className="profile-detail-item full-width">
-                        <label>Address</label>
-                        <p>{farmerProfile.address}</p>
+                        <label>Full Address</label>
+                        <p>
+                          {farmerProfile.address}
+                          {farmerProfile.city ? `, ${farmerProfile.city}` : ''}
+                          {farmerProfile.district ? `, ${farmerProfile.district}` : ''}
+                          {farmerProfile.postalCode ? ` (${farmerProfile.postalCode})` : ''}
+                          {!farmerProfile.address && !farmerProfile.city && 'No address provided'}
+                        </p>
                       </div>
                       <div className="profile-detail-item">
                         <label>Quality Rating</label>
-                        <p>{farmerProfile.qualityRating}</p>
+                        <p>{farmerProfile.qualityRating || 'N/A'}</p>
                       </div>
                     </div>
                   </>
@@ -1334,7 +1546,7 @@ function FarmerDashboard() {
       {/* Bank Details Modal */}
       {isBankModalOpen && (
         <div className="modal-overlay" onClick={() => setIsBankModalOpen(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content profile-modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h3>Bank Details for Payments</h3>
               <button className="modal-close" onClick={() => setIsBankModalOpen(false)}>×</button>

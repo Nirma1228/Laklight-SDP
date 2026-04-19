@@ -96,7 +96,11 @@ function Login() {
       }
     } catch (error) {
       console.error('Login error:', error);
-      setError('Connection error. Please try again later.');
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        setError('Cannot connect to the server (http://localhost:5001). Please ensure the backend is running.');
+      } else {
+        setError(`Connection error: ${error.message}`);
+      }
     } finally {
       setIsLoading(false);
     }

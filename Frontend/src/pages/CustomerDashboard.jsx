@@ -6,11 +6,11 @@ import { config } from '../config'
 import StripeCheckoutButton from '../components/StripeCheckoutButton'
 import { useToast } from '../components/ToastNotification'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faShoppingBag, faBoxOpen, faUser } from '@fortawesome/free-solid-svg-icons'
+import { faShoppingBag, faBoxOpen, faUser, faShoppingCart } from '@fortawesome/free-solid-svg-icons'
 import './CustomerDashboard.css'
 
 // Product Card Component
-const ProductCard = ({ product, onAddToCart }) => {
+const ProductCard = ({ product, onAddToCart, onImageClick }) => {
   const [quantity, setQuantity] = useState(1)
   const [added, setAdded] = useState(false)
 
@@ -27,9 +27,13 @@ const ProductCard = ({ product, onAddToCart }) => {
 
   return (
     <div className="product-card">
-      <div className="product-img" style={{ height: '100px', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div 
+        className="product-img cursor-zoom-in" 
+        style={{ height: '100px', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        onClick={() => onImageClick(product.image_url ? (product.image_url.startsWith('http') ? product.image_url : product.image_url) : '/images/placeholder.png')}
+      >
         <img
-          src={product.image_url || '/images/placeholder.png'}
+          src={product.image_url ? (product.image_url.startsWith('http') ? product.image_url : product.image_url) : '/images/placeholder.png'}
           alt={product.name}
           style={{ height: '100%', width: 'auto', objectFit: 'contain', borderRadius: '8px' }}
         />
@@ -40,6 +44,9 @@ const ProductCard = ({ product, onAddToCart }) => {
         <div className="product-description">{product.description}</div>
         <div className={`product-availability availability-${product.is_available ? 'in-stock' : 'out-of-stock'}`}>
           {product.is_available ? 'Available' : 'Out of Stock'}
+        </div>
+        <div className="product-stock" style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1rem', fontWeight: 'bold' }}>
+          Stock Available: {product.stock_quantity !== undefined ? product.stock_quantity : product.stock} Units
         </div>
         <div className="product-actions">
           <div className="quantity-controls">
@@ -79,6 +86,7 @@ const CustomerDashboard = () => {
   const [featuredCategory, setFeaturedCategory] = useState('')
   const [featuredSort, setFeaturedSort] = useState('')
   const [activeDashboardView, setActiveDashboardView] = useState('none')
+  const [selectedZoomImage, setSelectedZoomImage] = useState(null)
 
   // Load user data from localStorage and Database
   useEffect(() => {
@@ -216,7 +224,7 @@ const CustomerDashboard = () => {
             cart_id: item.cart_id,
             name: item.name,
             price: parseFloat(item.price),
-            image: item.image_url,
+            image_url: item.image_url,
             quantity: item.quantity
           })));
         }
@@ -361,7 +369,7 @@ const CustomerDashboard = () => {
             cart_id: item.cart_id,
             name: item.name,
             price: parseFloat(item.price),
-            image: item.image_url,
+            image_url: item.image_url,
             quantity: item.quantity
           })));
           toast.success('Product added to cart');
@@ -494,6 +502,9 @@ const CustomerDashboard = () => {
   const { subtotal, totalItems, discount, deliveryCharge, total, qualifiesForDiscount } = calculateTotals()
 
   const filteredProducts = dbProducts.filter(product => {
+    // Only show products marked as featured
+    if (!product.is_featured) return false;
+
     const matchesSearch = !featuredSearch ||
       product.name.toLowerCase().includes(featuredSearch.toLowerCase()) ||
       product.description.toLowerCase().includes(featuredSearch.toLowerCase())
@@ -521,14 +532,22 @@ const CustomerDashboard = () => {
       <Header
         isLoggedIn={true}
         customLinks={[
-          { label: 'Dashboard', path: '/home' },
-          { label: 'Products', onClick: () => document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' }) },
-          { label: 'My Orders', onClick: () => document.getElementById('recent-orders')?.scrollIntoView({ behavior: 'smooth' }) },
-          { label: 'Profile', onClick: () => setIsEditProfileOpen(true) }
+          { label: 'DASHBOARD', path: '/home' },
+          { label: 'PRODUCTS', onClick: () => document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' }) },
+          { 
+            label: 'MY ORDERS', 
+            onClick: () => {
+              setActiveDashboardView('orders');
+              setTimeout(() => {
+                document.getElementById('recent-orders')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }, 100);
+            } 
+          },
+          { label: 'PROFILE', onClick: () => setIsEditProfileOpen(true) }
         ]}
       >
         <div className="cart-icon" onClick={toggleCart}>
-          <span className="cart-icon-symbol">🛒</span>
+          <FontAwesomeIcon icon={faShoppingCart} className="cart-icon-symbol" />
           <span className="cart-label">My Cart</span>
           {totalItems > 0 && <span id="cart-count">{totalItems}</span>}
         </div>
@@ -670,10 +689,11 @@ const CustomerDashboard = () => {
                 onChange={(e) => setFeaturedCategory(e.target.value)}
               >
                 <option value="">All Categories</option>
-                <option value="fruits">Fresh Fruits</option>
-                <option value="juice">Fruit Juice</option>
-                <option value="jam">Fruit Jam</option>
-                <option value="preserves">Preserves</option>
+                <option value="beverages">Beverages</option>
+                <option value="desserts">Desserts</option>
+                <option value="fruits">Fruits</option>
+                <option value="vegetables">Vegetables</option>
+                <option value="other">Other</option>
               </select>
               <select
                 className="filter-select"
@@ -698,6 +718,7 @@ const CustomerDashboard = () => {
                   key={product.product_id}
                   product={product}
                   onAddToCart={addToCart}
+                  onImageClick={(url) => setSelectedZoomImage(url)}
                 />
               ))}
             </div>
@@ -733,8 +754,8 @@ const CustomerDashboard = () => {
                 {cart.map(item => (
                   <div key={item.cart_id} className="cart-item">
                     <div className="cart-item-image">
-                      {item.image ? (
-                        <img src={item.image} alt={item.name} />
+                      {item.image_url ? (
+                        <img src={item.image_url.startsWith('http') ? item.image_url : item.image_url} alt={item.name} />
                       ) : (
                         <span>🧃</span>
                       )}
@@ -742,13 +763,27 @@ const CustomerDashboard = () => {
                     <div className="cart-item-details">
                       <div className="cart-item-name">{item.name}</div>
                       <div className="cart-item-price">LKR {item.price.toFixed(2)}</div>
-                      <div className="cart-item-quantity">
-                        <button className="quantity-btn" onClick={() => updateQuantity(item.cart_id, -1)}>-</button>
-                        <span style={{ padding: '0 1rem' }}>{item.quantity}</span>
-                        <button className="quantity-btn" onClick={() => updateQuantity(item.cart_id, 1)}>+</button>
+                      <div className="cart-item-quantity" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', background: '#f1f5f9', borderRadius: '50px', padding: '0.25rem 0.75rem' }}>
+                          <button 
+                            className="quantity-btn" 
+                            style={{ background: 'transparent', border: 'none', color: '#1a5d1a', cursor: 'pointer', fontSize: '1.2rem', fontWeight: 'bold' }}
+                            onClick={() => updateQuantity(item.cart_id, -1)}
+                          >
+                            −
+                          </button>
+                          <span style={{ padding: '0 1rem', fontWeight: '800', minWidth: '35px', textAlign: 'center' }}>{item.quantity}</span>
+                          <button 
+                            className="quantity-btn" 
+                            style={{ background: 'transparent', border: 'none', color: '#1a5d1a', cursor: 'pointer', fontSize: '1.2rem', fontWeight: 'bold' }}
+                            onClick={() => updateQuantity(item.cart_id, 1)}
+                          >
+                            +
+                          </button>
+                        </div>
                         <button
                           className="btn btn-danger btn-small"
-                          style={{ marginLeft: '1rem' }}
+                          style={{ background: '#fee2e2', color: '#dc2626', border: 'none', padding: '0.5rem 0.75rem', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: '600' }}
                           onClick={() => removeFromCart(item.cart_id)}
                         >
                           Remove
@@ -794,8 +829,7 @@ const CustomerDashboard = () => {
 
               <div className="checkout-section">
                 <button
-                  className="btn btn-primary checkout-btn"
-                  style={{ width: '100%', marginBottom: '1rem' }}
+                  className="btn checkout-btn"
                   onClick={() => {
                     if (cart.length === 0) {
                       alert('Your cart is empty! Please add items before checking out.')
@@ -808,7 +842,6 @@ const CustomerDashboard = () => {
                 </button>
                 <button
                   className="btn btn-secondary"
-                  style={{ width: '100%' }}
                   onClick={toggleCart}
                 >
                   Continue Shopping
@@ -1056,7 +1089,7 @@ const CustomerDashboard = () => {
               <div className="modal-footer">
                 <button
                   type="button"
-                  className="btn btn-secondary"
+                  className="btn btn-cancel"
                   onClick={() => setIsCheckoutOpen(false)}
                 >
                   Cancel
@@ -1107,6 +1140,28 @@ const CustomerDashboard = () => {
                 </>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Zoom Modal */}
+      {selectedZoomImage && (
+        <div 
+          className="zoom-overlay"
+          onClick={() => setSelectedZoomImage(null)}
+        >
+          <div className="zoom-content" onClick={(e) => e.stopPropagation()}>
+            <button 
+              className="zoom-close"
+              onClick={() => setSelectedZoomImage(null)}
+            >
+              ×
+            </button>
+            <img 
+              src={selectedZoomImage} 
+              alt="Product Zoomed" 
+              className="zoom-image"
+            />
           </div>
         </div>
       )}

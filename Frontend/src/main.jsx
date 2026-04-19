@@ -3,7 +3,6 @@ import ReactDOM from 'react-dom/client'
 import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import { ToastProvider } from './components/ToastNotification'
-import './i18n'
 import './index.css'
 
 console.log('main.jsx: bootstrapping application...');

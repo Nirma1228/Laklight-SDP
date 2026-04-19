@@ -20,5 +20,6 @@ router.get('/track/:orderNumber', orderController.trackOrder);
 router.get('/:id', verifyToken, orderController.getOrderDetails);
 router.put('/:id/cancel', verifyToken, checkRole('customer'), orderController.cancelOrder);
 router.put('/:id/status', verifyToken, checkRole('admin', 'employee'), orderController.updateOrderStatus);
+router.put('/:id/payment', verifyToken, checkRole('admin', 'employee'), orderController.updatePaymentStatus);
 
 module.exports = router;

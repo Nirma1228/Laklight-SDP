@@ -8,7 +8,10 @@ import {
   faCheckCircle, faFlagCheckered, faHistory,
   faExclamationTriangle, faExclamationCircle, faInfoCircle, faChevronRight,
   faUser, faBoxes, faHandshake, faClipboardList, faTruck,
-  faBell, faSync, faLeaf, faCubes, faClock, faPlus
+  faBell, faSync, faLeaf, faCubes, faClock, faPlus,
+  faCalendar, faCalendarAlt, faCalendarCheck, faMapMarkerAlt,
+  faImage, faCheck, faTimes, faShoppingCart, faMoneyBillWave, faSeedling,
+  faBox, faPrint, faMinus, faUsers, faShieldAlt, faTrash, faPaperPlane
 } from '@fortawesome/free-solid-svg-icons'
 import './EmployeeDashboard.css'
 
@@ -22,8 +25,11 @@ const EmployeeDashboard = () => {
   const [currentDelivery, setCurrentDelivery] = useState(null)
   const [notifications, setNotifications] = useState([])
   const [dashboardAlerts, setDashboardAlerts] = useState([])
+  const [dismissedAlertIds, setDismissedAlertIds] = useState(
+    () => JSON.parse(localStorage.getItem('emp_dismissed_alerts') || '[]')
+  )
   const [isNotiDropdownOpen, setIsNotiDropdownOpen] = useState(false)
-
+  const [deliveries, setDeliveries] = useState([])
   const [isUpdateStockOpen, setIsUpdateStockOpen] = useState(false)
   const [updatingItem, setUpdatingItem] = useState(null)
   const [updateAmount, setUpdateAmount] = useState('')
@@ -32,6 +38,7 @@ const EmployeeDashboard = () => {
   const [categoryFilter, setCategoryFilter] = useState('')
   const [statusFilter, setStatusFilter] = useState('')
   const [sortFilter, setSortFilter] = useState('')
+  const [timeframeFilter, setTimeframeFilter] = useState('all') // 'all', 'today', 'week', 'month'
   const [deliveryStatusFilter, setDeliveryStatusFilter] = useState('all')
   const [isProcessModalOpen, setIsProcessModalOpen] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState(null)
@@ -41,10 +48,51 @@ const EmployeeDashboard = () => {
   const [rejectionReason, setRejectionReason] = useState('')
   const [customScheduleDate, setCustomScheduleDate] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
+  const [notificationType, setNotificationType] = useState('success') // 'success' or 'error'
 
-  const showNotification = (message) => {
+  // Custom Confirm Modal State
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false)
+  const [confirmConfig, setConfirmConfig] = useState({
+    title: '',
+    message: '',
+    onConfirm: () => { },
+    confirmText: 'Confirm',
+    type: 'primary' // 'primary', 'danger'
+  })
+
+  const openConfirm = (config) => {
+    setConfirmConfig({
+      title: config.title || 'Confirm Action',
+      message: config.message || 'Are you sure you want to proceed?',
+      onConfirm: () => {
+        config.onConfirm();
+        setIsConfirmModalOpen(false);
+      },
+      confirmText: config.confirmText || 'Yes, Proceed',
+      type: config.type || 'primary'
+    });
+    setIsConfirmModalOpen(true);
+  }
+
+  const showNotification = (message, type = 'success', farmerId = null, extraData = {}) => {
+    setNotificationType(type)
     setSuccessMessage(message)
-    setTimeout(() => setSuccessMessage(''), 3000)
+    setTimeout(() => setSuccessMessage(''), 4000)
+
+    // Bridge to Farmer Notifications if farmerId is provided
+    if (farmerId) {
+      const farmerNotifs = JSON.parse(localStorage.getItem('farmer_notifications') || '[]');
+      const newNotif = {
+        id: Date.now(),
+        farmerId: farmerId,
+        title: extraData.title || 'System Notification',
+        message: extraData.message || message,
+        type: type === 'success' ? 'success' : 'info',
+        date: new Date().toLocaleString(),
+        isRead: false
+      };
+      localStorage.setItem('farmer_notifications', JSON.stringify([newNotif, ...farmerNotifs]));
+    }
   }
 
   const [profileData, setProfileData] = useState({
@@ -110,108 +158,9 @@ const EmployeeDashboard = () => {
     fetchRealProfile();
   }, []);
 
-  const [farmerProducts, setFarmerProducts] = useState([
-    {
-      id: 1,
-      name: 'Mango',
-      batches: [
-        { id: 101, location: 'C03-R04 (Cold Storage A)', stock: '50 kg', receivedDate: '2025-09-20', expiry: '2025-09-30', daysUntilExpiry: 5, status: 'critical' },
-        { id: 102, location: 'C01-R02 (Cold Storage A)', stock: '35 kg', receivedDate: '2025-09-25', expiry: '2025-10-05', daysUntilExpiry: 10, status: 'good' }
-      ],
-      category: 'raw'
-    },
-    {
-      id: 2,
-      name: 'Pineapple',
-      batches: [
-        { id: 201, location: 'C02-R01 (Cold Storage B)', stock: '25 kg', receivedDate: '2025-09-18', expiry: '2025-10-15', daysUntilExpiry: 20, status: 'warning' }
-      ],
-      category: 'raw'
-    },
-    {
-      id: 3,
-      name: 'Papaya',
-      batches: [
-        { id: 301, location: 'C01-R03 (Cold Storage A)', stock: '90 kg', receivedDate: '2025-09-22', expiry: '2025-10-05', daysUntilExpiry: 10, status: 'good' }
-      ],
-      category: 'raw'
-    },
-    {
-      id: 4,
-      name: 'Passion Fruit',
-      batches: [
-        { id: 401, location: 'C03-R02 (Cold Storage B)', stock: '100 kg', receivedDate: '2025-09-21', expiry: '2025-10-08', daysUntilExpiry: 13, status: 'good' }
-      ],
-      category: 'raw'
-    }
-  ])
-
-  const [finishedProducts, setFinishedProducts] = useState([
-    {
-      id: 1,
-      name: 'Lime Mix',
-      category: 'processed',
-      batches: [
-        { id: 101, location: 'Finished Goods - Shelf A', batch: 'B202509', manufactured: '2025-09-01', bestBefore: '2026-11-01', quantity: 120, status: 'good' }
-      ]
-    },
-    {
-      id: 2,
-      name: 'Mango Jelly',
-      category: 'processed',
-      batches: [
-        { id: 201, location: 'Finished Goods - Shelf B', batch: 'B202508', manufactured: '2025-05-10', bestBefore: '2026-06-10', quantity: 50, status: 'warning' }
-      ]
-    },
-    {
-      id: 3,
-      name: 'Wood Apple Juice',
-      category: 'processed',
-      batches: [
-        { id: 301, location: 'Finished Goods - Shelf C', batch: 'B202507', manufactured: '2025-04-20', bestBefore: '2026-12-20', quantity: 80, status: 'unit-low' }
-      ]
-    },
-    {
-      id: 4,
-      name: 'Mango Cordial',
-      category: 'processed',
-      batches: [
-        { id: 401, location: 'Finished Goods - Shelf D', batch: 'B202510', manufactured: '2025-10-01', bestBefore: '2026-12-01', quantity: 200, status: 'good' }
-      ]
-    },
-    {
-      id: 5,
-      name: 'Passion Fruit Juice',
-      category: 'processed',
-      batches: [
-        { id: 501, location: 'Finished Goods - Shelf E', batch: 'B202511', manufactured: '2025-11-15', bestBefore: '2027-01-15', quantity: 45, status: 'unit-low' }
-      ]
-    },
-    {
-      id: 6,
-      name: 'Mixed Fruit Jam',
-      category: 'processed',
-      batches: [
-        { id: 601, location: 'Finished Goods - Shelf F', batch: 'B202512', manufactured: '2025-12-01', bestBefore: '2027-03-01', quantity: 15, status: 'unit-low' }
-      ]
-    },
-    {
-      id: 7,
-      name: 'Ginger Beer Extract',
-      category: 'processed',
-      batches: [
-        { id: 701, location: 'Finished Goods - Shelf G', batch: 'B202513', manufactured: '2026-01-10', bestBefore: '2027-05-10', quantity: 300, status: 'good' }
-      ]
-    },
-    {
-      id: 8,
-      name: 'Custard Powder',
-      category: 'processed',
-      batches: [
-        { id: 801, location: 'Finished Goods - Shelf H', batch: 'B202514', manufactured: '2026-02-05', bestBefore: '2027-06-05', quantity: 500, status: 'good' }
-      ]
-    }
-  ])
+  // Inventory state – loaded from DB on mount
+  const [farmerProducts, setFarmerProducts] = useState([])
+  const [finishedProducts, setFinishedProducts] = useState([])
 
   const [supplierApplications, setSupplierApplications] = useState([])
 
@@ -228,104 +177,185 @@ const EmployeeDashboard = () => {
     return () => clearInterval(interval)
   }, [])
 
-  // Generate dashboard alerts automatically
+  // Generate dashboard alerts automatically based on real inventory data
   useEffect(() => {
     const alerts = []
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
 
-    // 1. Check Farmer Products - Sum total stock per fruit type before alerting
+    // ─── 1. FARMER / RAW MATERIAL PRODUCTS ─────────────────────────────────
     farmerProducts.forEach(product => {
-      const totalStock = product.batches.reduce((sum, batch) => sum + parseInt(batch.stock), 0)
+      const totalStock = product.batches.reduce((sum, batch) => {
+        // batch.stock can be '50 kg' or a number string — parse numeric part
+        return sum + (parseInt(batch.stock) || 0)
+      }, 0)
 
-      // Check for expirations on individual batches (always critical)
+      // Per-batch expiry check
       product.batches.forEach(batch => {
-        if (batch.status === 'critical' && batch.daysUntilExpiry <= 5) {
+        let daysLeft
+        if (batch.daysUntilExpiry !== undefined) {
+          daysLeft = batch.daysUntilExpiry
+        } else {
+          if (!batch.expiry) return
+          const expiryDate = new Date(batch.expiry)
+          expiryDate.setHours(0, 0, 0, 0)
+          daysLeft = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24))
+        }
+
+        if (daysLeft < 0) {
           alerts.push({
-            id: `fp-expiry-${batch.id}`,
+            id: `fp-expired-${batch.id}`,
             type: 'danger',
             category: 'expiry',
             productType: 'raw',
-            heading: '⌛ EXPIRY ALERT: FARMER PRODUCT',
-            message: `${product.name} at ${batch.location} expires in ${batch.daysUntilExpiry} days (${batch.stock}).`,
+            heading: '🚨 EXPIRED: RAW MATERIAL',
+            message: `${product.name} batch at ${batch.location} EXPIRED ${Math.abs(daysLeft)} day(s) ago (${batch.stock}). Remove immediately.`,
+            targetTab: 'inventory'
+          })
+        } else if (daysLeft <= 5) {
+          alerts.push({
+            id: `fp-expiry-critical-${batch.id}`,
+            type: 'danger',
+            category: 'expiry',
+            productType: 'raw',
+            heading: '⌛ CRITICAL EXPIRY: RAW MATERIAL',
+            message: `${product.name} at ${batch.location} expires in ${daysLeft} day(s) (${batch.stock}). Use or dispose urgently.`,
             targetTab: 'inventory'
           })
         }
       })
 
-      // Check aggregated stock levels
-      if (totalStock < 50) {
+      // Aggregate stock level alerts for the product
+      if (totalStock === 0) {
         alerts.push({
-          id: `fp-total-crit-${product.id}`,
+          id: `fp-out-${product.id}`,
           type: 'danger',
-          category: 'critical',
+          category: 'low_stock',
           productType: 'raw',
-          heading: '🔴 CRITICAL TOTAL STOCK',
-          message: `Total ${product.name} stock is critically low: only ${totalStock} kg remaining across all locations.`,
+          heading: '🔴 OUT OF STOCK: RAW MATERIAL',
+          message: `${product.name} is completely out of stock. Immediate restocking required.`,
           targetTab: 'inventory'
         })
-      } else if (totalStock < 100) {
+      } else if (totalStock < 50) {
         alerts.push({
-          id: `fp-total-warn-${product.id}`,
-          type: 'warning',
-          category: 'warning',
+          id: `fp-crit-${product.id}`,
+          type: 'danger',
+          category: 'low_stock',
           productType: 'raw',
-          heading: '⚠️ LOW TOTAL STOCK',
-          message: `Total ${product.name} stock is low: ${totalStock} kg remaining. Consider reordering.`,
+          heading: '🔴 CRITICALLY LOW STOCK',
+          message: `${product.name}: only ${totalStock} kg remaining across all locations. Restock urgently.`,
           targetTab: 'inventory'
         })
       }
     })
 
-    // 2. Check Finished Products for low stock and expiry
+    // ─── 2. FINISHED / PROCESSED PRODUCTS ──────────────────────────────────
     finishedProducts.forEach(product => {
-      const totalUnits = product.batches.reduce((sum, b) => sum + parseInt(b.quantity), 0)
+      const totalUnits = product.batches.reduce((sum, b) => sum + (parseInt(b.quantity) || 0), 0)
 
-      // Expiry Alerts for each batch
+      // Per-batch best-before alerts with tiered thresholds
       product.batches.forEach(batch => {
-        const today = new Date();
-        const bbDate = new Date(batch.bestBefore);
-        const diffDays = Math.ceil((bbDate - today) / (1000 * 60 * 60 * 24));
+        if (!batch.bestBefore) return
+        const bbDate = new Date(batch.bestBefore)
+        bbDate.setHours(0, 0, 0, 0)
+        const diffDays = Math.ceil((bbDate - today) / (1000 * 60 * 60 * 24))
 
-        if (diffDays <= 5 && diffDays >= 0) {
+        if (diffDays < 0) {
+          alerts.push({
+            id: `gp-expired-${batch.id}`,
+            type: 'danger',
+            category: 'expiry',
+            productType: 'finished',
+            heading: '🚨 EXPIRED: FINISHED PRODUCT',
+            message: `${product.name} (Batch ${batch.batch}) EXPIRED ${Math.abs(diffDays)} day(s) ago. Remove from shelves immediately.`,
+            targetTab: 'inventory'
+          })
+        } else if (diffDays <= 30) {
           alerts.push({
             id: `gp-expiry-${batch.id}`,
             type: 'danger',
             category: 'expiry',
             productType: 'finished',
             heading: '⌛ BEST BEFORE ALERT',
-            message: `${product.name} (Batch ${batch.batch}) expires in ${diffDays} days.`,
+            message: `${product.name} (Batch ${batch.batch}) best before in ${diffDays} day(s) — ${batch.quantity} units at ${batch.location}.`,
+            targetTab: 'inventory'
+          })
+        } else if (diffDays <= 90) {
+          alerts.push({
+            id: `gp-expiry-warn-${batch.id}`,
+            type: 'warning',
+            category: 'expiry',
+            productType: 'finished',
+            heading: '⚠️ BEST BEFORE APPROACHING',
+            message: `${product.name} (Batch ${batch.batch}) best before in ${diffDays} days — plan sales or promotions.`,
             targetTab: 'inventory'
           })
         }
       })
 
-      // Aggregate Low Stock Alert for product
-      if (totalUnits < 50) {
+      // Aggregate unit stock alerts
+      if (totalUnits === 0) {
         alerts.push({
-          id: `gp-low-total-${product.id}`,
-          type: 'warning',
-          category: 'warning',
+          id: `gp-out-${product.id}`,
+          type: 'danger',
+          category: 'low_stock',
           productType: 'finished',
-          heading: '⚠️ CRITICAL LOW TOTAL STOCK',
-          message: `${product.name} total across all batches is low: ${totalUnits} units remaining.`,
+          heading: '🔴 OUT OF STOCK: FINISHED PRODUCT',
+          message: `${product.name} has zero units in stock. Production run needed immediately.`,
+          targetTab: 'inventory'
+        })
+      } else if (totalUnits < 15) {
+        alerts.push({
+          id: `gp-crit-${product.id}`,
+          type: 'danger',
+          category: 'low_stock',
+          productType: 'finished',
+          heading: '🔴 CRITICALLY LOW FINISHED STOCK',
+          message: `${product.name}: only ${totalUnits} units remaining across all batches. Schedule production immediately.`,
+          targetTab: 'inventory'
+        })
+      } else if (totalUnits < 50) {
+        alerts.push({
+          id: `gp-warn-${product.id}`,
+          type: 'warning',
+          category: 'low_stock',
+          productType: 'finished',
+          heading: '⚠️ LOW FINISHED STOCK',
+          message: `${product.name}: ${totalUnits} units remaining. Consider scheduling a production run soon.`,
           targetTab: 'inventory'
         })
       }
     })
 
-    // 3. Check for Pending Farmer Applications
+    // ─── 3. PENDING FARMER APPLICATIONS ────────────────────────────────────
     if (supplierApplications && supplierApplications.length > 0) {
       alerts.push({
         id: 'application-notification',
         type: 'info',
         category: 'application',
+        productType: 'other',
         heading: '📢 PENDING FARMER APPLICATIONS',
-        message: `You have ${supplierApplications.length} new supplier applications waiting for review and approval.`,
+        message: `${supplierApplications.length} supplier application(s) waiting for review and approval.`,
         targetTab: 'suppliers'
       })
     }
 
-    setDashboardAlerts(alerts)
-  }, [farmerProducts, finishedProducts, supplierApplications])
+    setDashboardAlerts(alerts.filter(a => !dismissedAlertIds.includes(a.id)))
+  }, [farmerProducts, finishedProducts, supplierApplications, dismissedAlertIds])
+
+  const dismissAlert = (alertId) => {
+    const updated = [...dismissedAlertIds, alertId]
+    setDismissedAlertIds(updated)
+    localStorage.setItem('emp_dismissed_alerts', JSON.stringify(updated))
+  }
+
+  const clearAllAlerts = () => {
+    const allIds = dashboardAlerts.map(a => a.id)
+    const updated = [...dismissedAlertIds, ...allIds]
+    setDismissedAlertIds(updated)
+    localStorage.setItem('emp_dismissed_alerts', JSON.stringify(updated))
+    setIsNotiDropdownOpen(false)
+  }
 
   // New state for Add Batch
   const [isAddBatchModalOpen, setIsAddBatchModalOpen] = useState(false)
@@ -347,22 +377,22 @@ const EmployeeDashboard = () => {
     return farmerProducts
       .filter(p => {
         const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase())
-        const matchesCategory = !categoryFilter || p.category === categoryFilter
-        const totalStock = p.batches.reduce((sum, b) => sum + parseInt(b.stock), 0)
+        // Remove strict category filter check for raw inventory to ensure items show up
+        const totalStock = p.batches.reduce((sum, b) => sum + (parseFloat(b.stockVal) || 0), 0)
 
         let matchesStatus = true
-        if (statusFilter === 'in-stock') matchesStatus = totalStock >= 100
-        if (statusFilter === 'low-stock') matchesStatus = totalStock < 100 && totalStock > 0
+        if (statusFilter === 'in-stock') matchesStatus = totalStock > 0
+        if (statusFilter === 'low-stock') matchesStatus = totalStock < 50 && totalStock > 0
         if (statusFilter === 'out-of-stock') matchesStatus = totalStock === 0
 
-        return matchesSearch && matchesCategory && matchesStatus
+        return matchesSearch && matchesStatus
       })
       .sort((a, b) => {
         if (sortFilter === 'name-asc') return a.name.localeCompare(b.name)
         if (sortFilter === 'name-desc') return b.name.localeCompare(a.name)
 
-        const totalA = a.batches.reduce((sum, b) => sum + parseInt(b.stock), 0)
-        const totalB = b.batches.reduce((sum, b) => sum + parseInt(b.stock), 0)
+        const totalA = a.batches.reduce((sum, b) => sum + (parseFloat(b.stockVal) || 0), 0)
+        const totalB = b.batches.reduce((sum, b) => sum + (parseFloat(b.stockVal) || 0), 0)
 
         if (sortFilter === 'low-stock-priority') {
           // Priority: Critical (3) > Warning (2) > Good (1)
@@ -384,22 +414,22 @@ const EmployeeDashboard = () => {
     return finishedProducts
       .filter(p => {
         const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase())
-        const matchesCategory = !categoryFilter || p.category === categoryFilter
-        const totalUnits = p.batches.reduce((sum, b) => sum + parseInt(b.quantity), 0)
+        // Remove strict category filter check for finished inventory to ensure items show up
+        const totalUnits = p.batches.reduce((sum, b) => sum + (parseFloat(b.stockVal) || 0), 0)
 
         let matchesStatus = true
-        if (statusFilter === 'in-stock') matchesStatus = totalUnits >= 100
-        if (statusFilter === 'low-stock') matchesStatus = totalUnits < 100 && totalUnits > 0
+        if (statusFilter === 'in-stock') matchesStatus = totalUnits >= 50
+        if (statusFilter === 'low-stock') matchesStatus = totalUnits < 50 && totalUnits > 0
         if (statusFilter === 'out-of-stock') matchesStatus = totalUnits === 0
 
-        return matchesSearch && matchesCategory && matchesStatus
+        return matchesSearch && matchesStatus
       })
       .sort((a, b) => {
         if (sortFilter === 'name-asc') return a.name.localeCompare(b.name)
         if (sortFilter === 'name-desc') return b.name.localeCompare(a.name)
 
-        const totalA = a.batches.reduce((sum, b) => sum + parseInt(b.quantity), 0)
-        const totalB = b.batches.reduce((sum, b) => sum + parseInt(b.quantity), 0)
+        const totalA = a.batches.reduce((sum, b) => sum + (parseFloat(b.stockVal) || 0), 0)
+        const totalB = b.batches.reduce((sum, b) => sum + (parseFloat(b.stockVal) || 0), 0)
 
         if (sortFilter === 'low-stock-priority') {
           const getPriority = (batches) => {
@@ -408,7 +438,7 @@ const EmployeeDashboard = () => {
               const diffDays = Math.ceil((bbDate - new Date()) / (1000 * 60 * 60 * 24));
               return diffDays <= 90;
             })) return 3;
-            if (batches.some(b => b.quantity < 50)) return 2;
+            if (batches.some(b => (b.stockVal || 0) < 50)) return 2;
             return 1;
           }
           return getPriority(b.batches) - getPriority(a.batches) || totalA - totalB
@@ -421,26 +451,36 @@ const EmployeeDashboard = () => {
   }, [finishedProducts, searchTerm, categoryFilter, statusFilter, sortFilter])
 
   const filteredApplications = useMemo(() => {
-    return supplierApplications
+    return (supplierApplications || [])
       .filter(app => {
-        // Show only pending (under-review) applications in this dashboard
-        if (app.status !== 'under-review') return false
+        // Show pending (under-review) applications
+        const isUnderReview = app.status === 'under-review' || app.status_id === 1;
+        if (!isUnderReview) return false
 
         const pName = app.farmerName || '';
         const prod = app.product || '';
 
         const matchesSearch = pName.toLowerCase().includes(searchTerm.toLowerCase()) ||
           prod.toLowerCase().includes(searchTerm.toLowerCase())
-        const matchesCategory = !categoryFilter || app.category === categoryFilter
+        
+        // Relax category filter if it's causing issues (many items have null/raw category)
+        const matchesCategory = !categoryFilter || 
+          (app.category && app.category.toLowerCase() === categoryFilter.toLowerCase()) ||
+          (!app.category && categoryFilter === 'raw');
+        
+        // Timeframe filter logic
+        let matchesTimeframe = true
+        if (timeframeFilter !== 'all') {
+          const subDate = new Date(app.submitted || app.date)
+          const now = new Date()
+          const diffDays = (now - subDate) / (1000 * 60 * 60 * 24)
+          
+          if (timeframeFilter === 'today') matchesTimeframe = diffDays < 1
+          else if (timeframeFilter === 'week') matchesTimeframe = diffDays < 7
+          else if (timeframeFilter === 'month') matchesTimeframe = diffDays < 30
+        }
 
-        // Use Status Filter for Quality Grade mapping
-        const grade = app.qualityGrade || app.grade || '';
-        let matchesStatus = true
-        if (statusFilter === 'in-stock') matchesStatus = grade === 'Grade A'
-        if (statusFilter === 'low-stock') matchesStatus = grade === 'Grade B'
-        if (statusFilter === 'out-of-stock') matchesStatus = grade === 'Grade C'
-
-        return matchesSearch && matchesCategory && matchesStatus
+        return matchesSearch && matchesCategory && matchesTimeframe
       })
       .sort((a, b) => {
 
@@ -476,100 +516,126 @@ const EmployeeDashboard = () => {
   }, [supplierApplications, searchTerm, categoryFilter, statusFilter, sortFilter])
 
 
-  const [orders, setOrders] = useState(() => {
-    const saved = localStorage.getItem('order_list')
-    if (saved) return JSON.parse(saved)
-    return [
-      {
-        id: 'O001',
-        customer: 'Asoka Perera',
-        address: '123 Main Street, Colombo',
-        phone: '+94 71 234 5678',
-        items: '15x Fresh Mango Cordial (Wholesale Discount Applied)',
-        total: 3375.00,
-        payment: 'Completed',
-        status: 'Ready',
-        date: 'Sept 20, 2025'
-      },
-      {
-        id: 'O003',
-        customer: 'Sarah Wilson',
-        address: '45 Lake View Road, Kandy',
-        phone: '+94 77 987 6543',
-        items: '8x Mixed Jam Collection',
-        total: 2400.00,
-        payment: 'Pending',
-        status: 'Hold',
-        date: 'Sept 21, 2025'
-      },
-      {
-        id: 'O004',
-        customer: 'ABC Restaurant',
-        address: 'Restaurant Row, Galle Road, Colombo',
-        phone: '+94 11 555 1234',
-        items: '25x Chili Sauce (Bulk Order - 10% Discount)',
-        total: 4500.00,
-        payment: 'Completed',
-        status: 'Ready',
-        date: 'Sept 22, 2025'
-      },
-      {
-        id: 'O005',
-        customer: 'Nimali Siriwardena',
-        address: '89 Kandy Road, Kiribathgoda',
-        phone: '+94 77 123 4455',
-        items: '5x Mango Jelly, 2x Wood Apple Juice',
-        total: 1200.00,
-        payment: 'Completed',
-        status: 'Completed',
-        date: 'Sept 15, 2025'
-      },
-      {
-        id: 'O006',
-        customer: 'Kamal Gunaratne',
-        address: '12 Temple Road, Negombo',
-        phone: '+94 71 888 2233',
-        items: '12x Lime Mix (Wholesale)',
-        total: 1620.00,
-        payment: 'Completed',
-        status: 'Completed',
-        date: 'Sept 16, 2025'
-      },
-      {
-        id: 'O007',
-        customer: 'Sunethra Jayawardena',
-        address: '45/1 Flower Road, Colombo 07',
-        phone: '+94 76 555 9900',
-        items: '10x Passion Fruit Juice',
-        total: 2500.00,
-        payment: 'Completed',
-        status: 'Completed',
-        date: 'Sept 17, 2025'
-      },
-      {
-        id: 'O008',
-        customer: 'Priyantha Perera',
-        address: '67 Circular Road, Kurunegala',
-        phone: '+94 70 333 4444',
-        items: '20x Mixed Fruit Jam',
-        total: 4800.00,
-        payment: 'Completed',
-        status: 'Completed',
-        date: 'Sept 18, 2025'
-      },
-      {
-        id: 'O009',
-        customer: 'Dilini Silva',
-        address: 'B2 Galle Face Terrace, Colombo 03',
-        phone: '+94 72 111 2222',
-        items: '3x Ginger Beer Extract, 5x Lime Mix',
-        total: 1850.00,
-        payment: 'Completed',
-        status: 'Completed',
-        date: 'Sept 19, 2025'
+  const [orders, setOrders] = useState([])
+  const [users, setUsers] = useState([])
+
+  const fetchOrders = async () => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch(`${config.API_BASE_URL}/orders/all`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const formattedOrders = data.orders.map(o => ({
+          id: o.order_id.toString(),
+          refNo: o.order_number,
+          customer: o.customer_name,
+          address: o.delivery_address || 'N/A',
+          phone: o.phone || 'N/A',
+          items: o.product_summary || 'No items listed',
+          total: parseFloat(o.net_amount),
+          payment: o.payment_status,
+          method: o.payment_method,
+          status: o.order_status,
+          date: new Date(o.order_date).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric'
+          })
+        }));
+        setOrders(formattedOrders);
       }
-    ]
-  })
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+    }
+  };
+  
+  const fetchUsers = async () => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      if (!token) {
+        showNotification('Session expired. Please log in again.', 'error');
+        setTimeout(() => navigate('/login'), 2000);
+        return;
+      }
+
+      const response = await fetch(`${config.API_BASE_URL}/employee/users`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      const data = await response.json();
+      console.log('User fetch detail:', { status: response.status, data });
+
+      if (response.ok && (data.users || data.data)) {
+        setUsers(data.users || data.data || []);
+      } else {
+        const errMsg = data.message || 'Failed to fetch users.';
+        console.error('Failed to fetch users:', errMsg);
+        showNotification(errMsg, 'error');
+
+        if (response.status === 401) {
+          localStorage.removeItem('token');
+          sessionStorage.removeItem('token');
+          setTimeout(() => navigate('/login'), 2500);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      showNotification('Connection error while loading users.', 'error');
+    }
+  };
+
+  const handleUpdateUserStatus = async (userId, newStatus) => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+
+      if (!token) {
+        showNotification('Session expired. Please log in again.', 'error');
+        setTimeout(() => navigate('/login'), 2000);
+        return;
+      }
+
+      const response = await fetch(`${config.API_BASE_URL}/employee/users/${userId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (response.ok) {
+        showNotification(`User status updated to ${newStatus}`);
+        fetchUsers();
+      } else {
+        // Parse error message from backend
+        let errMsg = 'Failed to update user status.';
+        try {
+          const errData = await response.json();
+          errMsg = errData.message || errMsg;
+        } catch (_) { /* ignore parse errors */ }
+
+        showNotification(errMsg, 'error');
+
+        // If token is invalid/expired, redirect to login
+        if (response.status === 401) {
+          localStorage.removeItem('token');
+          sessionStorage.removeItem('token');
+          setTimeout(() => navigate('/login'), 2500);
+        }
+      }
+    } catch (error) {
+      console.error('Error updating status:', error);
+      showNotification('Connection error. Please try again.', 'error');
+    }
+  };
+
 
   const [isPackingSlipOpen, setIsPackingSlipOpen] = useState(false)
 
@@ -579,27 +645,151 @@ const EmployeeDashboard = () => {
     setIsPackingSlipOpen(true)
   }
 
-  const updateOrderStatus = (orderId, newStatus) => {
-    const updated = orders.map(o =>
-      o.id === orderId ? { ...o, status: newStatus } : o
-    )
-    setOrders(updated)
-    localStorage.setItem('order_list', JSON.stringify(updated))
+  const updateOrderStatus = async (orderId, newStatus) => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      if (!token) return;
 
-    // If selecting order being viewed in modal, update it
-    if (selectedOrder && selectedOrder.id === orderId) {
-      setSelectedOrder({ ...selectedOrder, status: newStatus })
+      const response = await fetch(`${config.API_BASE_URL}/orders/${orderId}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (response.ok) {
+        showNotification(`Order #${orderId} status updated to ${newStatus}`);
+        fetchOrders(); // Refresh the list
+        
+        if (selectedOrder && selectedOrder.id === orderId) {
+          setSelectedOrder(prev => ({ ...prev, status: newStatus }));
+        }
+
+        if (newStatus === 'Delivered') {
+          setIsPackingSlipOpen(false);
+        }
+      } else {
+        showNotification('Failed to update status', 'error');
+      }
+    } catch (error) {
+      console.error('Error updating order status:', error);
+      showNotification('Connection error', 'error');
     }
+  };
 
-    if (newStatus === 'Completed') {
-      showNotification(`Order #${orderId} fulfilled successfully!`)
-      setIsPackingSlipOpen(false)
-    } else {
-      showNotification(`Order #${orderId} status: ${newStatus}`)
+  const togglePaymentStatus = async (orderId) => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const order = orders.find(o => o.id === orderId);
+      if (!order || !token) return;
+
+      const newStatus = order.payment.toLowerCase() === 'paid' ? 'unpaid' : 'paid';
+
+      const response = await fetch(`${config.API_BASE_URL}/orders/${orderId}/payment`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+
+      if (response.ok) {
+        showNotification(`Payment for #${orderId} marked as ${newStatus}`);
+        fetchOrders();
+        if (selectedOrder && selectedOrder.id === orderId) {
+          setSelectedOrder(prev => ({ ...prev, payment: newStatus.charAt(0).toUpperCase() + newStatus.slice(1) }));
+        }
+      } else {
+        showNotification('Failed to update payment', 'error');
+      }
+    } catch (error) {
+      console.error('Error updating payment:', error);
+      showNotification('Connection error', 'error');
     }
-  }
+  };
+  // Fetch inventory from database (inventory_raw + inventory_finished)
+  const fetchInventoryFromDB = async () => {
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      if (!token) return;
 
-  const [deliveries, setDeliveries] = useState([])
+      const res = await fetch(`${config.API_BASE_URL}/employee/inventory`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      console.log('Frontend fetchInventoryFromDB received:', data);
+      
+      if (!data.success) {
+        console.warn('Inventory fetch success: false', data.message);
+        return;
+      }
+
+      // ── Group raw rows into product → batches[] ──────────────────────
+      const rawMap = {};
+      (data.raw || []).forEach(item => {
+        const name = item.material_name || `Item #${item.raw_inventory_id}`;
+        if (!rawMap[name]) {
+          rawMap[name] = { id: item.raw_inventory_id, name, category: 'raw', batches: [] };
+        }
+        const expDate = item.expiry_date ? new Date(item.expiry_date) : null;
+        const today   = new Date(); today.setHours(0,0,0,0);
+        const daysUntilExpiry = expDate
+          ? Math.ceil((expDate - today) / (1000 * 60 * 60 * 24))
+          : 999;
+        const stockNum = parseFloat(item.quantity_units) || 0;
+        const unit     = item.unit_name || 'kg';
+
+        rawMap[name].batches.push({
+          id:             item.raw_inventory_id,
+          location:       item.storage_location || 'Unknown',
+          stock:          `${stockNum.toFixed(2)} ${unit}`,
+          stockVal:       stockNum,
+          receivedDate:   item.received_date
+            ? new Date(item.received_date).toISOString().split('T')[0]
+            : '—',
+          expiry: expDate ? expDate.toISOString().split('T')[0] : '—',
+          daysUntilExpiry,
+          status: daysUntilExpiry <= 5 ? 'critical'
+            : daysUntilExpiry <= 14 ? 'warning' : 'good'
+        });
+      });
+      const finalFarmerProducts = Object.values(rawMap);
+      console.log('Final grouped farmer products:', finalFarmerProducts.length);
+      setFarmerProducts(finalFarmerProducts);
+
+      // ── Group finished rows into product → batches[] ─────────────────
+      const finMap = {};
+      (data.finished || []).forEach(item => {
+        const name = item.name || `Product #${item.finished_inventory_id}`;
+        if (!finMap[name]) {
+          finMap[name] = { id: item.finished_inventory_id, name, category: (item.category || 'processed').toLowerCase(), batches: [] };
+        }
+        finMap[name].batches.push({
+          id:           item.finished_inventory_id,
+          location:     item.storage_location || 'Finished Goods',
+          batch:        item.batch_number || `B${new Date().getFullYear()}`,
+          manufactured: item.manufactured_date
+            ? new Date(item.manufactured_date).toISOString().split('T')[0]
+            : '—',
+          bestBefore:   item.expiry_date
+            ? new Date(item.expiry_date).toISOString().split('T')[0]
+            : '—',
+          quantity:     Number(item.quantity_units) || 0,
+          stockVal:     Number(item.quantity_units) || 0,
+          status:       'good'
+        });
+      });
+      const finalFinishedProducts = Object.values(finMap);
+      console.log('Final grouped finished products:', finalFinishedProducts.length);
+      setFinishedProducts(finalFinishedProducts);
+      setFinishedProducts(Object.values(finMap));
+    } catch (err) {
+      console.error('Error fetching inventory from DB:', err);
+    }
+  };
 
   // Fetch supplier applications from database
   const fetchSupplierApplications = async () => {
@@ -615,24 +805,37 @@ const EmployeeDashboard = () => {
 
       if (response.ok) {
         const data = await response.json();
-        const formattedApplications = data.applications.map(app => ({
-          id: app.submission_id || app.id,
-          farmerName: app.farmer_name,
-          product: `${app.product_name} - ${app.grade || 'N/A'}`,
-          quantity: `${app.quantity}${app.unit || 'kg'}`,
-          price: app.custom_price ? `LKR ${app.custom_price}/kg` : 'N/A',
-          harvestDate: app.harvest_date ? new Date(app.harvest_date).toISOString().split('T')[0] : '',
-          qualityGrade: app.grade || 'N/A',
-          license: app.license || 'N/A',
-          submitted: app.created_at ? new Date(app.created_at).toISOString().split('T')[0] : '',
-          transport: app.transport_method || app.transport || 'N/A',
-          date: app.delivery_date ? new Date(app.delivery_date).toISOString().split('T')[0] : '',
-          proposedDate2: app.proposed_date_2 ? new Date(app.proposed_date_2).toISOString().split('T')[0] : '',
-          proposedDate3: app.proposed_date_3 ? new Date(app.proposed_date_3).toISOString().split('T')[0] : '',
-          images: app.images || [],
-          category: app.category || 'raw',
-          status: app.status || 'under-review'
-        }));
+        const appsRaw = data.applications || [];
+        const formattedApplications = appsRaw.map(app => {
+          // Robust image parsing for JSON columns
+          let parsedImages = [];
+          try {
+            if (Array.isArray(app.images)) {
+              parsedImages = app.images;
+            } else if (typeof app.images === 'string') {
+              parsedImages = JSON.parse(app.images);
+            }
+          } catch (e) {
+            console.error('Error parsing application images:', e);
+            parsedImages = [];
+          }
+
+          return {
+            ...app,
+            id: app.id,
+            farmerName: app.farmerName,
+            product: app.product,
+            quantity: `${app.quantity} ${app.unit || 'kg'}`,
+            price: app.price ? `LKR ${app.price}/kg` : 'N/A',
+            harvestDate: app.harvest_date ? new Date(app.harvest_date).toISOString().split('T')[0] : '—',
+            submitted: app.submitted ? new Date(app.submitted).toISOString().split('T')[0] : '—',
+            transport: app.transport || 'N/A',
+            date: app.date ? new Date(app.date).toISOString().split('T')[0] : '—',
+            images: parsedImages,
+            category: app.category || 'raw',
+            status: app.status || 'under-review'
+          };
+        });
         setSupplierApplications(formattedApplications);
         // Backup to localStorage
         localStorage.setItem('supplier_applications', JSON.stringify(formattedApplications));
@@ -661,17 +864,23 @@ const EmployeeDashboard = () => {
 
       if (response.ok) {
         const data = await response.json();
+        console.log('API Deliveries raw data:', data);
         const formattedDeliveries = data.deliveries.map(del => ({
           id: del.delivery_id || del.id,
           farmer: del.farmer_name,
-          product: `${del.product_name} - ${del.grade || 'N/A'}`,
+          product: del.product_name,
           quantity: `${del.quantity}${del.unit || 'kg'}`,
-          proposedDate: del.delivery_date ? new Date(del.delivery_date).toISOString().split('T')[0] : '',
-          scheduleDate: del.scheduled_date ? new Date(del.scheduled_date).toISOString().split('T')[0] : '-',
+          quantityVal: del.quantity,
+          price_per_unit: del.custom_price || 0,
+          proposedDate: del.delivery_date ? new Date(del.delivery_date).toISOString().split('T')[0] : 
+                        (del.final_delivery_date ? new Date(del.final_delivery_date).toISOString().split('T')[0] : ''),
+          scheduleDate: del.scheduled_date ? new Date(del.scheduled_date).toISOString().split('T')[0] : 
+                        (del.final_delivery_date ? new Date(del.final_delivery_date).toISOString().split('T')[0] : '-'),
           transport: del.transport_method || 'N/A',
           status: del.status || 'pending',
           proposed_reschedule_date: del.proposed_reschedule_date ? new Date(del.proposed_reschedule_date).toISOString().split('T')[0] : null
         }));
+        console.log('Formatted Deliveries:', formattedDeliveries);
         setDeliveries(formattedDeliveries);
         // Backup to localStorage
         localStorage.setItem('delivery_list', JSON.stringify(formattedDeliveries));
@@ -688,8 +897,11 @@ const EmployeeDashboard = () => {
 
   // Fetch data on component mount
   useEffect(() => {
+    fetchInventoryFromDB();
     fetchSupplierApplications();
     fetchDeliveries();
+    fetchOrders();
+    fetchUsers();
   }, []);
 
   // Auto-save to localStorage as backup
@@ -701,6 +913,14 @@ const EmployeeDashboard = () => {
 
   const showTab = (tabName) => {
     setActiveTab(tabName)
+    
+    // Refresh data if switching to specific tabs
+    if (tabName === 'inventory') fetchInventoryFromDB();
+    if (tabName === 'users') fetchUsers();
+    if (tabName === 'orders') fetchOrders();
+    if (tabName === 'deliveries') fetchDeliveries();
+    if (tabName === 'suppliers') fetchSupplierApplications();
+
     // Automated scroll to section when tab is changed
     setTimeout(() => {
       let sectionId = '';
@@ -709,6 +929,7 @@ const EmployeeDashboard = () => {
         case 'suppliers': sectionId = 'supplier-applications'; break;
         case 'orders': sectionId = 'order-management'; break;
         case 'deliveries': sectionId = 'delivery-schedule'; break;
+        case 'users': sectionId = 'user-management'; break;
         default: sectionId = '';
       }
 
@@ -772,9 +993,15 @@ const EmployeeDashboard = () => {
       if (response.ok) {
         setIsApproveModalOpen(false)
         if (isUsingFarmerDate) {
-          showNotification(`Application approved with farmer's proposed date!`)
+          showNotification(`Application approved with farmer's proposed date!`, 'success', selectedApp.farmer_id || selectedApp.farmerId, {
+            title: 'Application Approved',
+            message: `Your harvest submission for ${selectedApp.product_name || selectedApp.productName} has been approved for ${customScheduleDate}.`
+          })
         } else {
-          showNotification(`Application approved with reschedule date. Waiting for farmer confirmation.`)
+          showNotification(`Application approved with reschedule date.`, 'info', selectedApp.farmer_id || selectedApp.farmerId, {
+            title: 'Application Rescheduled',
+            message: `Your harvest submission for ${selectedApp.product_name || selectedApp.productName} was rescheduled to ${customScheduleDate}.`
+          })
         }
         setSelectedApp(null)
 
@@ -783,11 +1010,11 @@ const EmployeeDashboard = () => {
         fetchDeliveries();
       } else {
         const data = await response.json();
-        alert(data.message || 'Failed to approve application');
+        showNotification(data.message || 'Failed to approve application', 'error');
       }
     } catch (error) {
       console.error('Error approving application:', error);
-      alert('Connection error. Please try again.');
+      showNotification('Connection error. Please try again.', 'error');
     }
   }
 
@@ -801,7 +1028,7 @@ const EmployeeDashboard = () => {
 
   const handleConfirmReject = async () => {
     if (!selectedApp || !rejectionReason.trim()) {
-      alert('Please provide a reason for rejection.');
+      showNotification('Please provide a reason for rejection.', 'error');
       return;
     }
 
@@ -834,11 +1061,11 @@ const EmployeeDashboard = () => {
         fetchSupplierApplications();
       } else {
         const data = await response.json();
-        alert(data.message || 'Failed to reject application');
+        showNotification(data.message || 'Failed to reject application', 'error');
       }
     } catch (error) {
       console.error('Error rejecting application:', error);
-      alert('Connection error. Please try again.');
+      showNotification('Connection error. Please try again.', 'error');
     }
   }
 
@@ -852,7 +1079,7 @@ const EmployeeDashboard = () => {
 
   const confirmDeliverySchedule = () => {
     if (currentDelivery) {
-      alert(`Delivery schedule confirmed!\n\nDelivery ID: ${currentDelivery.id}\n\nThe farmer has been notified. The delivery is now confirmed and scheduled for pickup/delivery.`)
+      showNotification(`Delivery schedule confirmed for ID: ${currentDelivery.id}`)
 
       setDeliveries(prev => prev.map(d =>
         d.id === currentDelivery.id
@@ -896,11 +1123,11 @@ const EmployeeDashboard = () => {
             fetchDeliveries();
           } else {
             const data = await response.json();
-            alert(data.message || 'Failed to update schedule');
+            showNotification(data.message || 'Failed to update schedule', 'error');
           }
         } catch (error) {
           console.error('Error updating schedule:', error);
-          alert('Connection error. Please try again.');
+          showNotification('Connection error. Please try again.', 'error');
         }
       }
     }
@@ -922,8 +1149,7 @@ const EmployeeDashboard = () => {
     localStorage.setItem('employee_notifications', JSON.stringify(updatedNotifications))
 
     setNotifications(prev => prev.filter(n => n.id !== notification.id))
-
-    alert(`✅ Reschedule approved!\n\nDelivery ${notification.deliveryId} has been rescheduled to ${notification.newDate}\nFarmer will be notified.`)
+    showNotification(`Reschedule approved for delivery ${notification.deliveryId}`);
   }
 
   const handleRejectReschedule = (notification) => {
@@ -936,19 +1162,22 @@ const EmployeeDashboard = () => {
       localStorage.setItem('employee_notifications', JSON.stringify(updatedNotifications))
 
       setNotifications(prev => prev.filter(n => n.id !== notification.id))
-
-      alert(`❌ Reschedule rejected!\n\nDelivery ${notification.deliveryId} will keep original date.\nFarmer will be notified with reason.`)
+      showNotification(`Reschedule rejected for delivery ${notification.deliveryId}`, 'error');
     }
   }
 
   const acceptDate = (deliveryId) => {
-    if (window.confirm(`Accept the scheduled date for delivery ${deliveryId}?`)) {
-      alert(`✅ Schedule date accepted!\n\nDelivery ID: ${deliveryId}\n\nThe farmer has been notified that the delivery date is confirmed and accepted.`)
-
-      setDeliveries(prev => prev.map(d =>
-        d.id === deliveryId ? { ...d, status: 'completed' } : d
-      ))
-    }
+    openConfirm({
+      title: 'Accept Schedule Date',
+      message: `Confirm accepting the scheduled date for delivery ${deliveryId}? Farmer will be notified.`,
+      confirmText: 'Yes, Accept Date',
+      onConfirm: () => {
+        showNotification(`Schedule date accepted for Delivery ID: ${deliveryId}`)
+        setDeliveries(prev => prev.map(d =>
+          d.id === deliveryId ? { ...d, status: 'completed' } : d
+        ))
+      }
+    });
   }
 
   const rescheduleDelivery = async (deliveryId) => {
@@ -957,7 +1186,7 @@ const EmployeeDashboard = () => {
       try {
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
         if (!token) {
-          alert('Authentication required');
+          showNotification('Authentication required', 'error');
           return;
         }
 
@@ -974,17 +1203,16 @@ const EmployeeDashboard = () => {
         });
 
         if (response.ok) {
-          alert(`📅 Delivery rescheduled!\n\nDelivery ID: ${deliveryId}\nNew Date: ${newDate}\n\nThe farmer has been notified of the new delivery date.`)
-
+          showNotification(`Delivery ${deliveryId} rescheduled to ${newDate}`);
           // Refresh deliveries from database
           fetchDeliveries();
         } else {
           const data = await response.json();
-          alert(data.message || 'Failed to reschedule delivery');
+          showNotification(data.message || 'Failed to reschedule delivery', 'error');
         }
       } catch (error) {
         console.error('Error rescheduling delivery:', error);
-        alert('Connection error. Please try again.');
+        showNotification('Connection error. Please try again.', 'error');
       }
     }
   }
@@ -1012,7 +1240,7 @@ const EmployeeDashboard = () => {
         ]
       }
       setFarmerProducts(prev => [...prev, newProduct])
-      alert(`✅ New inventory item added!\n\nProduct: ${productName}\nBatch Location: ${location}\nQuantity: ${quantity}\nExpiry: ${expiryDate}`)
+      showNotification(`New inventory item added: ${productName}`)
     }
   }
 
@@ -1035,7 +1263,7 @@ const EmployeeDashboard = () => {
         status: 'good'
       }
       setFinishedProducts(prev => [...prev, newProduct])
-      alert(`✅ New inventory item added!\n\nProduct: ${productName}\nQuantity: ${quantity}\nLocation: ${location}\nExpiry: ${expiryDate}\nManufactured: ${manufacturingDate}`)
+      showNotification(`New inventory item added: ${productName}`)
     }
   }
 
@@ -1066,11 +1294,11 @@ const EmployeeDashboard = () => {
   const saveProfile = () => {
     if (!profileData.firstName || !profileData.lastName || !profileData.email ||
       !profileData.phone || !profileData.address || !profileData.city || !profileData.postalCode) {
-      alert('Please fill in all required fields marked with *')
+      showNotification('Please fill in all required fields marked with *', 'error')
       return
     }
 
-    alert('Profile updated successfully!\n\nYour changes have been saved.')
+    showNotification('Profile updated successfully!')
     setIsEditProfileOpen(false)
   }
 
@@ -1087,143 +1315,139 @@ const EmployeeDashboard = () => {
     setIsUpdateStockOpen(true)
   }
 
-  const handleStockUpdate = (adjustmentType) => {
+  const handleStockUpdate = async (adjustmentType) => {
     const amount = parseInt(updateAmount)
     if (isNaN(amount) || amount <= 0) {
-      alert('Please enter a valid positive number.')
+      showNotification('Please enter a valid positive number.', 'error')
       return
     }
 
     const finalAdjustment = adjustmentType === 'add' ? amount : -amount
+    const newQuantity = Math.max(0, updatingItem.currentQty + finalAdjustment)
 
-    if (updatingItem.type === 'farmer') {
-      setFarmerProducts(prev => prev.map(p => {
-        if (p.id === updatingItem.productId) {
-          return {
-            ...p,
-            batches: p.batches.map(b => {
-              if (b.id === updatingItem.batchId) {
-                const newStock = Math.max(0, parseInt(b.stock) + finalAdjustment)
-                return { ...b, stock: `${newStock} kg` }
-              }
-              return b
-            })
-          }
-        }
-        return p
-      }))
-    } else if (updatingItem.type === 'finished') {
-      setFinishedProducts(prev => prev.map(p => {
-        if (p.id === updatingItem.productId) {
-          return {
-            ...p,
-            batches: p.batches.map(b => {
-              if (b.id === updatingItem.batchId) {
-                const newQty = Math.max(0, b.quantity + finalAdjustment)
-                return { ...b, quantity: newQty }
-              }
-              return b
-            })
-          }
-        }
-        return p
-      }))
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const response = await fetch(`${config.API_BASE_URL}/employee/inventory/${updatingItem.batchId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          quantity: newQuantity,
+          location: updatingItem.location || 'Warehouse',
+          type: updatingItem.type === 'farmer' ? 'raw' : 'finished'
+        })
+      });
+
+      if (response.ok) {
+        showNotification(`Successfully updated ${adjustmentType === 'add' ? 'added' : 'reduced'} ${amount} ${updatingItem.unit} for ${updatingItem.productName}`)
+        fetchInventoryFromDB();
+        setIsUpdateStockOpen(false)
+      } else {
+        showNotification('Failed to update stock in database', 'error')
+      }
+    } catch (error) {
+      console.error('Update stock error:', error);
+      showNotification('Connection error during update', 'error')
     }
-
-    setIsUpdateStockOpen(false)
-    alert(`Successfully ${adjustmentType === 'add' ? 'added' : 'reduced'} ${amount} ${updatingItem.unit} for ${updatingItem.productName}`)
   }
 
-  const handleAddFinishedBatch = (e) => {
+  const handleAddFinishedBatch = async (e) => {
     e.preventDefault()
 
-    if (updatingItem.type === 'farmer') {
-      // === FARMER PRODUCT BATCH HANDLING ===
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      
       if (batchUpdateMode === 'new') {
-        // Add a brand-new delivery batch under this farmer product
-        const newBatch = {
-          id: Date.now(),
-          location: addBatchData.location,
-          stock: `${addBatchData.quantity} kg`,
-          receivedDate: addBatchData.manufactured,  // 'manufactured' field reused for Received date
-          expiry: addBatchData.bestBefore,
-          daysUntilExpiry: Math.ceil((new Date(addBatchData.bestBefore) - new Date()) / (1000 * 60 * 60 * 24)),
-          status: 'good'
-        }
-        setFarmerProducts(prev => prev.map(p => {
-          if (p.id === updatingItem.productId) {
-            return { ...p, batches: [...p.batches, newBatch] }
-          }
-          return p
-        }))
-        setSuccessMessage(`New delivery batch added for ${updatingItem.productName}!`)
-      } else {
-        // Reduce stock from an existing batch
-        const amount = parseInt(adjustData.amount)
-        setFarmerProducts(prev => prev.map(p => {
-          if (p.id === updatingItem.productId) {
-            return {
-              ...p,
-              batches: p.batches.map(b => {
-                if (b.id === updatingItem.batchId) {
-                  const adj = adjustData.type === 'add' ? amount : -amount
-                  const newStock = Math.max(0, parseInt(b.stock) + adj)
-                  return { ...b, stock: `${newStock} kg` }
-                }
-                return b
-              })
-            }
-          }
-          return p
-        }))
-        setSuccessMessage(`${updatingItem.productName} batch updated!`)
-      }
-    } else {
-      // === FINISHED PRODUCT BATCH HANDLING ===
-      if (batchUpdateMode === 'new') {
-        const newBatch = {
-          id: Date.now(),
-          batch: addBatchData.batchCode || `GP-${Math.floor(1000 + Math.random() * 9000)}`,
-          quantity: parseInt(addBatchData.quantity),
-          manufactured: addBatchData.manufactured,
-          bestBefore: addBatchData.bestBefore,
-          location: addBatchData.location,
-          status: 'good'
-        }
+        const payload = updatingItem.type === 'farmer' ? {
+          type: 'raw',
+          material_name: updatingItem.productName,
+          quantity: addBatchData.quantity,
+          received_date: addBatchData.manufactured,
+          expiry_date: addBatchData.bestBefore,
+          storage_location: addBatchData.location
+        } : {
+          type: 'finished',
+          product_id: updatingItem.productId,
+          batch_number: addBatchData.batchCode || `GP-${Math.floor(1000 + Math.random() * 9000)}`,
+          manufactured_date: addBatchData.manufactured,
+          expiry_date: addBatchData.bestBefore,
+          quantity: addBatchData.quantity,
+          storage_location: addBatchData.location
+        };
 
-        setFinishedProducts(prev => prev.map(p => {
-          if (p.id === updatingItem.productId) {
-            return { ...p, batches: [...p.batches, newBatch] }
-          }
-          return p
-        }))
-        setSuccessMessage(`Successfully added new production batch for ${updatingItem.productName}`)
+        const response = await fetch(`${config.API_BASE_URL}/employee/inventory`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+          showNotification('New batch added successfully');
+          fetchInventoryFromDB();
+        } else {
+          showNotification('Failed to add new batch', 'error');
+        }
       } else {
+        // Handle Adjustment
         const amount = parseInt(adjustData.amount)
-        setFinishedProducts(prev => prev.map(p => {
-          if (p.id === updatingItem.productId) {
-            return {
-              ...p,
-              batches: p.batches.map(b => {
-                if (b.id === updatingItem.batchId) {
-                  const adj = adjustData.type === 'add' ? amount : -amount
-                  const newQty = Math.max(0, b.quantity + adj)
-                  return { ...b, quantity: newQty }
-                }
-                return b
-              })
-            }
-          }
-          return p
-        }))
-        setSuccessMessage(`Successfully updated ${updatingItem.productName} (Batch ${updatingItem.batchCode})`)
+        const adj = adjustData.type === 'add' ? amount : -amount
+        const newQuantity = Math.max(0, updatingItem.currentQty + adj)
+
+        const response = await fetch(`${config.API_BASE_URL}/employee/inventory/${updatingItem.batchId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            quantity: newQuantity,
+            location: updatingItem.location || 'Warehouse',
+            type: updatingItem.type === 'farmer' ? 'raw' : 'finished'
+          })
+        });
+
+        if (response.ok) {
+          showNotification('Inventory adjusted successfully');
+          fetchInventoryFromDB();
+        } else {
+          showNotification('Failed to adjust inventory', 'error');
+        }
       }
+    } catch (error) {
+      console.error('Add/Adjust batch error:', error);
+      showNotification('System error updating inventory', 'error');
     }
 
     setIsAddBatchModalOpen(false)
     setAdjustData({ amount: '', type: 'add' })
     setAddBatchData({ quantity: '', manufactured: '', bestBefore: '', location: '', batchCode: '' })
-    setTimeout(() => setSuccessMessage(''), 3000)
+  }
+
+  const deleteInventoryItem = async (id, type) => {
+    if (!window.confirm('Are you sure you want to delete this inventory item? This cannot be undone.')) return;
+
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const response = await fetch(`${config.API_BASE_URL}/employee/inventory/${id}?type=${type === 'farmer' ? 'raw' : 'finished'}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        showNotification('Item deleted successfully');
+        fetchInventoryFromDB();
+      } else {
+        showNotification('Failed to delete item', 'error');
+      }
+    } catch (error) {
+       console.error('Delete inventory error:', error);
+       showNotification('Network error during deletion', 'error');
+    }
   }
 
   return (
@@ -1287,24 +1511,30 @@ const EmployeeDashboard = () => {
           {isNotiDropdownOpen && (
             <div className="noti-dropdown-v2">
               <div className="noti-header-v2">
-                <h3>Notifications Center</h3>
+                <h3>🔔 Notifications</h3>
                 <div className="noti-actions-top">
-                  <span className="alert-count">{dashboardAlerts.length} Active Issues</span>
+                  {dashboardAlerts.length > 0 && (
+                    <button className="noti-clear-all" onClick={clearAllAlerts} title="Clear all notifications">
+                      Clear All
+                    </button>
+                  )}
+                  <button className="noti-close-btn" onClick={() => setIsNotiDropdownOpen(false)} title="Close">
+                    ✕
+                  </button>
                 </div>
               </div>
               <div className="noti-body-v2">
                 {dashboardAlerts.length === 0 ? (
                   <div className="noti-empty-v2">
                     <FontAwesomeIcon icon={faCheckCircle} />
-                    <p>All items are up to date</p>
+                    <p>All caught up! No active alerts.</p>
                   </div>
                 ) : (
                   <>
                     {[
-                      { id: 'expiry', label: 'Expiry Alerts', icon: faHistory, color: '#f87171' },
-                      { id: 'critical', label: 'Critical Stock', icon: faExclamationTriangle, color: '#ef4444' },
-                      { id: 'warning', label: 'Low Stock', icon: faExclamationCircle, color: '#f59e0b' },
-                      { id: 'application', label: 'Applications', icon: faHandshake, color: '#3b82f6' }
+                      { id: 'expiry', label: 'Expiry Alerts', icon: faHistory, color: '#ef4444' },
+                      { id: 'low_stock', label: 'Low Stock Alerts', icon: faExclamationTriangle, color: '#f59e0b' },
+                      { id: 'application', label: 'Supplier Applications', icon: faHandshake, color: '#3b82f6' }
                     ].map(cat => {
                       const catAlerts = dashboardAlerts.filter(a => a.category === cat.id);
                       if (catAlerts.length === 0) return null;
@@ -1319,11 +1549,19 @@ const EmployeeDashboard = () => {
                             <div key={alert.id} className="noti-card-v2" onClick={() => { showTab(alert.targetTab); setIsNotiDropdownOpen(false); }}>
                               <div className="noti-card-info">
                                 <span className={`noti-type-badge ${alert.productType || 'other'}`}>
-                                  {alert.productType === 'raw' ? 'Raw Stock' : alert.productType === 'finished' ? 'Finished Product' : 'Application'}
+                                  {alert.productType === 'raw' && 'Raw Stock'}
+                                  {alert.productType === 'finished' && 'Finished Product'}
+                                  {alert.productType === 'other' && (alert.category === 'delivery' ? 'Delivery' : 'Application')}
                                 </span>
                                 <p className="noti-card-msg">{alert.message}</p>
                               </div>
-                              <FontAwesomeIcon icon={faChevronRight} className="noti-arrow" />
+                              <button
+                                className="noti-dismiss-btn"
+                                onClick={(e) => { e.stopPropagation(); dismissAlert(alert.id); }}
+                                title="Dismiss notification"
+                              >
+                                ✕
+                              </button>
                             </div>
                           ))}
                         </div>
@@ -1339,97 +1577,113 @@ const EmployeeDashboard = () => {
 
       {/* Dashboard Content */}
       <main className="dashboard">
-        {/* Welcome Section */}
-        <section className="welcome-section">
-          <h1 className="welcome-title">Employee Dashboard</h1>
-          <p>Manage inventory, review supplier applications, and oversee manufacturing operations for Laklights Food Products.</p>
-
-
-          <div className="stats-grid">
-            <div className="stat-card">
-              <div className="stat-number">156</div>
-              <div className="stat-label">Total Inventory Items</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-number">8</div>
-              <div className="stat-label">Low Stock Alerts</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-number">{supplierApplications.length}</div>
-              <div className="stat-label">Pending Applications</div>
-            </div>
-            <div className="stat-card">
-              <div className="stat-number">{orders.length}</div>
-              <div className="stat-label">Orders Processing</div>
+        {/* Enhanced Welcome Section with Hero Image */}
+        <section className="welcome-banner-hero">
+          <div className="hero-background-overlay"></div>
+          <div className="hero-content">
+            <div className="welcome-header-flex">
+              <div className="welcome-badges">
+                <div className="current-date-badge">
+                  Welcome back, {profileData.firstName || 'Ruwan'}!
+                </div>
+              </div>
+              <div className="welcome-text-container">
+                <h1 className="welcome-title-hero">Optimize Your<br />Operations<br />Daily</h1>
+                <p className="welcome-subtitle-hero">Oversee warehouse inventory, logistics, and farmer <br />applications from your command center.</p>
+                <div className="hero-actions">
+                  <button className="hero-btn hero-btn-primary" onClick={() => showTab('inventory')}>
+                    <FontAwesomeIcon icon={faPaperPlane} />
+                    Submit New Produce
+                  </button>
+                  <button className="hero-btn hero-btn-secondary" onClick={() => showTab('deliveries')}>
+                    <FontAwesomeIcon icon={faTruck} />
+                    View Deliveries
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
+        <div className="stats-grid-enhanced">
+          <div className="stat-card-v2 inventory">
+              <div className="stat-icon-wrapper">
+                <FontAwesomeIcon icon={faBoxes} />
+              </div>
+              <div className="stat-content">
+                <div className="stat-number">
+                  {farmerProducts.reduce((sum, p) => sum + p.batches.length, 0) + 
+                   finishedProducts.reduce((sum, p) => sum + p.batches.length, 0)}
+                </div>
+                <div className="stat-label">Total Inventory Items</div>
+              </div>
+              <div className="stat-trend positive">
+                <FontAwesomeIcon icon={faBoxes} /> Active
+              </div>
+            </div>
+
+            <div className="stat-card-v2 alerts danger">
+              <div className="stat-icon-wrapper">
+                <FontAwesomeIcon icon={faExclamationTriangle} />
+              </div>
+              <div className="stat-content">
+                <div className="stat-number">{dashboardAlerts.filter(a => a.category === 'low_stock').length}</div>
+                <div className="stat-label">Low Stock Alerts</div>
+              </div>
+              <div className="stat-trend negative">
+                Action Required
+              </div>
+            </div>
+
+            <div className="stat-card-v2 applications info">
+              <div className="stat-icon-wrapper">
+                <FontAwesomeIcon icon={faHandshake} />
+              </div>
+              <div className="stat-content">
+                <div className="stat-number">{supplierApplications.length}</div>
+                <div className="stat-label">Pending Applications</div>
+              </div>
+              <div className="stat-trend neutral">
+                Review Needed
+              </div>
+            </div>
+
+            <div className="stat-card-v2 orders primary">
+              <div className="stat-icon-wrapper">
+                <FontAwesomeIcon icon={faClipboardList} />
+              </div>
+              <div className="stat-content">
+                <div className="stat-number">{orders.length}</div>
+                <div className="stat-label">Orders Processing</div>
+              </div>
+              <div className="stat-trend positive">
+                In Progress
+              </div>
+            </div>
+          </div>
+
+          {/* Action Quick Links */}
+        <div className="dashboard-quick-actions">
+          <button className="quick-action-btn" onClick={() => setActiveTab('inventory')}>
+            <FontAwesomeIcon icon={faBoxes} />
+            <span>Manage Inventory</span>
+          </button>
+          <button className="quick-action-btn" onClick={() => setActiveTab('suppliers')}>
+            <FontAwesomeIcon icon={faHandshake} />
+            <span>Supplier Apps</span>
+          </button>
+          <button className="quick-action-btn" onClick={() => setActiveTab('orders')}>
+            <FontAwesomeIcon icon={faClipboardList} />
+            <span>Process Orders</span>
+          </button>
+          <button className="quick-action-btn" onClick={() => setActiveTab('delivery')}>
+            <FontAwesomeIcon icon={faCalendarAlt} />
+            <span>Delivery Schedule</span>
+          </button>
+        </div>
 
         {/* Inventory Management Tab */}
         <div className={`tab-content ${activeTab === 'inventory' ? 'active' : ''}`}>
-          {/* Reschedule Notifications */}
-          {notifications.length > 0 && (
-            <div className="notifications-section">
-              <div className="notifications-header">
-                <h3><FontAwesomeIcon icon={faBell} style={{ marginRight: '0.5rem', color: '#f59e0b' }} /> Delivery Reschedule Requests ({notifications.length})</h3>
-              </div>
-              {notifications.map((notification) => (
-                <div key={notification.id} className="notification-item">
-                  <div className="notification-content">
-                    <h4><FontAwesomeIcon icon={faSync} style={{ marginRight: '0.4rem', color: '#3b82f6' }} /> Delivery Reschedule Request</h4>
-                    <div className="notification-details">
-                      <div className="detail-row">
-                        <span className="detail-label">Delivery ID:</span>
-                        <span className="detail-value">{notification.deliveryId}</span>
-                      </div>
-                      <div className="detail-row">
-                        <span className="detail-label">Product:</span>
-                        <span className="detail-value">{notification.product}</span>
-                      </div>
-                      <div className="detail-row">
-                        <span className="detail-label">Farmer:</span>
-                        <span className="detail-value">{notification.farmerName}</span>
-                      </div>
-                      <div className="detail-row">
-                        <span className="detail-label">Quantity:</span>
-                        <span className="detail-value">{notification.quantity || 'N/A'}</span>
-                      </div>
-                      <div className="date-comparison">
-                        <div className="date-box current-date">
-                          <label>Current Date</label>
-                          <span>{notification.oldDate}</span>
-                        </div>
-                        <div className="date-arrow">→</div>
-                        <div className="date-box requested-date">
-                          <label>Requested Date</label>
-                          <span>{notification.newDate}</span>
-                        </div>
-                      </div>
-                      <p className="notification-time">
-                        📅 Requested: {new Date(notification.timestamp).toLocaleString()}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="notification-actions">
-                    <button
-                      className="btn btn-approve"
-                      onClick={() => handleApproveReschedule(notification)}
-                    >
-                      ✓ Approve
-                    </button>
-                    <button
-                      className="btn btn-reject"
-                      onClick={() => handleRejectReschedule(notification)}
-                    >
-                      ✗ Reject
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
           <div className="dashboard-grid">
             <div id="current-inventory" className="dashboard-card" style={{ gridColumn: '1 / -1' }}>
               <div className="card-header">
@@ -1440,27 +1694,18 @@ const EmployeeDashboard = () => {
               </div>
 
               {/* Inventory Search & Filters Single Row */}
-              <div className="inventory-search" style={{ display: 'flex', gap: '0.6rem', alignItems: 'center', flexWrap: 'nowrap', marginBottom: '1.8rem' }}>
-                <div style={{ flex: 1, display: 'flex', gap: '0.6rem' }}>
+              <div className="inventory-search">
+                <div className="search-box">
                   <input
                     type="text"
                     className="search-input"
                     placeholder="Search by name or description..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    style={{ flex: 1 }}
                   />
-                  <select
-                    className="filter-select"
-                    value={categoryFilter}
-                    onChange={(e) => setCategoryFilter(e.target.value)}
-                    style={{ minWidth: '140px' }}
-                  >
-                    <option value="">All Categories</option>
-                    <option value="raw">Raw Materials</option>
-                    <option value="processed">Processed Products</option>
-                    <option value="packaging">Packaging Materials</option>
-                  </select>
+                  <button className="btn-search">Search</button>
+                </div>
+                <div className="inventory-filters">
                   <select
                     className="filter-select"
                     value={statusFilter}
@@ -1506,7 +1751,7 @@ const EmployeeDashboard = () => {
                   }}
                 >
                   <FontAwesomeIcon icon={faLeaf} style={{ marginRight: '0.4rem' }} />
-                  Farmer Products
+                  Inventory Raw
                 </button>
                 <button
                   onClick={() => setInventorySubTab('finished')}
@@ -1528,10 +1773,10 @@ const EmployeeDashboard = () => {
                 </button>
               </div>
 
-              {/* Farmer Products Panel */}
+              {/* Raw Materials (Farmer Products) Panel */}
               {inventorySubTab === 'farmer' && (
                 <div className="inventory-column" style={{ width: '100%' }}>
-                  <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '1rem', gap: '0.5rem' }}>
                     <button
                       className="btn btn-primary"
                       style={{
@@ -1541,72 +1786,150 @@ const EmployeeDashboard = () => {
                         background: '#1e4d2b',
                         boxShadow: '0 4px 12px rgba(30, 77, 43, 0.2)'
                       }}
-                      onClick={showAddFarmerProductModal}
+                      onClick={() => {
+                        setUpdatingItem({ type: 'farmer', productName: '', productId: null });
+                        setBatchUpdateMode('new');
+                        setAddBatchData({ quantity: '', manufactured: new Date().toISOString().split('T')[0], bestBefore: '', location: '', batchCode: '' });
+                        setIsAddBatchModalOpen(true);
+                      }}
                     >
-                      <FontAwesomeIcon icon={faBoxes} style={{ marginRight: '0.5rem' }} />
-                      Add New Item
+                      <FontAwesomeIcon icon={faPlus} style={{ marginRight: '0.5rem' }} />
+                      Add New Raw Material
                     </button>
-                  </div>
-
-                  <div className="expiry-warning-v3">
-                    <strong>
-                      <FontAwesomeIcon icon={faExclamationTriangle} />
-                      Critical Alerts
-                    </strong>
-                    <ul style={{ margin: '0.4rem 0 0 0', padding: '0', listStyle: 'none', color: '#7c2d12', fontSize: '0.85rem' }}>
-                      <li style={{ marginBottom: '0.3rem' }}>• Pineapples are needed quickly.</li>
-                      <li>• Fresh Mango approaching expiry in 3 days.</li>
-                    </ul>
+                    <button className="btn btn-secondary" onClick={fetchInventoryFromDB} title="Refresh Data" style={{ padding: '0.5rem 1rem' }}>
+                      <FontAwesomeIcon icon={faSync} />
+                    </button>
                   </div>
 
                   {filteredFarmerProducts.length > 0 ? (
                     filteredFarmerProducts.map(product => {
-                      const totalStock = product.batches.reduce((sum, b) => sum + parseInt(b.stock), 0);
-                      const isProductLowStock = totalStock < 50;
+                      const totalStock = product.batches.reduce((sum, b) => sum + (parseFloat(b.stockVal) || 0), 0);
+                      const isProductLowStock = totalStock <= 50;
+                      const isProductNearExpiry = product.batches.some(b => b.daysUntilExpiry <= 5);
 
                       return (
-                        <div key={product.id} className="inventory-item nested-inventory">
-                          <div className="inventory-header" style={{ marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <h4>{product.name}</h4>
-                            <span style={{ fontSize: '0.75rem', fontWeight: '800', background: isProductLowStock ? '#fff7ed' : '#f1f5f9', color: isProductLowStock ? '#ea580c' : '#475569', padding: '0.2rem 0.8rem', borderRadius: '50px' }}>
-                              Total: {totalStock} kg
-                            </span>
+                        <div key={product.id} className="inventory-item nested-inventory" style={{
+                          background: isProductNearExpiry ? '#fff1f2' : isProductLowStock ? '#fffaf5' : 'white',
+                          borderRadius: '16px',
+                          border: `2px solid ${isProductNearExpiry ? '#e11d48' : isProductLowStock ? '#ea580c' : '#e2e8f0'}`,
+                          padding: '1.5rem',
+                          marginBottom: '2rem',
+                          boxShadow: isProductNearExpiry
+                            ? '0 10px 15px -3px rgba(225, 29, 72, 0.1), 0 4px 6px -2px rgba(225, 29, 72, 0.05)'
+                            : isProductLowStock 
+                            ? '0 10px 15px -3px rgba(234, 88, 12, 0.1), 0 4px 6px -2px rgba(234, 88, 12, 0.05)' 
+                            : '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                          position: 'relative',
+                          overflow: 'hidden'
+                        }}>
+                          {(isProductLowStock || isProductNearExpiry) && (
+                            <div style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              width: '5px',
+                              height: '100%',
+                              background: isProductNearExpiry ? '#e11d48' : '#ea580c'
+                            }} />
+                          )}
+                          <div className="inventory-header" style={{ 
+                            marginBottom: '1.5rem', 
+                            display: 'flex', 
+                            justifyContent: 'space-between', 
+                            alignItems: 'center',
+                            borderBottom: `2px solid ${isProductNearExpiry ? '#fecdd3' : isProductLowStock ? '#fed7aa' : '#f1f5f9'}`,
+                            paddingBottom: '1rem'
+                          }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                              <div style={{
+                                width: '40px',
+                                height: '40px',
+                                borderRadius: '10px',
+                                background: isProductNearExpiry ? '#e11d48' : isProductLowStock ? '#ea580c' : '#f0fdf4',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                color: 'white',
+                                boxShadow: isProductNearExpiry 
+                                  ? '0 4px 12px rgba(225, 29, 72, 0.4)' 
+                                  : isProductLowStock 
+                                  ? '0 4px 12px rgba(234, 88, 12, 0.3)' 
+                                  : 'none'
+                              }}>
+                                <FontAwesomeIcon icon={isProductNearExpiry ? faClock : isProductLowStock ? faExclamationTriangle : faBox} />
+                              </div>
+                              <div>
+                                <h4 style={{ margin: 0, fontSize: '1.25rem', color: '#1e293b', fontWeight: '800' }}>{product.name}</h4>
+                                {isProductNearExpiry ? (
+                                  <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#e11d48', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                    <FontAwesomeIcon icon={faExclamationCircle} style={{marginRight: '4px'}} /> Critical: Items Expiring Soon
+                                  </span>
+                                ) : isProductLowStock && (
+                                  <span style={{ fontSize: '0.7rem', fontWeight: '800', color: '#ea580c', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                    Attention Required: Low Stock Level
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div style={{ textAlign: 'right' }}>
+                              <div style={{ fontSize: '0.65rem', fontWeight: '800', textTransform: 'uppercase', color: isProductNearExpiry ? '#be123c' : isProductLowStock ? '#9a3412' : '#94a3b8', marginBottom: '0.2rem' }}>Total Inventory</div>
+                              <span style={{ 
+                                fontSize: '1.1rem', 
+                                fontWeight: '900', 
+                                background: isProductLowStock ? '#ea580c' : '#f1f5f9', 
+                                color: isProductLowStock ? 'white' : '#475569', 
+                                padding: '0.5rem 1.25rem', 
+                                borderRadius: '50px',
+                                border: `1px solid ${isProductLowStock ? '#9a3412' : '#e2e8f0'}`,
+                                display: 'inline-block',
+                                animation: isProductLowStock ? 'pulse 2s infinite' : 'none'
+                              }}>
+                                {totalStock.toFixed(2)} kg
+                              </span>
+                            </div>
                           </div>
 
-                          <div className="batch-list">
-                            {product.batches.map(batch => (
+                          <div className="batch-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                            {product.batches.map((batch, index) => (
                               <div key={batch.id} className="batch-item" style={{
                                 display: 'grid',
-                                gridTemplateColumns: '200px 1fr auto auto',
+                                gridTemplateColumns: '150px 1fr 180px 180px',
                                 gap: '1.5rem',
                                 alignItems: 'center',
-                                padding: '0.9rem 1.2rem',
-                                background: '#f8fafc',
-                                borderRadius: '10px',
+                                padding: '1rem 1.25rem',
+                                background: index % 2 === 0 ? '#f8fafc' : 'white',
+                                borderRadius: '12px',
                                 border: `1px solid ${batch.daysUntilExpiry <= 5 ? '#fecaca' : '#e2e8f0'}`,
-                                marginBottom: '0.6rem'
+                                transition: 'transform 0.2s',
+                                cursor: 'default'
                               }}>
-                                {/* Col 1: Location */}
+                                {/* Row Header Info for multiple batches */}
                                 <div>
-                                  <div style={{ fontSize: '0.65rem', fontWeight: '700', textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.5px', marginBottom: '0.3rem' }}>
-                                    Storage
+                                  <div style={{ fontSize: '0.6rem', fontWeight: '700', textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.5px' }}>
+                                    Batch Entry {index + 1}
                                   </div>
-                                  <span className="batch-location-tag" style={{
-                                    display: 'inline-block',
-                                    background: '#e2e8f0',
-                                    color: '#334155',
-                                    padding: '0.25rem 0.6rem',
-                                    borderRadius: '6px',
-                                    fontSize: '0.78rem',
-                                    fontWeight: '700',
-                                    whiteSpace: 'nowrap'
-                                  }}>
-                                    {batch.location}
-                                  </span>
+                                  <span style={{ fontSize: '0.75rem', color: '#64748b' }}>#{batch.id}</span>
                                 </div>
 
-                                {/* Col 2: Dates */}
+                                {/* Col 1: Location & Date */}
                                 <div style={{ display: 'flex', gap: '2rem' }}>
+                                  <div>
+                                    <div style={{ fontSize: '0.65rem', fontWeight: '700', textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.5px', marginBottom: '0.3rem' }}>
+                                      Storage
+                                    </div>
+                                    <span className="batch-location-tag" style={{
+                                      display: 'inline-block',
+                                      background: '#e2e8f0',
+                                      color: '#334155',
+                                      padding: '0.25rem 0.6rem',
+                                      borderRadius: '6px',
+                                      fontSize: '0.78rem',
+                                      fontWeight: '700',
+                                      whiteSpace: 'nowrap'
+                                    }}>
+                                      {batch.location}
+                                    </span>
+                                  </div>
                                   <div>
                                     <div style={{ fontSize: '0.65rem', fontWeight: '700', textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.5px', marginBottom: '0.3rem' }}>
                                       Received
@@ -1619,68 +1942,55 @@ const EmployeeDashboard = () => {
                                     <div style={{ fontSize: '0.65rem', fontWeight: '700', textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.5px', marginBottom: '0.3rem' }}>
                                       Expiry
                                     </div>
-                                    <div style={{ fontSize: '0.85rem', fontWeight: '700', color: batch.daysUntilExpiry <= 5 ? '#ef4444' : '#334155' }}>
-                                      {batch.expiry}
-                                      <span style={{ marginLeft: '0.4rem', fontSize: '0.75rem', color: batch.daysUntilExpiry <= 5 ? '#ef4444' : '#64748b' }}>
-                                        ({batch.daysUntilExpiry}d)
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Col 3: Stock + Alerts */}
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', alignItems: 'flex-start' }}>
-                                  <div style={{ fontSize: '0.65rem', fontWeight: '700', textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.5px' }}>
-                                    Stock
-                                  </div>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'nowrap' }}>
-                                    <div style={{
-                                      padding: '0.3rem 0.8rem',
-                                      borderRadius: '50px',
-                                      fontWeight: '800',
-                                      fontSize: '0.9rem',
-                                      background: batch.daysUntilExpiry <= 5 ? '#fee2e2' : isProductLowStock ? '#fffbeb' : '#f0fdf4',
-                                      color: batch.daysUntilExpiry <= 5 ? '#ef4444' : isProductLowStock ? '#d97706' : '#16a34a',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: '0.4rem',
-                                      whiteSpace: 'nowrap'
+                                    <div style={{ 
+                                      fontSize: '0.85rem', 
+                                      fontWeight: '700', 
+                                      color: batch.daysUntilExpiry <= 5 ? 'white' : '#334155',
+                                      background: batch.daysUntilExpiry <= 5 ? '#e11d48' : 'transparent',
+                                      padding: batch.daysUntilExpiry <= 5 ? '0.2rem 0.6rem' : '0',
+                                      borderRadius: '4px',
+                                      width: 'fit-content'
                                     }}>
-                                      {(batch.daysUntilExpiry <= 5 || isProductLowStock) && (
-                                        <FontAwesomeIcon icon={batch.daysUntilExpiry <= 5 ? faExclamationCircle : faExclamationTriangle} />
-                                      )}
-                                      {batch.stock}
+                                      {batch.expiry}
                                     </div>
                                   </div>
-                                  {batch.daysUntilExpiry <= 5 && (
-                                    <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.5rem', background: '#fee2e2', color: '#ef4444', borderRadius: '4px', fontWeight: '800', border: '1px solid #fecaca', whiteSpace: 'nowrap' }}>
-                                      <FontAwesomeIcon icon={faClock} style={{ marginRight: '0.25rem' }} />
-                                      NEAR EXPIRY: {batch.daysUntilExpiry}d
-                                    </span>
-                                  )}
-                                  {isProductLowStock && (
-                                    <span style={{ fontSize: '0.65rem', padding: '0.15rem 0.5rem', background: '#fffbeb', color: '#f59e0b', borderRadius: '4px', fontWeight: '800', border: '1px solid #fef3c7', whiteSpace: 'nowrap' }}>
-                                      LOW STOCK
-                                    </span>
-                                  )}
                                 </div>
 
-                                {/* Col 4: Update Button */}
-                                <div>
+                                {/* Col 2: Stock Status */}
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                                  <div style={{ fontSize: '0.65rem', fontWeight: '700', textTransform: 'uppercase', color: '#94a3b8', letterSpacing: '0.5px' }}>
+                                    Quantity
+                                  </div>
+                                  <div style={{
+                                    padding: '0.3rem 0.8rem',
+                                    borderRadius: '50px',
+                                    fontWeight: '800',
+                                    fontSize: '0.9rem',
+                                    width: 'fit-content',
+                                    background: batch.daysUntilExpiry <= 5 ? '#e11d48' : '#f0fdf4',
+                                    color: batch.daysUntilExpiry <= 5 ? 'white' : '#16a34a',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.4rem',
+                                    boxShadow: batch.daysUntilExpiry <= 5 ? '0 4px 12px rgba(225, 29, 72, 0.4)' : 'none',
+                                    animation: batch.daysUntilExpiry <= 5 ? 'pulse-rose 1.5s infinite' : 'none'
+                                  }}>
+                                    {batch.daysUntilExpiry <= 5 && <FontAwesomeIcon icon={faClock} />}
+                                    {batch.stock}
+                                  </div>
+                                </div>
+
+                                {/* Col 3: Actions */}
+                                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
                                   <button
                                     className="btn"
                                     style={{
-                                      padding: '0.55rem 1.2rem',
-                                      fontSize: '0.82rem',
-                                      fontWeight: '700',
-                                      borderRadius: '8px',
-                                      background: batch.daysUntilExpiry <= 5 ? '#ef4444' : isProductLowStock ? '#f59e0b' : '#22c55e',
-                                      color: 'white',
-                                      border: 'none',
-                                      cursor: 'pointer',
-                                      whiteSpace: 'nowrap',
-                                      boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
-                                      transition: 'all 0.2s'
+                                      padding: '0.4rem 0.8rem',
+                                      fontSize: '0.75rem',
+                                      borderRadius: '6px',
+                                      background: '#f1f5f9',
+                                      color: '#475569',
+                                      border: '1px solid #e2e8f0'
                                     }}
                                     onClick={() => {
                                       setUpdatingItem({
@@ -1688,27 +1998,41 @@ const EmployeeDashboard = () => {
                                         productId: product.id,
                                         productName: product.name,
                                         batchId: batch.id,
-                                        batchCode: batch.location,
-                                        currentStock: batch.stock
+                                        currentQty: batch.stockVal,
+                                        location: batch.location,
+                                        unit: 'kg'
                                       });
-                                      setAddBatchData({ quantity: '', manufactured: '', bestBefore: '', location: '', batchCode: '' });
-                                      setAdjustData({ amount: '', type: 'reduce' });
                                       setBatchUpdateMode('adjust');
+                                      setAdjustData({ amount: '', type: 'add' });
                                       setIsAddBatchModalOpen(true);
                                     }}
                                   >
-                                    Update Status
+                                    Adjust
+                                  </button>
+                                  <button
+                                    className="btn"
+                                    style={{
+                                      padding: '0.4rem 0.8rem',
+                                      fontSize: '0.75rem',
+                                      borderRadius: '6px',
+                                      background: '#fee2e2',
+                                      color: '#ef4444',
+                                      border: '1px solid #fecaca'
+                                    }}
+                                    onClick={() => deleteInventoryItem(batch.id, 'farmer')}
+                                  >
+                                    <FontAwesomeIcon icon={faTrash} />
                                   </button>
                                 </div>
                               </div>
                             ))}
                           </div>
                         </div>
-                      )
+                      );
                     })
                   ) : (
                     <div style={{ textAlign: 'center', padding: '2rem', color: '#888' }}>
-                      No matching farmer products found.
+                      No matching raw inventory items found.
                     </div>
                   )}
                 </div>
@@ -1717,7 +2041,7 @@ const EmployeeDashboard = () => {
               {/* Finished Products Panel */}
               {inventorySubTab === 'finished' && (
                 <div className="inventory-column" style={{ width: '100%' }}>
-                  <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-start', marginBottom: '1rem', gap: '0.5rem' }}>
                     <button
                       className="btn btn-primary"
                       style={{
@@ -1727,28 +2051,25 @@ const EmployeeDashboard = () => {
                         background: '#1e4d2b',
                         boxShadow: '0 4px 12px rgba(30, 77, 43, 0.2)'
                       }}
-                      onClick={showAddFinishedProductModal}
+                      onClick={() => {
+                        setUpdatingItem({ type: 'finished', productName: '', productId: null });
+                        setBatchUpdateMode('new');
+                        setAddBatchData({ quantity: '', manufactured: new Date().toISOString().split('T')[0], bestBefore: '', location: '', batchCode: '' });
+                        setIsAddBatchModalOpen(true);
+                      }}
                     >
-                      <FontAwesomeIcon icon={faBoxes} style={{ marginRight: '0.5rem' }} />
-                      Add New Item
+                      <FontAwesomeIcon icon={faPlus} style={{ marginRight: '0.5rem' }} />
+                      Add New Finished Product
                     </button>
-                  </div>
-
-                  <div className="expiry-warning-v3">
-                    <strong>
-                      <FontAwesomeIcon icon={faExclamationTriangle} />
-                      Production Alerts
-                    </strong>
-                    <ul style={{ margin: '0.4rem 0 0 0', padding: '0', listStyle: 'none', color: '#7c2d12', fontSize: '0.85rem' }}>
-                      <li style={{ marginBottom: '0.3rem' }}>• Mango Jelly Stock is Low (50 units).</li>
-                      <li>• Wood Apple Juice stock approaching best-before in 120 days (80 units).</li>
-                    </ul>
+                    <button className="btn btn-secondary" onClick={fetchInventoryFromDB} title="Refresh Data" style={{ padding: '0.5rem 1rem' }}>
+                      <FontAwesomeIcon icon={faSync} />
+                    </button>
                   </div>
 
                   {filteredFinishedProducts.length > 0 ? (
                     filteredFinishedProducts.map(product => {
                       const totalUnits = product.batches.reduce((sum, b) => sum + parseInt(b.quantity), 0);
-                      const isProductLowStock = totalUnits < 50;
+                      const isProductLowStock = totalUnits <= 50;
 
                       return (
                         <div key={product.id} className="inventory-item nested-inventory">
@@ -1765,7 +2086,7 @@ const EmployeeDashboard = () => {
                               const bbDate = new Date(batch.bestBefore);
                               const diffDays = Math.ceil((bbDate - today) / (1000 * 60 * 60 * 24));
                               const isBatchNearExpiry = diffDays <= 90;
-                              const isBatchLowStock = batch.quantity < 50;
+                              // LOW STOCK uses product-total (isProductLowStock), not per-batch quantity
 
                               return (
                                 <div key={batch.id} className="batch-item" style={{
@@ -1797,8 +2118,8 @@ const EmployeeDashboard = () => {
                                     </div>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.8rem' }}>
                                       <div className={`stock-level-badge`} style={{
-                                        background: isBatchNearExpiry ? '#fee2e2' : isProductLowStock ? '#fffbeb' : '#f0fdf4',
-                                        color: isBatchNearExpiry ? '#ef4444' : isProductLowStock ? '#d97706' : '#16a34a',
+                                        background: isBatchNearExpiry ? '#fee2e2' : isProductLowStock ? '#fff7ed' : '#f0fdf4',
+                                        color: isBatchNearExpiry ? '#ef4444' : isProductLowStock ? '#ea580c' : '#16a34a',
                                         padding: '0.4rem 1rem',
                                         borderRadius: '50px',
                                         fontWeight: '800',
@@ -1818,8 +2139,8 @@ const EmployeeDashboard = () => {
                                         </span>
                                       )}
                                       {!isBatchNearExpiry && isProductLowStock && (
-                                        <span style={{ fontSize: '0.65rem', padding: '0.2rem 0.6rem', background: '#fffbeb', color: '#f59e0b', borderRadius: '4px', fontWeight: '800', border: '1px solid #fef3c7' }}>
-                                          LOW STOCK ALERT
+                                        <span style={{ fontSize: '0.65rem', padding: '0.2rem 0.6rem', background: '#fff7ed', color: '#ea580c', borderRadius: '4px', fontWeight: '800', border: '1px solid #fed7aa' }}>
+                                          LOW STOCK
                                         </span>
                                       )}
                                     </div>
@@ -1838,41 +2159,47 @@ const EmployeeDashboard = () => {
                                     </div>
                                   </div>
 
-                                  <div style={{ textAlign: 'right' }}>
+                                  <div style={{ textAlign: 'right', display: 'flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
                                     <button
                                       className="btn"
                                       style={{
-                                        padding: '0.6rem 1.25rem',
-                                        fontSize: '0.85rem',
-                                        fontWeight: '800',
-                                        borderRadius: '8px',
-                                        background: isBatchNearExpiry ? '#ef4444' : isProductLowStock ? '#f59e0b' : '#22c55e',
-                                        color: 'white',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                                        whiteSpace: 'nowrap'
+                                        padding: '0.4rem 0.8rem',
+                                        fontSize: '0.75rem',
+                                        borderRadius: '6px',
+                                        background: '#f1f5f9',
+                                        color: '#475569',
+                                        border: '1px solid #e2e8f0'
                                       }}
                                       onClick={() => {
                                         setUpdatingItem({
-                                          type: 'finished-new-batch',
+                                          type: 'finished',
                                           productId: product.id,
                                           productName: product.name,
                                           batchId: batch.id,
-                                          batchCode: batch.batch
+                                          currentQty: batch.quantity,
+                                          location: batch.location,
+                                          unit: 'units'
                                         });
-                                        setAddBatchData({
-                                          quantity: '',
-                                          manufactured: '',
-                                          bestBefore: '',
-                                          location: '',
-                                          batchCode: ''
-                                        });
-                                        setBatchUpdateMode('new');
+                                        setBatchUpdateMode('adjust');
+                                        setAdjustData({ amount: '', type: 'add' });
                                         setIsAddBatchModalOpen(true);
                                       }}
                                     >
-                                      Update Status
+                                      Adjust Stock
+                                    </button>
+                                    <button
+                                      className="btn"
+                                      style={{
+                                        padding: '0.4rem 0.8rem',
+                                        fontSize: '0.75rem',
+                                        borderRadius: '6px',
+                                        background: '#fee2e2',
+                                        color: '#ef4444',
+                                        border: '1px solid #fecaca'
+                                      }}
+                                      onClick={() => deleteInventoryItem(batch.id, 'finished')}
+                                    >
+                                      Delete
                                     </button>
                                   </div>
                                 </div>
@@ -1916,30 +2243,36 @@ const EmployeeDashboard = () => {
                   />
                   <button className="btn-search">Search</button>
                 </div>
-                <div className="inventory-filters">
+                 <div className="inventory-filters" style={{ display: 'flex', gap: '0.8rem', alignItems: 'center' }}>
                   <select
                     className="filter-select"
                     value={categoryFilter}
                     onChange={(e) => setCategoryFilter(e.target.value)}
+                    style={{ minWidth: '160px' }}
                   >
                     <option value="">All Categories</option>
                     <option value="raw">Raw Materials</option>
-                    <option value="processed">Processed Products</option>
+                    <option value="fruits">Fruits</option>
+                    <option value="vegetables">Vegetables</option>
                   </select>
+
                   <select
                     className="filter-select"
-                    value={statusFilter}
-                    onChange={(e) => setStatusFilter(e.target.value)}
+                    value={timeframeFilter}
+                    onChange={(e) => setTimeframeFilter(e.target.value)}
+                    style={{ minWidth: '130px' }}
                   >
-                    <option value="">Quality Level</option>
-                    <option value="in-stock">Grade A</option>
-                    <option value="low-stock">Grade B</option>
-                    <option value="out-of-stock">Grade C</option>
+                    <option value="all">Timeframe</option>
+                    <option value="today">Today</option>
+                    <option value="week">This Week</option>
+                    <option value="month">This Month</option>
                   </select>
+
                   <select
                     className="filter-select"
                     value={sortFilter}
                     onChange={(e) => setSortFilter(e.target.value)}
+                    style={{ minWidth: '130px' }}
                   >
                     <option value="">Sort By</option>
                     <option value="newest">Newest First</option>
@@ -1952,47 +2285,94 @@ const EmployeeDashboard = () => {
               </div>
 
               {filteredApplications.length > 0 ? (
-                filteredApplications.map(app => (
-                  <div key={app.id} className="application-item">
-                    <div className="farmer-name">{app.farmerName}</div>
-                    <p><strong>Product:</strong> {app.product}</p>
-                    <p><strong>Quantity:</strong> {app.quantity} | <strong>Price:</strong> {app.price}</p>
-                    <p><strong>Harvest Date:</strong> {app.harvestDate} | <strong>Quality Grade:</strong> {app.qualityGrade || app.grade}</p>
-                    <p><strong>License:</strong> {app.license} | <strong>Submitted:</strong> {app.submitted}</p>
-                    <p><strong>Transport:</strong> {app.transport} | <strong>Date:</strong> {app.date}</p>
+                <div className="app-cards-grid">
+                  {filteredApplications.map(app => {
+                    return (
+                      <div key={app.id} className="app-card">
+                        {/* Card Header */}
+                        <div className="app-card-header">
+                          <div className="app-farmer-info">
+                            <div className="app-farmer-avatar">
+                              {(app.farmerName || 'F').charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <h3 className="app-farmer-name">{app.farmerName}</h3>
+                              <span className="app-submitted-label">
+                                <FontAwesomeIcon icon={faCalendarAlt} style={{ marginRight: '5px' }} /> Submitted: {app.submitted || app.date || 'N/A'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
 
-                    <div className="submitted-images">
-                      <p><strong>Submitted Images:</strong></p>
-                      <div className="image-gallery">
-                        {(app.images || []).map((img, idx) => (
-                          <img
-                            key={idx}
-                            src={img.startsWith('http') ? img : `https://via.placeholder.com/150x150?text=${img}`}
-                            alt={`Product Image ${idx + 1}`}
-                            className="product-thumbnail"
-                          />
-                        ))}
-                        {(!app.images || app.images.length === 0) && <span style={{ color: '#999', fontStyle: 'italic' }}>No images submitted</span>}
+                        {/* Product Highlight */}
+                        <div className="app-product-highlight">
+                          <span className="app-product-icon"><FontAwesomeIcon icon={faLeaf} /></span>
+                          <span className="app-product-name">{app.product}</span>
+                        </div>
+
+                        {/* Info Chips Grid */}
+                        <div className="app-info-grid">
+                          <div className="app-info-chip">
+                            <span className="app-info-label"><FontAwesomeIcon icon={faBoxes} style={{ marginRight: '5px' }} /> Quantity</span>
+                            <span className="app-info-value">{app.quantity}</span>
+                          </div>
+                          <div className="app-info-chip">
+                            <span className="app-info-label"><FontAwesomeIcon icon={faMoneyBillWave} style={{ marginRight: '5px' }} /> Price</span>
+                            <span className="app-info-value">{app.price}</span>
+                          </div>
+                          <div className="app-info-chip">
+                            <span className="app-info-label"><FontAwesomeIcon icon={faSeedling} style={{ marginRight: '5px' }} /> Harvest Date</span>
+                            <span className="app-info-value">{app.harvestDate || 'N/A'}</span>
+                          </div>
+                          <div className="app-info-chip">
+                            <span className="app-info-label"><FontAwesomeIcon icon={faTruck} style={{ marginRight: '5px' }} /> Transport</span>
+                            <span className="app-info-value">{app.transport || 'N/A'}</span>
+                          </div>
+                          <div className="app-info-chip">
+                            <span className="app-info-label"><FontAwesomeIcon icon={faCalendarCheck} style={{ marginRight: '5px' }} /> Delivery Date</span>
+                            <span className="app-info-value">{app.date || 'N/A'}</span>
+                          </div>
+                        </div>
+
+                        {/* Submitted Images */}
+                        <div className="app-images-section">
+                          <span className="app-images-label"><FontAwesomeIcon icon={faImage} style={{ marginRight: '5px' }} /> Submitted Images</span>
+                          <div className="app-image-gallery">
+                            {(app.images || []).map((img, idx) => (
+                              <img
+                                key={idx}
+                                src={img.startsWith('http') || img.startsWith('data:') ? img : `https://via.placeholder.com/100x100?text=Img${idx + 1}`}
+                                alt={`Product Image ${idx + 1}`}
+                                className="app-thumbnail"
+                              />
+                            ))}
+                            {(!app.images || app.images.length === 0) && (
+                              <span className="app-no-images">No images submitted</span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="app-card-actions">
+                          <button
+                            className="app-btn-approve"
+                            onClick={() => approveApplication(app.id)}
+                          >
+                                  <FontAwesomeIcon icon={faCheck} style={{ marginRight: '5px' }} />
+                                  Approve & Schedule
+                          </button>
+                          <button
+                            className="app-btn-reject"
+                            onClick={() => rejectApplication(app.id)}
+                          >
+                                  <FontAwesomeIcon icon={faTimes} style={{ marginRight: '5px' }} />
+                                  Reject
+                          </button>
+                        </div>
                       </div>
-                    </div>
-
-                    <div className="application-actions">
-                      <button
-                        className="btn btn-success btn-small"
-                        onClick={() => approveApplication(app.id)}
-                      >
-                        Approve & Schedule
-                      </button>
-                      <button
-                        className="btn btn-danger btn-small"
-                        onClick={() => rejectApplication(app.id)}
-                      >
-                        Reject
-                      </button>
-                      <button className="btn btn-secondary btn-small">View Details</button>
-                    </div>
-                  </div>
-                ))
+                    );
+                  })}
+                </div>
               ) : (
                 <div style={{ textAlign: 'center', padding: '3rem', color: '#888' }}>
                   No pending supplier applications match your criteria.
@@ -2014,36 +2394,80 @@ const EmployeeDashboard = () => {
                 </div>
               </div>
 
-              {orders.filter(o => o.status !== 'Completed').length > 0 ? (
-                orders.filter(o => o.status !== 'Completed').map(order => (
-                  <div key={order.id} className="inventory-item">
-                    <div className="inventory-details">
-                      <h4>Order #{order.id} - {order.customer}</h4>
-                      <div>{order.items}</div>
-                      <div>Total: LKR {order.total.toFixed(2)} | Payment: {order.payment}</div>
+              <div className="order-cards-grid">
+                {orders.filter(o => o.status !== 'Completed' && o.status !== 'Delivered' && o.status !== 'Cancelled').length > 0 ? (
+                  orders.filter(o => o.status !== 'Completed' && o.status !== 'Delivered' && o.status !== 'Cancelled').map(order => (
+                    <div key={order.id} className="order-premium-card">
+                      <div className="order-card-top">
+                        <div className="order-id-section">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <h4 className="order-id-text">Order #{order.id}</h4>
+                            <span style={{ fontSize: '0.65rem', color: '#64748b', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>{order.refNo}</span>
+                          </div>
+                          <span className="order-date-text"><FontAwesomeIcon icon={faCalendarAlt} style={{ marginRight: '5px' }} /> {order.date}</span>
+                        </div>
+                        <span className={`order-status-badge status-${order.status.toLowerCase()}`}>
+                          {order.status}
+                        </span>
+                      </div>
+
+                      <div className="order-card-body">
+                        <div className="order-customer-row">
+                          <div className="customer-avatar">
+                            <FontAwesomeIcon icon={faUser} />
+                          </div>
+                          <div className="customer-info-text">
+                            <span className="customer-name-bold">{order.customer}</span>
+                            <span className="customer-meta">{order.phone}</span>
+                            <span className="customer-meta" style={{ display: 'block', marginTop: '4px', fontSize: '0.75rem', color: '#64748b' }}>
+                              <FontAwesomeIcon icon={faTruck} style={{ marginRight: '5px' }} /> {order.address}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="order-items-summary">
+                          <span className="items-label"><FontAwesomeIcon icon={faBoxes} style={{ marginRight: '5px' }} /> Ordered Items</span>
+                          <p className="items-content">{order.items}</p>
+                        </div>
+
+                        <div className="order-financials">
+                          <div className="payment-meta">
+                            <span className="items-label"><FontAwesomeIcon icon={faShoppingCart} style={{ marginRight: '5px' }} /> Payment ({order.method})</span>
+                            <span className={`status-badge ${order.payment === 'Paid' || order.payment === 'Completed' ? 'status-confirmed' : 'status-pending'}`} style={{ padding: '0.2rem 0.6rem', fontSize: '0.7rem' }}>
+                              {order.payment}
+                            </span>
+                          </div>
+                          <div className="order-total-block">
+                            <span className="total-label">Subtotal</span>
+                            <span className="total-amount-large">LKR {order.total.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="order-card-actions">
+                        <button
+                          className={order.status === 'Ready' ? 'btn-premium-process' : 'btn-premium-update'}
+                          onClick={() => handleProcessOrder(order.id)}
+                        >
+                          {order.status === 'Ready' ? (
+                            <>
+                              <FontAwesomeIcon icon={faSync} />
+                              Process Fulfillment
+                            </>
+                          ) : (
+                            'Update Status'
+                          )}
+                        </button>
+                      </div>
                     </div>
-                    <div className={`stock-level stock-${order.status === 'Ready' ? 'good' : 'low'}`} style={{
-                      background: order.status === 'Packing' ? '#fff3cd' : order.status === 'Delivering' ? '#e3f2fd' : '',
-                      color: order.status === 'Packing' ? '#856404' : order.status === 'Delivering' ? '#0d47a1' : ''
-                    }}>
-                      {order.status}
-                    </div>
-                    <div>{order.date}</div>
-                    <div>
-                      <button
-                        className={`btn btn-${order.status === 'Ready' ? 'primary' : 'secondary'} btn-small`}
-                        onClick={() => handleProcessOrder(order.id)}
-                      >
-                        {order.status === 'Ready' ? 'Process Fulfillment' : 'Update Status'}
-                      </button>
-                    </div>
+                  ))
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '3rem', width: '100%', color: '#94a3b8' }}>
+                    <FontAwesomeIcon icon={faClipboardList} style={{ fontSize: '3rem', marginBottom: '1rem', opacity: 0.3 }} />
+                    <p>No active orders in the queue.</p>
                   </div>
-                ))
-              ) : (
-                <div style={{ textAlign: 'center', padding: '2rem', color: '#888' }}>
-                  No active orders to process.
-                </div>
-              )}
+                )}
+              </div>
             </div>
 
             {/* Completed Orders History */}
@@ -2055,33 +2479,70 @@ const EmployeeDashboard = () => {
                 </div>
               </div>
 
-              <div className="deliveries-table">
-                <div className="deliveries-header">
-                  <div className="delivery-col">Order ID</div>
-                  <div className="delivery-col">Customer</div>
-                  <div className="delivery-col">Items</div>
-                  <div className="delivery-col">Total</div>
-                  <div className="delivery-col">Date</div>
-                  <div className="delivery-col">Status</div>
-                </div>
-                {orders.filter(o => o.status === 'Completed').length > 0 ? (
-                  orders.filter(o => o.status === 'Completed').map(order => (
-                    <div key={order.id} className="delivery-row">
-                      <div className="delivery-col"><strong>{order.id}</strong></div>
-                      <div className="delivery-col">{order.customer}</div>
-                      <div className="delivery-col" style={{ fontSize: '0.85rem' }}>{order.items}</div>
-                      <div className="delivery-col">LKR {order.total.toFixed(2)}</div>
-                      <div className="delivery-col">{order.date}</div>
-                      <div className="delivery-col">
-                        <span className="status-badge status-confirmed">Fulfilled</span>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <div style={{ textAlign: 'center', padding: '3rem', color: '#888', gridColumn: '1 / -1' }}>
-                    No completed orders found in history.
-                  </div>
-                )}
+              <div className="history-table-container">
+                <table className="premium-history-table">
+                  <thead>
+                    <tr>
+                      <th>Order ID</th>
+                      <th>Reference No</th>
+                      <th>Customer Details</th>
+                      <th>Shipping Address</th>
+                      <th>Items Summary</th>
+                      <th>Payment Status</th>
+                      <th>Method</th>
+                      <th>Final Total</th>
+                      <th>Date</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {orders.filter(o => o.status === 'Delivered').length > 0 ? (
+                      orders.filter(o => o.status === 'Delivered').map(order => (
+                        <tr key={order.id}>
+                          <td><span className="history-id-text">{order.id}</span></td>
+                          <td><span style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 'bold', fontFamily: 'monospace' }}>{order.refNo}</span></td>
+                          <td>
+                            <div className="history-customer-cell">
+                              <span className="history-cust-name">{order.customer}</span>
+                              <span className="history-cust-phone">{order.phone}</span>
+                            </div>
+                          </td>
+                          <td>
+                            <div className="history-address-text" style={{ fontSize: '0.8rem', color: '#475569', maxWidth: '200px' }}>
+                              {order.address}
+                            </div>
+                          </td>
+                          <td>
+                            <div className="history-items-text" title={order.items}>
+                              {order.items}
+                            </div>
+                          </td>
+                          <td>
+                            <span className={`status-badge ${order.payment === 'Paid' || order.payment === 'Completed' ? 'status-confirmed' : 'status-pending'}`} style={{ fontSize: '0.65rem' }}>
+                              {order.payment}
+                            </span>
+                          </td>
+                          <td>
+                            <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#475569' }}>{order.method}</span>
+                          </td>
+                          <td><span className="history-total-text">LKR {order.total.toFixed(2)}</span></td>
+                          <td><span className="history-date-text">{order.date}</span></td>
+                          <td>
+                            <span className={`status-badge status-${order.status.toLowerCase()}`} style={{ fontSize: '0.7rem', padding: '0.2rem 0.7rem' }}>
+                              {order.status}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="10" style={{ textAlign: 'center', padding: '3rem', color: '#94a3b8' }}>
+                          No completed orders found in history.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -2110,7 +2571,7 @@ const EmployeeDashboard = () => {
                   <option value="all">All Delivery Schedules</option>
                   <option value="scheduled delivery">Scheduled Delivery</option>
                   <option value="pending">Pending Farmer Response</option>
-                  <option value="confirmed">✅ Confirmed (Ready to Complete)</option>
+                  <option value="confirmed">Confirmed (Ready to Complete)</option>
                   <option value="confirmed schedule">Confirmed Schedule</option>
                   <option value="completed">Completed</option>
                 </select>
@@ -2135,7 +2596,9 @@ const EmployeeDashboard = () => {
                     {filterDeliveries().length === 0 ? (
                       <tr>
                         <td colSpan="9" style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
-                          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📦</div>
+                          <div style={{ fontSize: '3rem', marginBottom: '1rem', color: '#cbd5e1' }}>
+                            <FontAwesomeIcon icon={faBoxes} />
+                          </div>
                           <p style={{ fontWeight: '500', marginBottom: '0.5rem' }}>No delivery schedules</p>
                           <p style={{ fontSize: '0.9rem' }}>Deliveries will appear here after you approve supplier applications.</p>
                         </td>
@@ -2166,25 +2629,31 @@ const EmployeeDashboard = () => {
                               <div className="action-btn-group">
                                 <button
                                   className="btn-action btn-confirm"
-                                  onClick={async () => {
-                                    if (window.confirm(`Mark delivery ${delivery.id} as completed?`)) {
-                                      try {
-                                        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-                                        const response = await fetch(`${config.API_BASE_URL}/employee/deliveries/${delivery.id}/complete`, {
-                                          method: 'PUT',
-                                          headers: {
-                                            'Content-Type': 'application/json',
-                                            'Authorization': `Bearer ${token}`
+                                  onClick={() => {
+                                    openConfirm({
+                                      title: 'Complete Delivery',
+                                      message: `Are you sure you want to mark delivery ${delivery.id} as completed?`,
+                                      confirmText: 'Mark Completed',
+                                      onConfirm: async () => {
+                                        try {
+                                          const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+                                          const response = await fetch(`${config.API_BASE_URL}/employee/deliveries/${delivery.id}/complete`, {
+                                            method: 'PUT',
+                                            headers: {
+                                              'Content-Type': 'application/json',
+                                              'Authorization': `Bearer ${token}`
+                                            }
+                                          });
+                                          if (response.ok) {
+                                            showNotification('Delivery marked as completed!');
+                                            fetchDeliveries();
                                           }
-                                        });
-                                        if (response.ok) {
-                                          showNotification('Delivery marked as completed!');
-                                          fetchDeliveries();
+                                        } catch (error) {
+                                          console.error('Error:', error);
+                                          showNotification('Connection error', 'error');
                                         }
-                                      } catch (error) {
-                                        console.error('Error:', error);
                                       }
-                                    }
+                                    });
                                   }}
                                 >
                                   Mark Complete
@@ -2205,25 +2674,31 @@ const EmployeeDashboard = () => {
                               <div className="action-btn-group">
                                 <button
                                   className="btn-action btn-confirm"
-                                  onClick={async () => {
-                                    if (window.confirm(`Mark delivery ${delivery.id} as completed?`)) {
-                                      try {
-                                        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-                                        const response = await fetch(`${config.API_BASE_URL}/employee/deliveries/${delivery.id}/complete`, {
-                                          method: 'PUT',
-                                          headers: {
-                                            'Content-Type': 'application/json',
-                                            'Authorization': `Bearer ${token}`
+                                  onClick={() => {
+                                    openConfirm({
+                                      title: 'Complete Delivery',
+                                      message: `Are you sure you want to mark delivery ${delivery.id} as completed?`,
+                                      confirmText: 'Mark Completed',
+                                      onConfirm: async () => {
+                                        try {
+                                          const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+                                          const response = await fetch(`${config.API_BASE_URL}/employee/deliveries/${delivery.id}/complete`, {
+                                            method: 'PUT',
+                                            headers: {
+                                              'Content-Type': 'application/json',
+                                              'Authorization': `Bearer ${token}`
+                                            }
+                                          });
+                                          if (response.ok) {
+                                            showNotification('Delivery marked as completed!');
+                                            fetchDeliveries();
                                           }
-                                        });
-                                        if (response.ok) {
-                                          showNotification('Delivery marked as completed!');
-                                          fetchDeliveries();
+                                        } catch (error) {
+                                          console.error('Error:', error);
+                                          showNotification('Connection error', 'error');
                                         }
-                                      } catch (error) {
-                                        console.error('Error:', error);
                                       }
-                                    }
+                                    });
                                   }}
                                   title="Mark delivery as completed"
                                 >
@@ -2242,25 +2717,31 @@ const EmployeeDashboard = () => {
                               <div className="action-btn-group">
                                 <button
                                   className="btn-action btn-confirm"
-                                  onClick={async () => {
-                                    if (window.confirm(`Mark delivery ${delivery.id} as completed?`)) {
-                                      try {
-                                        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-                                        const response = await fetch(`${config.API_BASE_URL}/employee/deliveries/${delivery.id}/complete`, {
-                                          method: 'PUT',
-                                          headers: {
-                                            'Content-Type': 'application/json',
-                                            'Authorization': `Bearer ${token}`
+                                  onClick={() => {
+                                    openConfirm({
+                                      title: 'Complete Delivery',
+                                      message: `Are you sure you want to mark delivery ${delivery.id} as completed?`,
+                                      confirmText: 'Mark Completed',
+                                      onConfirm: async () => {
+                                        try {
+                                          const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+                                          const response = await fetch(`${config.API_BASE_URL}/employee/deliveries/${delivery.id}/complete`, {
+                                            method: 'PUT',
+                                            headers: {
+                                              'Content-Type': 'application/json',
+                                              'Authorization': `Bearer ${token}`
+                                            }
+                                          });
+                                          if (response.ok) {
+                                            showNotification('Delivery marked as completed!');
+                                            fetchDeliveries();
                                           }
-                                        });
-                                        if (response.ok) {
-                                          showNotification('Delivery marked as completed!');
-                                          fetchDeliveries();
+                                        } catch (error) {
+                                          console.error('Error:', error);
+                                          showNotification('Connection error', 'error');
                                         }
-                                      } catch (error) {
-                                        console.error('Error:', error);
                                       }
-                                    }
+                                    });
                                   }}
                                 >
                                   Mark Complete
@@ -2271,25 +2752,31 @@ const EmployeeDashboard = () => {
                               <div className="action-btn-group">
                                 <button
                                   className="btn-action btn-confirm"
-                                  onClick={async () => {
-                                    if (window.confirm(`Mark delivery ${delivery.id} as completed?`)) {
-                                      try {
-                                        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-                                        const response = await fetch(`${config.API_BASE_URL}/employee/deliveries/${delivery.id}/complete`, {
-                                          method: 'PUT',
-                                          headers: {
-                                            'Content-Type': 'application/json',
-                                            'Authorization': `Bearer ${token}`
+                                  onClick={() => {
+                                    openConfirm({
+                                      title: 'Complete Delivery',
+                                      message: `Are you sure you want to mark delivery ${delivery.id} as completed?`,
+                                      confirmText: 'Mark Completed',
+                                      onConfirm: async () => {
+                                        try {
+                                          const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+                                          const response = await fetch(`${config.API_BASE_URL}/employee/deliveries/${delivery.id}/complete`, {
+                                            method: 'PUT',
+                                            headers: {
+                                              'Content-Type': 'application/json',
+                                              'Authorization': `Bearer ${token}`
+                                            }
+                                          });
+                                          if (response.ok) {
+                                            showNotification('Delivery marked as completed!');
+                                            fetchDeliveries();
                                           }
-                                        });
-                                        if (response.ok) {
-                                          showNotification('Delivery marked as completed!');
-                                          fetchDeliveries();
+                                        } catch (error) {
+                                          console.error('Error:', error);
+                                          showNotification('Connection error', 'error');
                                         }
-                                      } catch (error) {
-                                        console.error('Error:', error);
                                       }
-                                    }
+                                    });
                                   }}
                                 >
                                   Mark Complete
@@ -2307,8 +2794,10 @@ const EmployeeDashboard = () => {
                               </div>
                             )}
                           </td>
+
                         </tr>
-                      )))}
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -2542,6 +3031,38 @@ const EmployeeDashboard = () => {
                     {currentDelivery.status.charAt(0).toUpperCase() + currentDelivery.status.slice(1)}
                   </span>
                 </p>
+
+                {currentDelivery.status === 'completed' && (
+                  <div style={{
+                    marginTop: '1.5rem',
+                    padding: '1.2rem',
+                    background: '#f0fdf4',
+                    borderRadius: '12px',
+                    border: '1px solid #bcf0da',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.5rem'
+                  }}>
+                    <h3 style={{ color: '#166534', fontSize: '1rem', margin: 0, borderBottom: '1px solid #bcf0da', paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>
+                      <FontAwesomeIcon icon={faMoneyBillWave} style={{ marginRight: '8px' }} />
+                      Farmer Payment Amount
+                    </h3>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: '#4b5563', fontSize: '0.9rem' }}>Unit Price:</span>
+                      <span style={{ fontWeight: '600' }}>LKR {currentDelivery.price_per_unit || 0}/kg</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ color: '#4b5563', fontSize: '0.9rem' }}>Net Quantity:</span>
+                      <span style={{ fontWeight: '600' }}>{currentDelivery.quantity}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '2px dashed #bcf0da' }}>
+                      <span style={{ fontWeight: '800', color: '#166534' }}>Total Payout:</span>
+                      <span style={{ fontWeight: '800', color: '#166534', fontSize: '1.2rem' }}>
+                        LKR {((currentDelivery.quantityVal || 0) * (currentDelivery.price_per_unit || 0)).toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             <div className="modal-footer">
@@ -2587,14 +3108,14 @@ const EmployeeDashboard = () => {
                   style={{ background: '#2e7d32' }}
                   onClick={() => handleStockUpdate('add')}
                 >
-                  ➕ Add Stock
+                  <FontAwesomeIcon icon={faPlus} style={{ marginRight: '8px' }} /> Add Stock
                 </button>
                 <button
                   className="btn btn-danger"
                   style={{ background: '#dc3545' }}
                   onClick={() => handleStockUpdate('reduce')}
                 >
-                  ➖ Reduce Stock
+                  <FontAwesomeIcon icon={faMinus} style={{ marginRight: '8px' }} /> Reduce Stock
                 </button>
               </div>
             </div>
@@ -2612,7 +3133,9 @@ const EmployeeDashboard = () => {
         <div className="modal" style={{ display: 'block' }}>
           <div className="modal-content" style={{ maxWidth: '700px' }}>
             <div className="modal-header">
-              <h2 className="modal-title">📦 Order Packing Slip</h2>
+              <h2 className="modal-title">
+                <FontAwesomeIcon icon={faBox} style={{ marginRight: '10px' }} /> Order Packing Slip
+              </h2>
               <button className="close" onClick={() => setIsPackingSlipOpen(false)}>×</button>
             </div>
             <div className="modal-body" id="printable-label">
@@ -2643,11 +3166,36 @@ const EmployeeDashboard = () => {
                     onChange={(e) => updateOrderStatus(selectedOrder.id, e.target.value)}
                   >
                     <option value="Ready">Ready to Process</option>
-                    <option value="Packing">📦 Packing in Progress</option>
-                    <option value="Delivering">🚚 Out for Delivery</option>
-                    <option value="Completed">✅ Fully Fulfilled</option>
-                    <option value="Hold">⚠️ On Hold</option>
+                    <option value="Processing">Packing in Progress</option>
+                    <option value="Shipped">Out for Delivery</option>
+                    <option value="Delivered">Fully Fulfilled</option>
+                    <option value="Hold">On Hold</option>
                   </select>
+                </div>
+
+                <div style={{ background: '#f0f4f8', padding: '1rem', borderRadius: '8px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                    <h4 style={{ color: '#666', margin: 0 }}>Payment Status</h4>
+                    <span className={`status-badge ${selectedOrder.payment.toLowerCase() === 'paid' ? 'status-confirmed' : 'status-pending'}`} style={{ padding: '0.3rem 0.8rem' }}>
+                      <FontAwesomeIcon icon={selectedOrder.payment.toLowerCase() === 'paid' ? faCheckCircle : faClock} style={{ marginRight: '5px' }} />
+                      {selectedOrder.payment}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => togglePaymentStatus(selectedOrder.id)}
+                    style={{
+                      background: 'white',
+                      border: '1px solid #cbd5e1',
+                      padding: '0.5rem',
+                      borderRadius: '6px',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      color: '#475569'
+                    }}
+                  >
+                    Mark as {selectedOrder.payment.toLowerCase() === 'paid' ? 'unpaid' : 'paid'}
+                  </button>
                 </div>
               </div>
 
@@ -2673,7 +3221,7 @@ const EmployeeDashboard = () => {
                   style={{ flex: 1, background: '#1976d2' }}
                   onClick={() => window.print()}
                 >
-                  🖨️ Print Packing Label
+                  <FontAwesomeIcon icon={faPrint} style={{ marginRight: '8px' }} /> Print Packing Label
                 </button>
                 <button
                   className="btn btn-save"
@@ -2717,7 +3265,8 @@ const EmployeeDashboard = () => {
                     }}
                     onClick={() => setCustomScheduleDate(selectedApp.date)}
                   >
-                    📅 Option 1: <strong>{selectedApp.date}</strong>
+                    <FontAwesomeIcon icon={faCalendarAlt} style={{ marginRight: '8px' }} />
+                    Option 1: <strong>{selectedApp.date}</strong>
                   </button>
                   {selectedApp.proposedDate2 && (
                     <button
@@ -2732,7 +3281,8 @@ const EmployeeDashboard = () => {
                       }}
                       onClick={() => setCustomScheduleDate(selectedApp.proposedDate2)}
                     >
-                      📅 Option 2: <strong>{selectedApp.proposedDate2}</strong>
+                      <FontAwesomeIcon icon={faCalendarAlt} style={{ marginRight: '8px' }} />
+                      Option 2: <strong>{selectedApp.proposedDate2}</strong>
                     </button>
                   )}
                   {selectedApp.proposedDate3 && (
@@ -2748,7 +3298,8 @@ const EmployeeDashboard = () => {
                       }}
                       onClick={() => setCustomScheduleDate(selectedApp.proposedDate3)}
                     >
-                      📅 Option 3: <strong>{selectedApp.proposedDate3}</strong>
+                      <FontAwesomeIcon icon={faCalendarAlt} style={{ marginRight: '8px' }} />
+                      Option 3: <strong>{selectedApp.proposedDate3}</strong>
                     </button>
                   )}
                 </div>
@@ -2829,24 +3380,60 @@ const EmployeeDashboard = () => {
         </div>
       )}
 
-      {/* Success Notification Toast */}
+      {/* Custom Confirmation Modal */}
+      {isConfirmModalOpen && (
+        <div className="modal" style={{ display: 'block', zIndex: 10002 }}>
+          <div className="modal-content" style={{ maxWidth: '450px', borderRadius: '20px', padding: '0' }}>
+            <div className={`modal-header ${confirmConfig.type === 'danger' ? 'bg-danger-soft' : ''}`} style={{ borderBottom: 'none', padding: '2rem 2rem 1rem' }}>
+              <h2 className="modal-title" style={{ width: '100%', textAlign: 'center', fontSize: '1.5rem', color: confirmConfig.type === 'danger' ? '#dc2626' : '#1e293b' }}>
+                {confirmConfig.title}
+              </h2>
+            </div>
+            <div className="modal-body" style={{ textAlign: 'center', padding: '0 2.5rem 2rem' }}>
+              <p style={{ fontSize: '1.05rem', color: '#64748b', lineHeight: '1.6', margin: '0' }}>
+                {confirmConfig.message}
+              </p>
+            </div>
+            <div className="modal-footer" style={{ borderTop: 'none', padding: '0 2rem 2.5rem', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <button
+                className="btn-premium-update"
+                style={{ padding: '0.8rem', borderRadius: '12px' }}
+                onClick={() => setIsConfirmModalOpen(false)}
+              >
+                No, Cancel
+              </button>
+              <button
+                className={confirmConfig.type === 'danger' ? 'btn-danger' : 'btn-premium-process'}
+                style={{ padding: '0.8rem', borderRadius: '12px', margin: '0' }}
+                onClick={confirmConfig.onConfirm}
+              >
+                {confirmConfig.confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notification Toast */}
       {successMessage && (
-        <div className="success-toast" style={{
+        <div className={`success-toast ${notificationType === 'error' ? 'error-toast' : ''}`} style={{
           position: 'fixed',
           bottom: '2rem',
           right: '2rem',
-          background: '#2e7d32',
+          background: notificationType === 'error' ? 'rgba(220, 38, 38, 0.95)' : 'rgba(46, 125, 50, 0.95)',
           color: 'white',
-          padding: '1rem 2rem',
-          borderRadius: '12px',
-          boxShadow: '0 8px 16px rgba(0,0,0,0.2)',
+          padding: '1.2rem 2.2rem',
+          borderRadius: '16px',
+          boxShadow: '0 15px 35px rgba(0, 0, 0, 0.2)',
           display: 'flex',
           alignItems: 'center',
           gap: '1rem',
-          zIndex: 9999,
-          animation: 'slideUp 0.3s ease-out'
+          zIndex: 10005,
+          fontWeight: '700',
+          backdropFilter: 'blur(8px)',
+          animation: 'toastPop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
         }}>
-          <span style={{ fontSize: '1.5rem' }}>✅</span>
+          <FontAwesomeIcon icon={notificationType === 'error' ? faExclamationCircle : faCheckCircle} style={{ fontSize: '1.4rem' }} />
           <strong>{successMessage}</strong>
         </div>
       )}
@@ -2857,7 +3444,11 @@ const EmployeeDashboard = () => {
           <div className="modal-content" style={{ maxWidth: '500px' }}>
             <div className="modal-header">
               <h2 className="modal-title">
-                {updatingItem.type === 'farmer' ? '🌿 Farmer Stock Update' : '📦 Inventory Update'}
+                {updatingItem.type === 'farmer' ? (
+                  <><FontAwesomeIcon icon={faLeaf} style={{ marginRight: '10px' }} /> Farmer Stock Update</>
+                ) : (
+                  <><FontAwesomeIcon icon={faBoxes} style={{ marginRight: '10px' }} /> Inventory Update</>
+                )}
               </h2>
               <button className="close" onClick={() => setIsAddBatchModalOpen(false)}>×</button>
             </div>
@@ -2879,7 +3470,11 @@ const EmployeeDashboard = () => {
                 }}
                 onClick={() => setBatchUpdateMode('new')}
               >
-                {updatingItem.type === 'farmer' ? '🚚 New Delivery' : 'New Production Run'}
+                {updatingItem.type === 'farmer' ? (
+                  <><FontAwesomeIcon icon={faTruck} style={{ marginRight: '8px' }} /> New Delivery</>
+                ) : (
+                  <><FontAwesomeIcon icon={faSync} style={{ marginRight: '8px' }} /> New Production Run</>
+                )}
               </button>
               <button
                 type="button"
@@ -3027,7 +3622,7 @@ const EmployeeDashboard = () => {
                           {/* Live preview of the composed location */}
                           {addBatchData.location && (
                             <div style={{ marginTop: '0.5rem', padding: '0.4rem 0.9rem', background: '#e8f5e9', borderRadius: '8px', fontSize: '0.85rem', fontWeight: '700', color: '#2e7d32', display: 'inline-block', border: '1px solid #a7f3d0' }}>
-                              📍 {addBatchData.location}
+                              <FontAwesomeIcon icon={faMapMarkerAlt} style={{ marginRight: '5px' }} /> {addBatchData.location}
                             </div>
                           )}
                         </div>

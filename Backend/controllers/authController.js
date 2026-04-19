@@ -37,7 +37,8 @@ exports.register = async (req, res) => {
       }
     }
 
-    const roleId = await getRoleId(userType || 'customer');
+    const normalizedUserType = (userType || 'customer').toString().toLowerCase().trim();
+    const roleId = await getRoleId(normalizedUserType);
     if (!roleId) return res.status(400).json({ message: 'Invalid user type' });
 
     // Hash password
@@ -49,7 +50,16 @@ exports.register = async (req, res) => {
     await db.query('DELETE FROM otp_verifications WHERE email = ? AND flow_type = "registration"', [email]);
 
     // Store registration data in JSON
-    const userData = JSON.stringify({ fullName, phone, passwordHash, roleId, address, city, postalCode, district });
+    const userData = JSON.stringify({ 
+      fullName, 
+      phone, 
+      passwordHash, 
+      roleId, 
+      address, 
+      city, 
+      postal_code: postalCode, 
+      district 
+    });
 
     await db.query(
       'INSERT INTO otp_verifications (email, otp, flow_type, user_data_json, expires_at) VALUES (?, ?, "registration", ?, ?)',
@@ -107,13 +117,16 @@ exports.login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    await db.query('UPDATE users SET last_login = NOW() WHERE user_id = ?', [user.user_id]);
+    const userId = user.user_id;
+
+    // Corrected column name to user_id
+    await db.query('UPDATE users SET last_login = NOW() WHERE user_id = ?', [userId]);
 
     // Role-based expiration: all roles 24h
     const expiration = '24h';
 
     const token = jwt.sign(
-      { userId: user.user_id, userType: user.role_name },
+      { userId: userId, userType: user.role_name },
       JWT_SECRET,
       { expiresIn: expiration }
     );
@@ -122,7 +135,7 @@ exports.login = async (req, res) => {
       message: 'Login successful',
       token,
       user: {
-        id: user.user_id,
+        id: userId,
         name: user.full_name,
         email: user.email,
         phone: user.phone,
@@ -168,39 +181,41 @@ exports.verifyOTP = async (req, res) => {
       return res.status(500).json({ message: 'Stored registration data is corrupt' });
     }
 
-    const isEmployee = userData.roleId === 3; // 3 = employee
-    // For employees, set to 'pending' (3), for others 'active' (1)
+    const registrationData = userData;
+    const isEmployee = registrationData.roleId === 3; // 3 = employee
+    // For employees, set to 'pending' (pending=3), for others 'active' (active=1)
     const targetStatusId = isEmployee ? 3 : 1;
 
-    // Verify status exists
-    const [statusCheck] = await db.query('SELECT status_id FROM account_statuses WHERE status_id = ?', [targetStatusId]);
-    if (statusCheck.length === 0) {
-      console.error(`CRITICAL: Status ID ${targetStatusId} not found`);
-      return res.status(500).json({ message: 'System configuration error: Status not found' });
+    // Check if user already exists (just in case)
+    const [existing] = await db.query('SELECT user_id FROM users WHERE email = ?', [email]);
+    if (existing.length > 0) {
+      return res.status(400).json({ message: 'User already registered' });
     }
 
     const [result] = await db.query(
-      'INSERT INTO users (full_name, email, phone, password_hash, role_id, status_id, address, city, postal_code, district) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [userData.fullName, email, userData.phone, userData.passwordHash, userData.roleId, targetStatusId, userData.address, userData.city, userData.postalCode, userData.district]
+      'INSERT INTO users (full_name, email, phone, password_hash, role_id, status_id, address) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [registrationData.fullName, email, registrationData.phone, registrationData.passwordHash, registrationData.roleId, targetStatusId, registrationData.address]
     );
 
     await db.query('UPDATE otp_verifications SET verified = TRUE WHERE otp_id = ?', [otpRecord.otp_id]);
 
     // Get role name for response
-    const [roles] = await db.query('SELECT role_name FROM user_roles WHERE role_id = ?', [userData.roleId]);
+    const [roles] = await db.query('SELECT role_name FROM user_roles WHERE role_id = ?', [registrationData.roleId]);
     const roleName = roles.length > 0 ? roles[0].role_name : 'customer';
 
     try {
       if (!isEmployee) {
-        await sendWelcomeEmail(email, userData.fullName, roleName);
+        await sendWelcomeEmail(email, registrationData.fullName, roleName);
       } else {
         // Send "Pending Approval" email to employee
-        await sendGenericEmail(
-          email,
-          'Registration Pending Approval',
-          'Registration Under Review',
-          `<p>Hi ${userData.fullName},</p><p>Your employee registration has been verified successfully. Your account is currently <strong>pending administrator approval</strong>.</p><p>You will receive another email once your account has been activated.</p>`
-        );
+        if (typeof sendGenericEmail === 'function') {
+          await sendGenericEmail(
+            email,
+            'Registration Pending Approval',
+            'Registration Under Review',
+            `<p>Hi ${registrationData.fullName},</p><p>Your employee registration has been verified successfully. Your account is currently <strong>pending administrator approval</strong>.</p><p>You will receive another email once your account has been activated.</p>`
+          );
+        }
       }
     } catch (emailError) {
       console.error('Email sending failed (non-blocking):', emailError.message);
@@ -220,7 +235,7 @@ exports.verifyOTP = async (req, res) => {
       token,
       user: {
         id: result.insertId,
-        name: userData.fullName,
+        name: registrationData.fullName,
         email,
         userType: roleName,
         status: isEmployee ? 'pending' : 'active'
@@ -240,7 +255,8 @@ exports.verifyOTP = async (req, res) => {
 exports.getProfile = async (req, res) => {
   try {
     const [rows] = await db.query(
-      `SELECT u.user_id as id, u.full_name, u.email, u.phone, u.address, u.city, u.postal_code, u.district, r.role_name as user_type, s.status_name as status, u.join_date 
+      `SELECT u.user_id as id, u.full_name, u.email, u.phone, u.address, u.join_date,
+             r.role_name as user_type, s.status_name as status
        FROM users u
        JOIN user_roles r ON u.role_id = r.role_id
        JOIN account_statuses s ON u.status_id = s.status_id
@@ -251,16 +267,17 @@ exports.getProfile = async (req, res) => {
     if (rows.length === 0) return res.status(404).json({ message: 'User not found' });
     res.json({ user: rows[0] });
   } catch (error) {
+    console.error('getProfile Error:', error);
     res.status(500).json({ message: 'Failed to fetch profile', error: error.message });
   }
 };
 
 exports.updateProfile = async (req, res) => {
   try {
-    const { fullName, phone, address, city, postalCode, district } = req.body;
+    const { fullName, phone, address } = req.body;
     await db.query(
-      'UPDATE users SET full_name = ?, phone = ?, address = ?, city = ?, postal_code = ?, district = ? WHERE user_id = ?', 
-      [fullName, phone, address, city, postalCode, district, req.user.userId]
+      'UPDATE users SET full_name = ?, phone = ?, address = ? WHERE user_id = ?', 
+      [fullName, phone, address, req.user.userId]
     );
     res.json({ message: 'Profile updated successfully' });
   } catch (error) {
@@ -398,7 +415,7 @@ exports.verifyResetOTP = async (req, res) => {
     }
 
     // Mark OTP as verified
-    await db.query('UPDATE otp_verifications SET verified = TRUE WHERE otp_id = ?', [record.otp_id]);
+    await db.query('UPDATE otp_verifications SET verified = TRUE WHERE id = ?', [record.id]);
 
     console.log(`✅ Password reset OTP verified for: ${cleanEmail}`);
     res.json({ message: 'OTP verified successfully. You can now reset your password.' });
@@ -459,7 +476,7 @@ exports.resetPassword = async (req, res) => {
     }
 
     // Delete the used OTP
-    await db.query('DELETE FROM otp_verifications WHERE otp_id = ?', [record.otp_id]);
+    await db.query('DELETE FROM otp_verifications WHERE id = ?', [record.id]);
 
     console.log(`✅ Password reset successful for user ID: ${userData.userId} (${cleanEmail})`);
     res.json({ message: 'Password reset successful. You can now login with your new password.' });

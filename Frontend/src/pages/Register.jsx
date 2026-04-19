@@ -1,7 +1,14 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
-import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons'
+import { 
+  faEye, 
+  faEyeSlash,
+  faShoppingBasket,
+  faSeedling,
+  faUserTie,
+  faCog
+} from '@fortawesome/free-solid-svg-icons'
 import { useToast } from '../components/ToastNotification'
 import { config } from '../config'
 import './Register.css'
@@ -16,6 +23,7 @@ function Register() {
   const [formData, setFormData] = useState({
     userType: 'customer',
     fullName: '',
+    farmName: '',
     email: '',
     phone: '',
     password: '',
@@ -89,6 +97,7 @@ function Register() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fullName: formData.fullName.trim(),
+          farmName: formData.userType === 'farmer' ? formData.farmName.trim() : undefined,
           email: normalizedEmail,
           phone: formData.phone.trim(),
           password: formData.password,
@@ -293,14 +302,53 @@ function Register() {
             <form onSubmit={handleSubmit} className="register-form">
               {localError && <div className="error-message">{localError}</div>}
 
-              <div className="form-group">
-                <label htmlFor="userType">I am a:</label>
-                <select id="userType" name="userType" value={formData.userType} onChange={handleChange} required>
-                  <option value="customer">Customer</option>
-                  <option value="farmer">Farmer</option>
-                  <option value="employee">Employee</option>
-                  <option value="admin">Admin</option>
-                </select>
+              <div className="form-group role-selection-group">
+                <label>I am a:</label>
+                <div className="role-cards-container">
+                  <div 
+                    className={`role-card ${formData.userType === 'customer' ? 'selected' : ''}`}
+                    onClick={() => setFormData({...formData, userType: 'customer'})}
+                  >
+                    <div className="role-card-icon"><FontAwesomeIcon icon={faShoppingBasket} /></div>
+                    <div className="role-card-content">
+                      <h4>Customer</h4>
+                      <p>Buy fresh wholesale products</p>
+                    </div>
+                  </div>
+                  
+                  <div 
+                    className={`role-card ${formData.userType === 'farmer' ? 'selected' : ''}`}
+                    onClick={() => setFormData({...formData, userType: 'farmer'})}
+                  >
+                    <div className="role-card-icon"><FontAwesomeIcon icon={faSeedling} /></div>
+                    <div className="role-card-content">
+                      <h4>Farmer</h4>
+                      <p>Sell products to our warehouse</p>
+                    </div>
+                  </div>
+
+                  <div 
+                    className={`role-card ${formData.userType === 'employee' ? 'selected' : ''}`}
+                    onClick={() => setFormData({...formData, userType: 'employee'})}
+                  >
+                    <div className="role-card-icon"><FontAwesomeIcon icon={faUserTie} /></div>
+                    <div className="role-card-content">
+                      <h4>Employee</h4>
+                      <p>Manage warehouse & logistics</p>
+                    </div>
+                  </div>
+
+                  <div 
+                    className={`role-card ${formData.userType === 'admin' ? 'selected' : ''}`}
+                    onClick={() => setFormData({...formData, userType: 'admin'})}
+                  >
+                    <div className="role-card-icon"><FontAwesomeIcon icon={faCog} /></div>
+                    <div className="role-card-content">
+                      <h4>Admin</h4>
+                      <p>System control & management</p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {formData.userType === 'admin' && (
@@ -323,6 +371,22 @@ function Register() {
                 <label htmlFor="fullName">Full Name</label>
                 <input type="text" id="fullName" name="fullName" value={formData.fullName} onChange={handleChange} required />
               </div>
+
+              {formData.userType === 'farmer' && (
+                <div className="form-group">
+                  <label htmlFor="farmName">Farm Name</label>
+                  <input
+                    type="text"
+                    id="farmName"
+                    name="farmName"
+                    value={formData.farmName}
+                    onChange={handleChange}
+                    placeholder="E.g. Green Valley Farm"
+                    required
+                  />
+                  <small className="help-text">Name of your agricultural property or farm.</small>
+                </div>
+              )}
 
               <div className="form-row">
                 <div className="form-group">

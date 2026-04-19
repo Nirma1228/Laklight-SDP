@@ -11,7 +11,7 @@ import {
   faChartBar, faStore, faBoxOpen, faUser, faHandshake,
   faBox, faExclamationTriangle, faClock, faCheckCircle,
   faTags, faHourglassHalf, faSync, faStar, faMoneyBillWave,
-  faShieldAlt, faDesktop, faLock
+  faShieldAlt, faDesktop, faLock, faLeaf, faCubes
 } from '@fortawesome/free-solid-svg-icons'
 import './AdminDashboard.css'
 
@@ -25,6 +25,9 @@ function AdminDashboard() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
   const [adminName, setAdminName] = useState(localStorage.getItem('userName') || 'Administrator');
+  const [showRecentOrders, setShowRecentOrders] = useState(false)
+  const [showPendingRegistrations, setShowPendingRegistrations] = useState(false)
+  const [showCustomerFeedback, setShowCustomerFeedback] = useState(false)
   const [confirmModal, setConfirmModal] = useState({
     show: false,
     title: '',
@@ -215,15 +218,21 @@ function AdminDashboard() {
       const token = getAuthToken();
       const response = await fetch(`${config.API_BASE_URL}/admin/users/${userId}/status`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        headers: { 
+          'Content-Type': 'application/json', 
+          'Authorization': `Bearer ${token}` 
+        },
         body: JSON.stringify({ status })
       });
-      if (response.ok) {
+      const data = await response.json();
+      if (data.success) {
         setPendingUsers(prev => prev.filter(u => u.id !== userId));
         setConfirmModal({ ...confirmModal, show: false });
-        success(`User ${status} successfully`);
+        success(`User account ${status === 'active' ? 'approved' : 'rejected'} successfully`);
+        // Refresh dashboard statistics after update
+        fetchDashboardData();
       } else {
-        toastError('Action failed');
+        toastError(data.message || 'Action failed');
       }
     } catch (err) {
       console.error(err);
@@ -252,205 +261,200 @@ function AdminDashboard() {
             <p>Complete system overview and management controls for Laklight Food Products digital platform.</p>
           </div>
           <div className="page-header-actions">
-            <Link to="/generate-reports" className="btn-generate">Generate Report</Link>
-            <Link to="/admin/settings" className="btn-settings">System Settings</Link>
+            <button className={`btn-toggle-view ${showRecentOrders ? 'active' : ''}`} onClick={() => setShowRecentOrders(!showRecentOrders)}>
+              <FontAwesomeIcon icon={faShoppingCart} /> 
+              <span>{showRecentOrders ? 'Hide' : 'Recent'} Orders</span>
+            </button>
+            <button className={`btn-toggle-view ${showPendingRegistrations ? 'active' : ''}`} onClick={() => setShowPendingRegistrations(!showPendingRegistrations)}>
+              <FontAwesomeIcon icon={faUsers} /> 
+              <span>{showPendingRegistrations ? 'Hide' : 'Show'} Pending</span>
+            </button>
+            <button className={`btn-toggle-view ${showCustomerFeedback ? 'active' : ''}`} onClick={() => setShowCustomerFeedback(!showCustomerFeedback)}>
+              <FontAwesomeIcon icon={faStar} /> 
+              <span>{showCustomerFeedback ? 'Hide' : 'Review'} Feedback</span>
+            </button>
           </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="stats-grid">
-          <div className="stat-card stat-revenue">
-            <div className="stat-icon-wrapper">
-              <FontAwesomeIcon icon={faChartLine} className="stat-icon" />
-            </div>
-            <div className="stat-value">Rs. {((dashboardData?.orders?.total_revenue || 1250000) / 1000000).toFixed(1)}M</div>
-            <div className="stat-label">Monthly Revenue</div>
-            <div className="stat-change positive">+12% from last month</div>
-          </div>
-          <div className="stat-card stat-orders">
-            <div className="stat-icon-wrapper">
-              <FontAwesomeIcon icon={faShoppingCart} className="stat-icon" />
-            </div>
-            <div className="stat-value">{dashboardData?.orders?.total_orders || 1234}</div>
-            <div className="stat-label">Total Orders</div>
-            <div className="stat-change positive">+8% from last month</div>
-          </div>
-          <div className="stat-card stat-customers">
-            <div className="stat-icon-wrapper">
-              <FontAwesomeIcon icon={faUsers} className="stat-icon" />
-            </div>
-            <div className="stat-value">{dashboardData?.users?.customers || 450}</div>
-            <div className="stat-label">Active Customers</div>
-            <div className="stat-change positive">+15% from last month</div>
-          </div>
-          <div className="stat-card stat-suppliers">
-            <div className="stat-icon-wrapper">
-              <FontAwesomeIcon icon={faTruckLoading} className="stat-icon" />
-            </div>
-            <div className="stat-value">{dashboardData?.users?.farmers || 87}</div>
-            <div className="stat-label">Registered Suppliers</div>
-            <div className="stat-change positive">+5% from last month</div>
-          </div>
-        </div>
-
+        {/* Stats Grid Removed */}
+        
         {/* Recent Orders and System Alerts */}
-        <div className="dashboard-row">
-          <div className="recent-orders-section">
-            <div className="section-header">
-              <h3>Recent Orders</h3>
-              <Link to="/admin/orders" className="btn-view-all">View All Orders</Link>
-            </div>
-            <table className="orders-table">
-              <thead>
-                <tr>
-                  <th>Order ID</th>
-                  <th>Customer</th>
-                  <th>Amount</th>
-                  <th>Status</th>
-                  <th>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentOrders.length > 0 ? (
-                  recentOrders.map((order) => (
-                    <tr key={order.id}>
-                      <td>{order.order_number || `ORD-${order.id}`}</td>
-                      <td>{order.customer_name}</td>
-                      <td>{formatCurrency(order.net_amount || order.total_amount)}</td>
-                      <td>
-                        <span className={`status-badge ${order.status.toLowerCase()}`}>
-                          {order.status}
-                        </span>
-                      </td>
-                      <td>{formatDate(order.order_date)}</td>
+        {(showRecentOrders || showPendingRegistrations) && (
+          <div className="dashboard-row fade-in">
+            {showRecentOrders && (
+              <div className="recent-orders-section">
+                <div className="section-header">
+                  <h3>Recent Orders</h3>
+                  <Link to="/admin/orders" className="btn-view-all">View All Orders</Link>
+                </div>
+                <table className="orders-table">
+                  <thead>
+                    <tr>
+                      <th>Order ID</th>
+                      <th>Reference No</th>
+                      <th>Customer</th>
+                      <th>Amount</th>
+                      <th>Method</th>
+                      <th>Status</th>
+                      <th>Date</th>
                     </tr>
-                  ))
+                  </thead>
+                  <tbody>
+                    {recentOrders.length > 0 ? (
+                      recentOrders.map((order) => (
+                        <tr key={order.id}>
+                          <td>{order.id}</td>
+                          <td><span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: 'bold', fontFamily: 'monospace' }}>{order.order_number || `ORD-${order.id}`}</span></td>
+                          <td>
+                            <div style={{ fontWeight: '600' }}>{order.customer_name}</div>
+                            <div style={{ fontSize: '0.75rem', color: '#64748b' }}>{order.phone || 'N/A'}</div>
+                          </td>
+                          <td>{formatCurrency(order.net_amount || order.total_amount)}</td>
+                          <td>
+                            <span style={{ fontSize: '0.75rem', fontWeight: '600', color: '#475569' }}>{order.payment_method || 'Stripe'}</span>
+                          </td>
+                          <td>
+                            <span className={`status-badge ${order.status.toLowerCase()}`}>
+                              {order.status}
+                            </span>
+                          </td>
+                          <td>{formatDate(order.order_date)}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="7" style={{ textAlign: 'center' }}>No recent orders found</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {showPendingRegistrations && (
+              <div className="system-alerts-section">
+                <div className="section-header">
+                  <h3>Pending Registrations</h3>
+                  <Link to="/admin/users" className="btn-view-all">View All</Link>
+                </div>
+
+                {pendingUsers.length > 0 ? (
+                  <div className="pending-users-list">
+                    {pendingUsers.map(user => (
+                      <div key={user.id} className="alert-item alert-info" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <p style={{ fontWeight: 600, margin: 0 }}>{user.full_name}</p>
+                          <small style={{ textTransform: 'capitalize' }}>{user.user_type} • {new Date(user.join_date).toLocaleDateString()}</small>
+                        </div>
+                        <div className="action-buttons-mini" style={{ display: 'flex', gap: '8px' }}>
+                          <button
+                            onClick={() => handleApproveUser(user.id)}
+                            style={{ background: '#2e7d32', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '12px' }}
+                          >
+                            Approve
+                          </button>
+                          <button
+                            onClick={() => handleRejectUser(user.id)}
+                            style={{ background: '#c62828', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '12px' }}
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 ) : (
-                  <tr>
-                    <td colSpan="5" style={{ textAlign: 'center' }}>No recent orders found</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="system-alerts-section">
-            <div className="section-header">
-              <h3>Pending Registrations</h3>
-              <Link to="/admin/users" className="btn-view-all">View All</Link>
-            </div>
-
-            {pendingUsers.length > 0 ? (
-              <div className="pending-users-list">
-                {pendingUsers.map(user => (
-                  <div key={user.id} className="alert-item alert-info" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <p style={{ fontWeight: 600, margin: 0 }}>{user.full_name}</p>
-                      <small style={{ textTransform: 'capitalize' }}>{user.user_type} • {new Date(user.join_date).toLocaleDateString()}</small>
+                  <div className="alerts-list">
+                    <div className="alert-item success">
+                      <p>All Cleared</p>
+                      <small>No pending registration requests</small>
                     </div>
-                    <div className="action-buttons-mini" style={{ display: 'flex', gap: '8px' }}>
-                      <button
-                        onClick={() => handleApproveUser(user.id)}
-                        style={{ background: '#2e7d32', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '12px' }}
-                      >
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => handleRejectUser(user.id)}
-                        style={{ background: '#c62828', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontSize: '12px' }}
-                      >
-                        Reject
-                      </button>
+                    {/* Keep only critical alerts if no users */}
+                    <div className="alert-item warning">
+                      <p>Low Stock Alert</p>
+                      <small>Mango Cordial stock is running low (5 bottles remaining)</small>
                     </div>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <div className="alerts-list">
-                <div className="alert-item success">
-                  <p>All Cleared</p>
-                  <small>No pending registration requests</small>
-                </div>
-                {/* Keep only critical alerts if no users */}
-                <div className="alert-item warning">
-                  <p>Low Stock Alert</p>
-                  <small>Mango Cordial stock is running low (5 bottles remaining)</small>
-                </div>
+                )}
               </div>
             )}
           </div>
-        </div>
+        )}
 
         {/* Customer Feedback Section */}
-        <div className="feedback-summary-section" style={{ marginTop: '2.5rem' }}>
-          <div className="section-header">
-            <h3>Customer Feedback</h3>
-            <span className="feedback-count">{customerFeedback.length} Reviews</span>
-          </div>
+        {showCustomerFeedback && (
+          <div className="feedback-summary-section fade-in" style={{ marginTop: '2.5rem' }}>
+            <div className="section-header">
+              <h3>Customer Feedback</h3>
+              <span className="feedback-count">{customerFeedback.length} Reviews</span>
+            </div>
 
-          <div className="feedback-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1.5rem', marginTop: '1.5rem' }}>
-            {customerFeedback.length > 0 ? (
-              customerFeedback.slice(0, 6).map((item) => (
-                <div key={item.feedback_id} className="feedback-card-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', border: '1px solid #f1f5f9' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                    <div>
-                      <h4 style={{ margin: 0, color: 'var(--text-dark)' }}>{item.customer_name}</h4>
-                      <small style={{ color: 'var(--text-light)' }}>{formatDate(item.created_at)}</small>
-                    </div>
-                    <div className="overall-rating-badge" style={{ background: '#fef3c7', color: '#92400e', padding: '4px 10px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: '700' }}>
-                      ★ {((item.product_quality + item.packaging + item.delivery_time + item.customer_service + item.value_for_money) / 5).toFixed(1)}
-                    </div>
-                  </div>
-
-                  <p style={{ fontStyle: 'italic', color: '#4b5563', marginBottom: '1.25rem', fontSize: '0.95rem' }}>
-                    "{item.feedback_text || 'No comment provided'}"
-                  </p>
-
-                  <div className="feedback-details-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.85rem' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Quality:</span>
-                      <span style={{ fontWeight: 600 }}>{item.product_quality}/5</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Packaging:</span>
-                      <span style={{ fontWeight: 600 }}>{item.packaging}/5</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Delivery:</span>
-                      <span style={{ fontWeight: 600 }}>{item.delivery_time}/5</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span>Support:</span>
-                      <span style={{ fontWeight: 600 }}>{item.customer_service}/5</span>
-                    </div>
-                  </div>
-
-                  {item.improvements && JSON.parse(item.improvements).length > 0 && (
-                    <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }}>
-                      <small style={{ fontWeight: 700, color: 'var(--text-dark)', display: 'block', marginBottom: '0.5rem' }}>Suggested Improvements:</small>
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
-                        {JSON.parse(item.improvements).map((imp, idx) => (
-                          <span key={idx} style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem' }}>{imp}</span>
-                        ))}
+            <div className="feedback-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(350px, 1fr))', gap: '1.5rem', marginTop: '1.5rem' }}>
+              {customerFeedback.length > 0 ? (
+                customerFeedback.slice(0, 6).map((item) => (
+                  <div key={item.feedback_id} className="feedback-card-item" style={{ background: 'white', padding: '1.5rem', borderRadius: '16px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', border: '1px solid #f1f5f9' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                      <div>
+                        <h4 style={{ margin: 0, color: 'var(--text-dark)' }}>{item.customer_name}</h4>
+                        <small style={{ color: 'var(--text-light)' }}>{formatDate(item.created_at)}</small>
+                      </div>
+                      <div className="overall-rating-badge" style={{ background: '#fef3c7', color: '#92400e', padding: '4px 10px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: '700' }}>
+                        ★ {((item.product_quality + item.packaging + item.delivery_time + item.customer_service + item.value_for_money) / 5).toFixed(1)}
                       </div>
                     </div>
-                  )}
+
+                    <p style={{ fontStyle: 'italic', color: '#4b5563', marginBottom: '1.25rem', fontSize: '0.95rem' }}>
+                      "{item.feedback_text || 'No comment provided'}"
+                    </p>
+
+                    <div className="feedback-details-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem', fontSize: '0.85rem' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Quality:</span>
+                        <span style={{ fontWeight: 600 }}>{item.product_quality}/5</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Packaging:</span>
+                        <span style={{ fontWeight: 600 }}>{item.packaging}/5</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Delivery:</span>
+                        <span style={{ fontWeight: 600 }}>{item.delivery_time}/5</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Support:</span>
+                        <span style={{ fontWeight: 600 }}>{item.customer_service}/5</span>
+                      </div>
+                    </div>
+
+                    {item.improvements && (typeof item.improvements === 'string' ? JSON.parse(item.improvements || '[]') : item.improvements).length > 0 && (
+                      <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #f1f5f9' }}>
+                        <small style={{ fontWeight: 700, color: 'var(--text-dark)', display: 'block', marginBottom: '0.5rem' }}>Suggested Improvements:</small>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px' }}>
+                          {(typeof item.improvements === 'string' ? JSON.parse(item.improvements || '[]') : item.improvements).map((imp, idx) => (
+                            <span key={idx} style={{ background: '#f1f5f9', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem' }}>{imp}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))
+              ) : (
+                <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem', background: '#f8fafc', borderRadius: '16px', color: 'var(--text-light)' }}>
+                  No customer feedback received yet.
                 </div>
-              ))
-            ) : (
-              <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '3rem', background: '#f8fafc', borderRadius: '16px', color: 'var(--text-light)' }}>
-                No customer feedback received yet.
+              )}
+            </div>
+            {customerFeedback.length > 6 && (
+              <div style={{ textAlign: 'center', marginTop: '2rem' }}>
+                <button className="btn-view-all" style={{ background: 'none', border: '1px solid var(--primary-premium)', color: 'var(--primary-premium)', padding: '0.75rem 2rem', borderRadius: '50px', fontWeight: '600', cursor: 'pointer' }}>
+                  View All Feedback
+                </button>
               </div>
             )}
           </div>
-          {customerFeedback.length > 6 && (
-            <div style={{ textAlign: 'center', marginTop: '2rem' }}>
-              <button className="btn-view-all" style={{ background: 'none', border: '1px solid var(--primary-premium)', color: 'var(--primary-premium)', padding: '0.75rem 2rem', borderRadius: '50px', fontWeight: '600', cursor: 'pointer' }}>
-                View All Feedback
-              </button>
-            </div>
-          )}
-        </div>
+        )}
+
+        {/* System Management Section */}
 
         {/* System Management Section */}
         <div className="system-management-section">
@@ -499,21 +503,21 @@ function AdminDashboard() {
               <p className="management-description">Monitor stock levels, warehouse locations, and product expiry</p>
               <div className="management-stats">
                 <div className="management-stat">
-                  <span className="management-stat-number">{dashboardData?.products?.total_products || 156}</span>
+                  <span className="management-stat-number">{Math.round(dashboardData?.products?.farmer_products_stock || 0)} kg</span>
                   <span className="management-stat-label">
-                    <FontAwesomeIcon icon={faBox} /> Products
+                    <FontAwesomeIcon icon={faLeaf} /> Farmer Raw
                   </span>
                 </div>
                 <div className="management-stat">
-                  <span className="management-stat-number">{dashboardData?.products?.low_stock_products || 12}</span>
+                  <span className="management-stat-number">{dashboardData?.products?.finished_products_stock || 0} Units</span>
+                  <span className="management-stat-label">
+                    <FontAwesomeIcon icon={faCubes} /> Finished
+                  </span>
+                </div>
+                <div className="management-stat">
+                  <span className="management-stat-number">{dashboardData?.products?.low_stock_products || 0}</span>
                   <span className="management-stat-label">
                     <FontAwesomeIcon icon={faExclamationTriangle} /> Low Stock
-                  </span>
-                </div>
-                <div className="management-stat">
-                  <span className="management-stat-number">{dashboardData?.products?.out_of_stock_products || 3}</span>
-                  <span className="management-stat-label">
-                    <FontAwesomeIcon icon={faClock} /> Expiring
                   </span>
                 </div>
               </div>
@@ -622,12 +626,6 @@ function AdminDashboard() {
                   <span className="management-stat-number">Rs. 2.4M</span>
                   <span className="management-stat-label">
                     <FontAwesomeIcon icon={faMoneyBillWave} /> Revenue
-                  </span>
-                </div>
-                <div className="management-stat">
-                  <span className="management-stat-number">+12%</span>
-                  <span className="management-stat-label">
-                    <FontAwesomeIcon icon={faChartLine} /> Growth
                   </span>
                 </div>
                 <div className="management-stat">

@@ -3,7 +3,7 @@ const discountService = require('../services/discountService');
 
 // Helpers for Status IDs
 const getStatusId = async (table, col, name) => {
-  const [rows] = await db.query(`SELECT id FROM ${table} WHERE ${col} = ?`, [name]);
+  const [rows] = await db.query(`SELECT ${table.slice(0, -1)}_id as id FROM ${table} WHERE ${col} = ?`, [name]);
   return rows.length > 0 ? rows[0].id : null;
 };
 
@@ -21,7 +21,7 @@ exports.placeOrder = async (req, res) => {
 
     for (const item of items) {
       const [rows] = await connection.query('SELECT * FROM products WHERE product_id = ?', [item.productId]);
-      if (rows.length === 0) return res.status(404).json({ message: 'Order failed', error: 'Product not found' });
+      if (rows.length === 0) return res.status(404).json({ message: 'Order failed', error: `Product with ID ${item.productId} not found` });
       const product = rows[0];
 
       if (product.stock_quantity < item.quantity) {
@@ -46,20 +46,19 @@ exports.placeOrder = async (req, res) => {
 
     const netAmount = subtotal - totalDiscount + deliveryCharge;
 
-    const [pendingStatuses] = await connection.query('SELECT order_status_id FROM order_statuses WHERE status_name = "Pending"');
-    const [unpaidStatuses] = await connection.query('SELECT payment_status_id FROM payment_statuses WHERE status_name = "unpaid"');
+    const [pendingStatuses] = await connection.query('SELECT order_status_id as id FROM order_statuses WHERE status_name = "Pending"');
+    const [unpaidStatuses] = await connection.query('SELECT payment_status_id as id FROM payment_statuses WHERE status_name = "unpaid"');
     
     if (pendingStatuses.length === 0 || unpaidStatuses.length === 0) {
-      throw new Error('System configuration error: Required statuses (Pending/unpaid) not found in database.');
+      throw new Error(`System configuration error: Required statuses (Pending/unpaid) not found in database.`);
     }
 
-    const pendingStatusId = pendingStatuses[0].order_status_id;
-    const unpaidStatusId = unpaidStatuses[0].payment_status_id;
-    const orderNumber = `ORD-${Date.now()}`;
+    const pendingStatusId = pendingStatuses[0].id;
+    const unpaidStatusId = unpaidStatuses[0].id;
 
     const [orderResult] = await connection.query(
-      'INSERT INTO orders (order_number, customer_id, total_amount, discount_amount, net_amount, payment_status_id, order_status_id, payment_method, delivery_address) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [orderNumber, req.user.userId, subtotal, totalDiscount, netAmount, unpaidStatusId, pendingStatusId, paymentMethod, deliveryAddress]
+      'INSERT INTO orders (customer_id, total_amount, discount_amount, net_amount, payment_status_id, order_status_id, payment_method, delivery_address) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [req.user.userId, subtotal, totalDiscount, netAmount, unpaidStatusId, pendingStatusId, paymentMethod, deliveryAddress]
     );
 
     const orderId = orderResult.insertId;
@@ -110,6 +109,20 @@ exports.updateOrderStatus = async (req, res) => {
     res.status(500).json({ message: 'Update failed', error: error.message });
   }
 };
+
+exports.updatePaymentStatus = async (req, res) => {
+  try {
+    const { status } = req.body; // 'paid' or 'unpaid'
+    const [statuses] = await db.query('SELECT payment_status_id FROM payment_statuses WHERE status_name = ?', [status]);
+    if (statuses.length === 0) return res.status(400).json({ message: 'Invalid payment status' });
+    const statusId = statuses[0].payment_status_id;
+
+    await db.query('UPDATE orders SET payment_status_id = ? WHERE order_id = ?', [statusId, req.params.id]);
+    res.json({ success: true, message: `Payment updated to ${status}` });
+  } catch (error) {
+    res.status(500).json({ message: 'Payment update failed', error: error.message });
+  }
+};
 // FR02: Get Order Details
 exports.getOrderDetails = async (req, res) => {
   try {
@@ -135,7 +148,7 @@ exports.getOrderDetails = async (req, res) => {
   }
 };
 
-// Admin: Get all orders
+// Admin/Employee: Get all orders
 exports.getAllOrders = async (req, res) => {
   try {
     const [orders] = await db.query(`
@@ -143,16 +156,18 @@ exports.getAllOrders = async (req, res) => {
              u.full_name as customer_name, u.phone, u.email,
              GROUP_CONCAT(CONCAT(p.name, ' (', oi.quantity, ')') SEPARATOR ', ') as product_summary
       FROM orders o
-      JOIN order_statuses os ON o.order_status_id = os.order_status_id
-      JOIN payment_statuses ps ON o.payment_status_id = ps.payment_status_id
-      JOIN users u ON o.customer_id = u.user_id
+      LEFT JOIN order_statuses os ON o.order_status_id = os.order_status_id
+      LEFT JOIN payment_statuses ps ON o.payment_status_id = ps.payment_status_id
+      LEFT JOIN users u ON o.customer_id = u.user_id
       LEFT JOIN order_items oi ON o.order_id = oi.order_id
       LEFT JOIN products p ON oi.product_id = p.product_id
       GROUP BY o.order_id
-      ORDER BY o.order_date DESC`);
+      ORDER BY o.order_date DESC
+    `);
     res.json({ success: true, orders });
   } catch (error) {
-    res.status(500).json({ message: 'Fetch failed', error: error.message });
+    console.error('getAllOrders error:', error.message);
+    res.status(500).json({ success: false, message: 'Fetch failed', error: error.message });
   }
 };
 
@@ -179,7 +194,7 @@ exports.trackOrder = async (req, res) => {
     const [rows] = await db.query(`
       SELECT o.order_number, os.status_name as status, o.order_date
       FROM orders o
-      JOIN order_statuses os ON o.order_status_id = os.order_status_id
+      JOIN order_statuses os ON o.order_status_id = os.id
       WHERE o.order_number = ?`, [req.params.orderNumber]);
     if (rows.length === 0) return res.status(404).json({ message: 'Order not found' });
     res.json({ success: true, tracking: rows[0] });

@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import Header from '../components/Header'
+import { useToast } from '../components/ToastNotification'
 import { config } from '../config'
 import './UserManagement.css'
 
 function UserManagement() {
   const navigate = useNavigate()
+  const { success, error, info } = useToast()
   const [adminName, setAdminName] = useState(localStorage.getItem('userName') || 'Administrator');
 
   useEffect(() => {
@@ -38,36 +40,56 @@ function UserManagement() {
   ];
   const [users, setUsers] = useState([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [fetchError, setFetchError] = useState(null)
 
   // Fetch users from backend
   const fetchUsers = async () => {
     setLoading(true)
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      console.log('Fetching users from:', `${config.API_BASE_URL}/admin/users`);
+      
       const response = await fetch(`${config.API_BASE_URL}/admin/users`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
+      
+      console.log('User management response status:', response.status);
+
+      if (response.status === 401 || response.status === 403) {
+        console.warn('Unauthorized access. Redirecting to login...');
+        navigate('/login');
+        return;
+      }
 
       const data = await response.json()
-      if (data.success) {
-        // Map backend fields to frontend model
-        const mappedUsers = data.users.map(u => ({
-          id: u.id,
-          name: u.full_name,
-          email: u.email,
-          role: u.user_type, // Backend returns 'user_type'
-          status: u.status,
-          phone: u.phone,
-          joinDate: new Date(u.join_date).toISOString().split('T')[0]
+      console.log('User management raw data:', data);
+      
+      const usersList = data.users || data.data || (Array.isArray(data) ? data : []);
+      console.log('Users list length:', usersList.length);
+
+      if (usersList.length > 0) {
+        const mappedUsers = usersList.map(u => ({
+          id: u.id || u.user_id,
+          name: u.full_name || u.name || 'Unknown User',
+          email: u.email || 'No Email',
+          role: (u.user_type || u.role || 'customer').toString().toLowerCase(),
+          status: (u.status || 'active').toString().toLowerCase(),
+          phone: u.phone || 'N/A',
+          address: u.address || '',
+          location: u.address || 'N/A',
+          profileImage: u.profile_image,
+          lastLogin: u.last_login ? new Date(u.last_login).toLocaleString() : 'Never',
+          joinDate: u.join_date ? new Date(u.join_date).toISOString().split('T')[0] : 'N/A'
         }))
+        console.log('Mapped users:', mappedUsers);
         setUsers(mappedUsers)
       } else {
-        throw new Error(data.message || 'Failed to fetch users')
+        console.log('No users returned from API');
+        setUsers([])
       }
     } catch (err) {
       console.error('Fetch users error:', err)
-      setError(err.message)
+      setFetchError(err.message)
     } finally {
       setLoading(false)
     }
@@ -78,6 +100,8 @@ function UserManagement() {
   }, [])
 
   const [showModal, setShowModal] = useState(false)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [confirmConfig, setConfirmConfig] = useState({ title: '', message: '', onConfirm: null, type: 'danger' })
   const [editingUser, setEditingUser] = useState(null)
   const [searchTerm, setSearchTerm] = useState('')
   const [roleFilter, setRoleFilter] = useState('all')
@@ -148,95 +172,133 @@ function UserManagement() {
 
       const data = await response.json()
       if (data.success) {
-        alert(editingUser ? 'User updated successfully' : 'User created successfully')
+        success(editingUser ? 'User updated successfully' : 'User created successfully')
         setShowModal(false)
         fetchUsers() // Refresh list
       } else {
-        alert(data.message || 'Action failed')
+        error(data.message || 'Action failed')
       }
     } catch (err) {
       console.error('Submit user error:', err)
-      alert('Error saving user')
+      error('Error saving user')
     } finally {
       setLoading(false)
     }
   }
 
   const handleApprove = async (id) => {
-    if (!confirm('Approve this user account?')) return;
-    try {
-      const token = localStorage.getItem('token')
-      const response = await fetch(`${config.API_BASE_URL}/admin/users/${id}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ status: 'active' })
-      })
-      if (response.ok) {
-        alert('User approved successfully');
-        fetchUsers(); // Refresh list
-      } else {
-        alert('Failed to approve user');
+    setConfirmConfig({
+      title: 'Approve User',
+      message: 'Are you sure you want to approve this user account and set it to active?',
+      type: 'success',
+      onConfirm: async () => {
+        try {
+          const token = localStorage.getItem('token')
+          const response = await fetch(`${config.API_BASE_URL}/admin/users/${id}/status`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ status: 'active' })
+          })
+          if (response.ok) {
+            success('User approved successfully');
+            fetchUsers();
+          } else {
+            error('Failed to approve user');
+          }
+        } catch (err) { 
+          console.error(err); 
+          error('Error during approval');
+        }
+        setShowConfirmModal(false);
       }
-    } catch (err) {
-      console.error(err);
-      alert('Error approving user');
-    }
+    })
+    setShowConfirmModal(true)
   }
 
   const handleReject = async (id) => {
-    if (!confirm('Reject this user (set to inactive)?')) return;
-    try {
-      const token = localStorage.getItem('token')
-      const response = await fetch(`${config.API_BASE_URL}/admin/users/${id}/status`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ status: 'inactive' })
-      })
-      if (response.ok) {
-        alert('User rejected successfully');
-        fetchUsers();
-      } else {
-        alert('Failed to reject user');
+    setConfirmConfig({
+      title: 'Reject User',
+      message: 'Are you sure you want to reject this user? This will set their account to inactive.',
+      type: 'warning',
+      onConfirm: async () => {
+        try {
+          const token = localStorage.getItem('token')
+          const response = await fetch(`${config.API_BASE_URL}/admin/users/${id}/status`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ status: 'inactive' })
+          })
+          if (response.ok) {
+            success('User rejected successfully');
+            fetchUsers();
+          } else {
+            error('Failed to reject user');
+          }
+        } catch (err) { 
+          console.error(err); 
+          error('Error during rejection');
+        }
+        setShowConfirmModal(false);
       }
-    } catch (err) {
-      console.error(err);
-      alert('Error rejecting user');
-    }
+    })
+    setShowConfirmModal(true)
   }
 
   const handleDelete = async (id) => {
-    if (confirm('Are you sure you want to delete this user?')) {
-      try {
-        const token = localStorage.getItem('token')
-        const response = await fetch(`${config.API_BASE_URL}/admin/users/${id}`, {
-          method: 'DELETE',
-          headers: { 'Authorization': `Bearer ${token}` }
-        })
-        if (response.ok) {
-          setUsers(users.filter(u => u.id !== id))
-        } else {
-          alert('Failed to delete user');
+    setConfirmConfig({
+      title: 'Delete User',
+      message: 'Are you sure you want to permanently delete this user? This action cannot be undone.',
+      type: 'danger',
+      onConfirm: async () => {
+        try {
+          const token = localStorage.getItem('token')
+          const response = await fetch(`${config.API_BASE_URL}/admin/users/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+          })
+          if (response.ok) {
+            success('User deleted successfully');
+            setUsers(users.filter(u => u.id !== id))
+          } else {
+            error('Failed to delete user');
+          }
+        } catch (err) { 
+          console.error(err); 
+          error('Error during deletion');
         }
-      } catch (err) {
-        console.error(err);
-        alert('Error deleting user');
+        setShowConfirmModal(false);
       }
-    }
+    })
+    setShowConfirmModal(true)
   }
 
   const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesRole = roleFilter === 'all' || user.role === roleFilter
-    const matchesStatus = statusFilter === 'all' || user.status === statusFilter
-    return matchesSearch && matchesRole && matchesStatus
-  })
+    if (!user) return false;
+    const name = user.name ? user.name.toLowerCase() : '';
+    const email = user.email ? user.email.toLowerCase() : '';
+    const matchesSearch = name.includes(searchTerm.toLowerCase()) || email.includes(searchTerm.toLowerCase());
+    
+    // Debug log for one user to see why it might be filtered out
+    if (users.indexOf(user) === 0) {
+      console.log('Filter Check for', user.name, ':', {
+        role: user.role,
+        roleFilter,
+        status: user.status,
+        statusFilter,
+        matchesSearch
+      });
+    }
+
+    const matchesRole = roleFilter === 'all' || user.role.toLowerCase() === roleFilter.toLowerCase();
+    const matchesStatus = statusFilter === 'all' || user.status.toLowerCase() === statusFilter.toLowerCase();
+    return matchesSearch && matchesRole && matchesStatus;
+  });
 
   const stats = {
     total: users.length,
@@ -259,27 +321,7 @@ function UserManagement() {
           </div>
           <div className="quick-actions">
             <button className="btn btn-primary" onClick={openAddModal}>+ Add User</button>
-            <button className="btn btn-secondary" onClick={() => alert('Export users')}>Export</button>
-          </div>
-        </div>
-
-        {/* Stats */}
-        <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-number">{stats.total}</div>
-            <div className="stat-label">Total Users</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-number">{stats.active}</div>
-            <div className="stat-label">Active Users</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-number">{stats.admins}</div>
-            <div className="stat-label">Administrators</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-number">{stats.pending}</div>
-            <div className="stat-label">Pending Approval</div>
+            <button className="btn btn-secondary" onClick={() => info('Export functionality coming soon')}>Export</button>
           </div>
         </div>
 
@@ -315,7 +357,7 @@ function UserManagement() {
               </select>
             </div>
             <div style={{ paddingTop: '1.7rem' }}>
-              <button className="btn btn-primary" onClick={() => alert('Apply filters')}>Filter</button>
+              <button className="btn btn-primary" onClick={() => info('Filters applied')}>Filter</button>
             </div>
           </div>
         </div>
@@ -329,11 +371,11 @@ function UserManagement() {
             <table className="user-table">
               <thead>
                 <tr>
-                  <th>User</th>
-                  <th>Email</th>
-                  <th>Role</th>
-                  <th>Status</th>
-                  <th>Phone</th>
+                  <th>ID</th>
+                  <th>User Profile</th>
+                  <th>Contact Info</th>
+                  <th>Role & Status</th>
+                  <th>Primary Address</th>
                   <th>Join Date</th>
                   <th>Actions</th>
                 </tr>
@@ -341,35 +383,51 @@ function UserManagement() {
               <tbody>
                 {filteredUsers.map(user => (
                   <tr key={user.id}>
+                    <td><span className="user-id-text" style={{ fontWeight: '700', color: '#1a56db' }}>#{user.id.toString().padStart(4, '0')}</span></td>
                     <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                        <div className="user-avatar">{user.name.charAt(0)}</div>
-                        <span>{user.name}</span>
+                      <div className="user-profile-cell" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        {user.profileImage ? (
+                          <img src={user.profileImage} alt={user.name} className="user-avatar-img" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover' }} />
+                        ) : (
+                          <div className="user-avatar" style={{ minWidth: '40px', width: '40px', height: '40px', borderRadius: '50%', background: '#e0e7ff', color: '#4338ca', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold' }}>
+                            {user.name.charAt(0)}
+                          </div>
+                        )}
+                        <span style={{ fontWeight: '600', color: '#1e293b' }}>{user.name}</span>
                       </div>
                     </td>
-                    <td>{user.email}</td>
                     <td>
-                      <span className={`role-badge role-${user.role}`}>
-                        {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                      </span>
+                      <div className="contact-info-cell">
+                        <div style={{ fontSize: '0.85rem', fontWeight: '500' }}>{user.email}</div>
+                        <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{user.phone}</div>
+                      </div>
                     </td>
                     <td>
-                      <span className={`status-badge status-${user.status}`}>
-                        {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
-                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+                        <span className={`role-badge role-${user.role.toLowerCase()}`} style={{ fontSize: '0.7rem', textTransform: 'uppercase' }}>
+                          {user.role}
+                        </span>
+                        <span className={`status-badge status-${user.status.toLowerCase()}`} style={{ fontSize: '0.7rem' }}>
+                          {user.status}
+                        </span>
+                      </div>
                     </td>
-                    <td>{user.phone}</td>
-                    <td>{user.joinDate}</td>
+                    <td>
+                      <div className="location-cell" style={{ fontSize: '0.8rem', maxWidth: '180px' }}>
+                        <div style={{ color: '#1e293b', fontWeight: '500', marginBottom: '2px' }}>{user.location}</div>
+                        <div style={{ color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={user.address}>{user.address}</div>
+                      </div>
+                    </td>
+                    <td>
+                      <span style={{ fontSize: '0.8rem', color: '#475569' }}>{user.joinDate}</span>
+                    </td>
                     <td>
                       <div className="action-buttons">
                         {user.status === 'pending' && (
-                          <>
-                            <button className="btn btn-success btn-small" onClick={() => handleApprove(user.id)} style={{ backgroundColor: '#2e7d32', color: 'white' }}>Approve</button>
-                            <button className="btn btn-danger btn-small" onClick={() => handleReject(user.id)} style={{ backgroundColor: '#c62828', color: 'white' }}>Reject</button>
-                          </>
+                          <button className="btn btn-success btn-small" onClick={() => handleApprove(user.id)} style={{ backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', padding: '5px 10px', fontSize: '0.75rem', fontWeight: '600' }}>Approve</button>
                         )}
-                        <button className="btn btn-warning btn-small" onClick={() => openEditModal(user)}>Edit</button>
-                        <button className="btn btn-danger btn-small" onClick={() => handleDelete(user.id)}>Delete</button>
+                        <button className="btn-icon-edit" onClick={() => openEditModal(user)} style={{ color: '#3b82f6', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }} title="Edit User">✎</button>
+                        <button className="btn-icon-delete" onClick={() => handleDelete(user.id)} style={{ color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }} title="Delete User">🗑</button>
                       </div>
                     </td>
                   </tr>
@@ -399,33 +457,33 @@ function UserManagement() {
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   />
                 </div>
-                <div className="form-group">
-                  <label>Email *</label>
-                  <input
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  />
-                </div>
+                {!editingUser && (
+                  <div className="form-group">
+                    <label>Email *</label>
+                    <input
+                      type="email"
+                      required
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    />
+                  </div>
+                )}
               </div>
               <div className="form-row">
                 <div className="form-group">
-                  <label>Role *</label>
+                  <label>Role</label>
                   <select
-                    required
                     value={formData.role}
                     onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                   >
-                    <option value="">Select role</option>
                     <option value="admin">Admin</option>
-                    <option value="employee">Employee</option>
-                    <option value="customer">Customer</option>
-                    <option value="supplier">Supplier</option>
+                    <option value="officer">Officer</option>
+                    <option value="delivery">Delivery</option>
+                    <option value="farmer">Farmer</option>
                   </select>
                 </div>
                 <div className="form-group">
-                  <label>Status *</label>
+                  <label>Status</label>
                   <select
                     value={formData.status}
                     onChange={(e) => setFormData({ ...formData, status: e.target.value })}
@@ -461,6 +519,41 @@ function UserManagement() {
                 <button type="submit" className="btn btn-primary">Save User</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="modal show confirm-modal">
+          <div className="modal-content confirm-modal-content">
+            <div className={`modal-header confirm-header-${confirmConfig.type}`}>
+              <h2 className="modal-title">
+                <i className={`fas ${confirmConfig.type === 'danger' ? 'fa-exclamation-triangle' : 
+                                  confirmConfig.type === 'success' ? 'fa-check-circle' : 'fa-question-circle'} confirm-icon`}></i>
+                {confirmConfig.title}
+              </h2>
+              <button className="modal-close" onClick={() => setShowConfirmModal(false)}>&times;</button>
+            </div>
+            <div className="modal-body confirm-modal-body">
+              <p>{confirmConfig.message}</p>
+            </div>
+            <div className="modal-footer">
+              <button 
+                type="button" 
+                className="btn btn-secondary" 
+                onClick={() => setShowConfirmModal(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                type="button" 
+                className={`btn btn-${confirmConfig.type}`} 
+                onClick={confirmConfig.onConfirm}
+              >
+                Confirm
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -38,6 +38,9 @@ const ProductCard = ({ product, onLoginPrompt }) => {
         <div className={`product-availability availability-${availability}`}>
           {availabilityLabel}
         </div>
+        <div className="product-stock" style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '1rem', fontWeight: 'bold' }}>
+          Stock Available: {product.stock_quantity !== undefined ? product.stock_quantity : product.stock} Units
+        </div>
         <div className="product-actions">
           <button
             className="btn btn-primary btn-small add-to-cart-btn"

@@ -19,11 +19,11 @@ function ProductCatalog() {
       if (data.success) {
         // Map backend schema to frontend state
         setProducts(data.products.map(p => ({
-          id: p.product_id,
+          id: p.id || p.product_id, // Use correct ID field
           name: p.name,
-          category: p.category_name || 'fruits',
+          category: p.category_name?.toLowerCase() || 'other',
           price: parseFloat(p.price),
-          unit: p.unit_name || 'unit',
+          unit: p.unit || p.unit_name || 'unit',
           stock: p.stock_quantity,
           description: p.description,
           availability: p.stock_quantity > 10 ? 'in-stock' : p.stock_quantity > 0 ? 'low-stock' : 'out-of-stock',
@@ -46,33 +46,101 @@ function ProductCatalog() {
   const [formData, setFormData] = useState({
     name: '',
     category: '',
-    price: '',
+    price: 0,
     unit: 'kg',
-    stock: '',
+    stock: 0,
     description: '',
+    image: '',
     availability: 'in-stock'
   })
 
   const openAddModal = () => {
     setEditingProduct(null)
-    setFormData({ name: '', category: '', price: '', unit: 'kg', stock: '', description: '', availability: 'in-stock' })
+    setFormData({
+      name: '',
+      category: '',
+      price: 0,
+      unit: 'kg',
+      stock: 0,
+      description: '',
+      image: '',
+      availability: 'in-stock'
+    })
     setShowModal(true)
   }
 
   const openEditModal = (product) => {
     setEditingProduct(product)
-    setFormData(product)
+    setFormData({
+      name: product.name || '',
+      category: product.category || '',
+      price: product.price || 0,
+      unit: product.unit || 'kg',
+      stock: product.stock || 0,
+      description: product.description || '',
+      image: product.image || '',
+      availability: product.availability || 'in-stock'
+    })
     setShowModal(true)
   }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    if (editingProduct) {
-      setProducts(products.map(p => p.id === editingProduct.id ? { ...formData, id: p.id } : p))
-    } else {
-      setProducts([...products, { ...formData, id: Date.now() }])
+    
+    // Prepare the update object with exact numeric types
+    const updatedData = {
+      ...formData,
+      price: Number(formData.price),
+      stock: Number(formData.stock),
+      id: editingProduct ? editingProduct.id : Date.now()
     }
-    setShowModal(false)
+
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+      const method = editingProduct ? 'PUT' : 'POST'
+      const url = editingProduct 
+        ? `${config.API_BASE_URL}/products/${editingProduct.id}`
+        : `${config.API_BASE_URL}/products`
+
+      const bodyContent = {
+        name: updatedData.name,
+        category: updatedData.category,
+        price: updatedData.price,
+        unit: updatedData.unit,
+        stock: updatedData.stock,
+        description: updatedData.description,
+        image_url: updatedData.image
+      }
+
+      console.log('Sending update:', bodyContent)
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(bodyContent)
+      })
+
+      if (response.ok) {
+        // Only refresh products from server after a successful save
+        await fetchProducts()
+        setShowModal(false)
+      } else {
+        const errorData = await response.json()
+        alert(`Failed to save: ${errorData.message || 'Unknown error'}`)
+      }
+    } catch (err) {
+      console.error('Save error:', err)
+      // Fallback for demo/offline: Update local state correctly
+      if (editingProduct) {
+        setProducts(prev => prev.map(p => p.id === editingProduct.id ? updatedData : p))
+      } else {
+        setProducts(prev => [...prev, updatedData])
+      }
+      setShowModal(false)
+    }
   }
 
   const handleDelete = (id) => {
@@ -165,9 +233,9 @@ function ProductCatalog() {
               <label>Category</label>
               <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
                 <option value="all">All Categories</option>
-                <option value="vegetables">Vegetables</option>
-                <option value="dairy">Dairy</option>
-                <option value="other">Other</option>
+                <option value="beverages">Beverages</option>
+                <option value="desserts">Desserts</option>
+                <option value="other">Sauce & Other</option>
               </select>
             </div>
             <div className="form-group">
@@ -254,9 +322,9 @@ function ProductCatalog() {
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                   >
                     <option value="">Select category</option>
-                    <option value="vegetables">Vegetables</option>
-                    <option value="dairy">Dairy</option>
-                    <option value="other">Other</option>
+                    <option value="beverages">Beverages (Juice)</option>
+                    <option value="desserts">Desserts (Jelly/Jam)</option>
+                    <option value="other">Sauce & Others</option>
                   </select>
                 </div>
               </div>
@@ -277,9 +345,10 @@ function ProductCatalog() {
                     onChange={(e) => setFormData({ ...formData, unit: e.target.value })}
                   >
                     <option value="kg">kg</option>
-                    <option value="L">Liters</option>
-                    <option value="dozen">Dozen</option>
-                    <option value="units">Units</option>
+                    <option value="bottle">bottle</option>
+                    <option value="pack">pack</option>
+                    <option value="unit">unit</option>
+                    <option value="piece">piece</option>
                   </select>
                 </div>
               </div>

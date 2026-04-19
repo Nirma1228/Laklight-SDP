@@ -65,6 +65,16 @@ function InventoryReport() {
   }, [])
 
   const filteredInventory = inventory.filter(item => {
+    // If we are on the specific "Raw Materials" report, only show raw materials
+    if (reportType === 'raw') {
+      return item.category === 'Raw Materials'
+    }
+    // If we are on the specific "Finished Products" report, only show processed products
+    if (reportType === 'finished') {
+      return item.category === 'Processed Products'
+    }
+    
+    // Otherwise use general category filters
     if (filters.category !== 'all' && !item.category.toLowerCase().includes(filters.category)) return false
     if (filters.status !== 'all' && item.status !== filters.status) return false
     if (filters.location !== 'all' && !item.location.toLowerCase().replace(' ', '-').includes(filters.location)) return false
@@ -78,13 +88,10 @@ function InventoryReport() {
   const { success, info } = useToast()
 
   const handleExport = (format) => {
-    info(`Preparing ${format} export...`)
-
-    setTimeout(() => {
-      if (format === 'PDF') {
-        window.print();
-        success('Inventory Report sent to printer/PDF generator');
-      } else {
+    if (format === 'PDF') {
+      window.print();
+    } else {
+      setTimeout(() => {
         const headers = ['"ID"', '"Product Name"', '"Category"', '"Quantity"', '"Location"', '"Expiry Date"'];
         const rows = filteredInventory.map(i =>
           `"${i.id}","${i.name.replace(/"/g, '""')}","${i.category}","${i.quantity}","${i.location}","${i.expiryRaw}"`
@@ -97,9 +104,8 @@ function InventoryReport() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        success('Inventory Report downloaded as CSV (Excel compatible)');
-      }
-    }, 1000)
+      }, 500)
+    }
   }
 
   return (
@@ -117,51 +123,53 @@ function InventoryReport() {
           </p>
         </div>
 
-        <div className="filters-container">
-          <div className="filter-group">
-            <label htmlFor="category">Category</label>
-            <select id="category" name="category" value={filters.category} onChange={handleFilterChange}>
-              <option value="all">All Categories</option>
-              <option value="raw">Raw Materials</option>
-              <option value="processed">Processed Products</option>
-              <option value="packaging">Packaging Materials</option>
-            </select>
+        {reportType === 'all' && (
+          <div className="filters-container">
+            <div className="filter-group">
+              <label htmlFor="category">Category</label>
+              <select id="category" name="category" value={filters.category} onChange={handleFilterChange}>
+                <option value="all">All Categories</option>
+                <option value="raw">Raw Materials</option>
+                <option value="processed">Processed Products</option>
+                <option value="packaging">Packaging Materials</option>
+              </select>
+            </div>
+            <div className="filter-group">
+              <label htmlFor="status">Stock Status</label>
+              <select id="status" name="status" value={filters.status} onChange={handleFilterChange}>
+                <option value="all">All Status</option>
+                <option value="good">In Stock</option>
+                <option value="low">Low Stock</option>
+                <option value="out">Out of Stock</option>
+              </select>
+            </div>
+            <div className="filter-group">
+              <label htmlFor="location">Location</label>
+              <select id="location" name="location" value={filters.location} onChange={handleFilterChange}>
+                <option value="all">All Locations</option>
+                <option value="warehouse-a">Warehouse A</option>
+                <option value="warehouse-b">Warehouse B</option>
+                <option value="cold-storage">Cold Storage</option>
+              </select>
+            </div>
           </div>
-          <div className="filter-group">
-            <label htmlFor="status">Stock Status</label>
-            <select id="status" name="status" value={filters.status} onChange={handleFilterChange}>
-              <option value="all">All Status</option>
-              <option value="good">In Stock</option>
-              <option value="low">Low Stock</option>
-              <option value="out">Out of Stock</option>
-            </select>
-          </div>
-          <div className="filter-group">
-            <label htmlFor="location">Location</label>
-            <select id="location" name="location" value={filters.location} onChange={handleFilterChange}>
-              <option value="all">All Locations</option>
-              <option value="warehouse-a">Warehouse A</option>
-              <option value="warehouse-b">Warehouse B</option>
-              <option value="cold-storage">Cold Storage</option>
-            </select>
-          </div>
-        </div>
+        )}
 
         <div className="stats-grid">
           <div className="stat-card">
-            <div className="stat-number">{inventory.length}</div>
+            <div className="stat-number">{filteredInventory.length}</div>
             <div className="stat-label">Total Items</div>
           </div>
           <div className="stat-card">
-            <div className="stat-number">{inventory.filter(i => i.status === 'good').length}</div>
+            <div className="stat-number">{filteredInventory.filter(i => i.status === 'good').length}</div>
             <div className="stat-label">In Stock</div>
           </div>
           <div className="stat-card warning">
-            <div className="stat-number">{inventory.filter(i => i.status === 'low').length}</div>
+            <div className="stat-number">{filteredInventory.filter(i => i.status === 'low').length}</div>
             <div className="stat-label">Low Stock</div>
           </div>
           <div className="stat-card danger">
-            <div className="stat-number">{inventory.filter(i => i.quantity === 0).length}</div>
+            <div className="stat-number">{filteredInventory.filter(i => i.quantity === 0).length}</div>
             <div className="stat-label">Out of Stock</div>
           </div>
         </div>
@@ -191,7 +199,7 @@ function InventoryReport() {
               <tbody>
                 {filteredInventory.length > 0 ? (
                   filteredInventory.map(item => (
-                    <tr key={item.id}>
+                    <tr key={item.id} className={item.status === 'low' ? 'low-stock-row' : ''}>
                       <td>{item.id}</td>
                       <td style={{ fontWeight: '600' }}>{item.name}</td>
                       <td>{item.category}</td>
@@ -203,6 +211,11 @@ function InventoryReport() {
                         <span className={`stock-badge stock-${item.status}`}>
                           {item.status.toUpperCase()}
                         </span>
+                        {item.status === 'low' && (
+                          <div style={{ color: '#d32f2f', fontSize: '0.75rem', marginTop: '4px', fontWeight: 'bold' }}>
+                            <i className="fa-solid fa-triangle-exclamation"></i> REORDER SOON
+                          </div>
+                        )}
                       </td>
                     </tr>
                   ))

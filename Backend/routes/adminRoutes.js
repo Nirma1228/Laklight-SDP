@@ -6,7 +6,7 @@ const { verifyToken, checkRole } = require('../middleware/auth');
 // All admin routes require administrator authentication
 
 // User management routes - Specific routes BEFORE parameterized routes
-router.get('/users', verifyToken, checkRole('admin'), adminController.getAllUsers);
+router.get('/users', verifyToken, checkRole('admin', 'employee'), adminController.getAllUsers);
 router.post('/users', verifyToken, checkRole('admin'), adminController.createUser);
 router.get('/users/:id', verifyToken, checkRole('admin'), adminController.getUserDetails);
 router.put('/users/:id', verifyToken, checkRole('admin'), adminController.updateUser);

@@ -286,12 +286,14 @@ CREATE INDEX idx_delivery_status ON deliveries(status);
 
 -- Insert sample products
 INSERT INTO products (name, category, description, price, unit, stock, availability, image_url) VALUES
-('Lime Mix', 'beverages', 'Refreshing lime cordial 350ml', 150.00, 'bottle', 150, 'in-stock', '/images/Lime Mix.png'),
-('Wood Apple Juice', 'beverages', 'Traditional wood apple nectar 200ml', 100.00, 'bottle', 200, 'in-stock', '/images/Wood Apple Juice.png'),
-('Mango Jelly', 'desserts', 'Premium mango jelly 100g', 200.00, 'pack', 45, 'low-stock', '/images/Mango Jelly.png'),
-('Custard Powder', 'desserts', 'Mango flavored custard powder 100g', 300.00, 'pack', 100, 'in-stock', '/images/Custard powder.png'),
-('Fresh Tomatoes', 'vegetables', 'Fresh organic tomatoes', 350.00, 'kg', 80, 'in-stock', NULL),
-('Honey', 'other', 'Pure organic honey', 1200.00, 'kg', 20, 'low-stock', NULL);
+('Lime Mix (750ml)', 'beverages', 'Refreshing lime cordial', 150.00, 'bottle', 120, 'in-stock', '/images/Lime Mix.png'),
+('Mango Jelly (500g)', 'desserts', 'Premium mango jelly', 200.00, 'pack', 50, 'in-stock', '/images/Mango Jelly.png'),
+('Wood Apple Juice (1L)', 'beverages', 'Traditional wood apple nectar', 100.00, 'bottle', 80, 'in-stock', '/images/Wood Apple Juice.png'),
+('Mango Cordial (750ml)', 'beverages', 'Delicious mango concentrate', 250.00, 'bottle', 200, 'in-stock', '/images/Mango Cordial.png'),
+('Passion Fruit Juice (1L)', 'beverages', 'Pure passion fruit juice', 300.00, 'bottle', 45, 'low-stock', '/images/Passion Fruit Juice.png'),
+('Mixed Fruit Jam (300g)', 'other', 'Assorted organic fruits jam', 350.00, 'bottle', 15, 'low-stock', '/images/Mixed Fruit Jam.png'),
+('Ginger Beer Extract (500ml)', 'beverages', 'Spicy ginger beer formulation', 450.00, 'bottle', 300, 'in-stock', '/images/Ginger Beer Extract.png'),
+('Custard Powder (1kg)', 'desserts', 'Mango flavored custard powder', 300.00, 'pack', 500, 'in-stock', '/images/Custard powder.png');
 
 -- Insert sample inventory
 INSERT INTO inventory (name, type, stock, unit, location, expiry_date, status, batch_number) VALUES

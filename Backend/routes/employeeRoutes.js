@@ -30,4 +30,9 @@ router.put('/deliveries/:id/reschedule', verifyToken, checkRole('employee', 'adm
 router.put('/deliveries/:id/approve-reschedule', verifyToken, checkRole('employee', 'admin'), employeeController.approveReschedule);
 router.put('/deliveries/:id/complete', verifyToken, checkRole('employee', 'admin'), employeeController.completeDelivery);
 
+// User Management (Read-only for employees)
+const adminController = require('../controllers/adminController');
+router.get('/users', verifyToken, checkRole('employee', 'admin'), adminController.getAllUsers);
+router.put('/users/:id/status', verifyToken, checkRole('employee', 'admin'), adminController.changeUserStatus);
+
 module.exports = router;

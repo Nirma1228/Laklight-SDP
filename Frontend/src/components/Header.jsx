@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import { useTranslation } from 'react-i18next'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import {
   faUser,
@@ -17,14 +16,6 @@ function Header({ isLoggedIn = false, customLinks = null, children = null }) {
   const [userRole, setUserRole] = useState('')
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const [scrolled, setScrolled] = useState(false)
-  const { t, i18n } = useTranslation()
-
-  const toggleLanguage = () => {
-    const currentLanguage = i18n.language || window.localStorage.i18nextLng || 'en';
-    const newLang = currentLanguage.startsWith('si') ? 'en' : 'si';
-    console.log('Switching language from', currentLanguage, 'to', newLang);
-    i18n.changeLanguage(newLang);
-  }
 
   useEffect(() => {
     const handleScroll = () => {
@@ -66,9 +57,8 @@ function Header({ isLoggedIn = false, customLinks = null, children = null }) {
 
   const defaultLinks = [
     { label: 'Home', path: '/' },
-    { label: 'Products', path: '/products' },
-    { label: 'About', path: '/about' },
-    { label: 'Contact', path: '/contact' }
+    { label: 'About', path: '/#about' },
+    { label: 'Contact', path: '/#contact' }
   ]
 
   const linksToDisplay = customLinks || defaultLinks
@@ -96,19 +86,6 @@ function Header({ isLoggedIn = false, customLinks = null, children = null }) {
         </ul>
 
         <div className="auth-buttons">
-          <button 
-            className="btn btn-secondary" 
-            onClick={toggleLanguage}
-            style={{ 
-              padding: '0.4rem 0.8rem', 
-              fontSize: '0.9rem',
-              background: 'transparent',
-              border: '1px solid #ddd',
-              color: '#333'
-            }}
-          >
-            {i18n.resolvedLanguage?.startsWith('si') || window.localStorage.i18nextLng?.startsWith('si') ? 'English' : 'සිංහල'}
-          </button>
           {!isLoggedIn ? (
             <>
               <Link to="/login" className="btn btn-secondary">Login</Link>
