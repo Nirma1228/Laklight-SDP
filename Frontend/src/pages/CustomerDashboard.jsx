@@ -258,6 +258,7 @@ const CustomerDashboard = () => {
     const confirmPaymentOnBackend = async (id) => {
       try {
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        
         const response = await fetch(`${config.API_BASE_URL}/payments/confirm-stripe`, {
           method: 'POST',
           headers: {
@@ -269,8 +270,15 @@ const CustomerDashboard = () => {
 
         if (response.ok) {
           setCart([])
-          localStorage.removeItem('laklight_customer_cart_v1')
-          toast.success('Payment successful and recorded! Your order has been placed.')
+          // Clear local cart persistent state too
+          localStorage.removeItem('laklight_customer_cart_v1');
+          
+          toast.success('🎉 Payment successful! Your order has been placed and is now being processed.');
+          
+          // Refresh the dashboard data
+          fetchOrders();
+          setIsPaymentOpen(false);
+          setActiveDashboardView('orders');
         } else {
           const data = await response.json();
           toast.error(`Payment verification failed: ${data.message}`)
@@ -279,7 +287,7 @@ const CustomerDashboard = () => {
         console.error('Confirmation error:', err);
         toast.error('Failed to confirm payment with the server.')
       } finally {
-        // Clear URL params
+        // Clear URL params to prevent double-confirmation if user refreshes
         window.history.replaceState({}, document.title, window.location.pathname)
       }
     };

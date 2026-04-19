@@ -4,14 +4,14 @@ const db = require('../config/database');
 exports.getSalesReport = async (req, res) => {
   try {
     const [orders] = await db.query(`
-      SELECT o.order_id, o.order_number, u.full_name as customer_name, o.order_date, 
+      SELECT o.order_id, u.full_name as customer_name, o.order_date, 
              o.total_amount, o.discount_amount, o.net_amount, ps.status_name as payment_status,
              (SELECT GROUP_CONCAT(p.name SEPARATOR ', ') FROM order_items oi 
               JOIN products p ON oi.product_id = p.product_id 
               WHERE oi.order_id = o.order_id) as product_list
       FROM orders o
-      JOIN users u ON o.customer_id = u.user_id
-      JOIN payment_statuses ps ON o.payment_status_id = ps.payment_status_id
+      LEFT JOIN users u ON o.customer_id = u.user_id
+      LEFT JOIN payment_statuses ps ON o.payment_status_id = ps.payment_status_id
       ORDER BY o.order_date DESC`);
 
     res.json({
@@ -176,15 +176,15 @@ exports.downloadReport = async (req, res) => {
 exports.getCustomerReport = async (req, res) => {
   try {
     const [customers] = await db.query(`
-      SELECT u.user_id, u.full_name, u.email, u.phone, u.address, s.status_name as status,
+      SELECT u.user_id, u.full_name, u.email, u.phone, u.address, COALESCE(s.status_name, 'active') as status,
              COUNT(o.order_id) as order_count, 
              COALESCE(SUM(o.net_amount), 0) as total_spent,
              COALESCE(AVG(o.net_amount), 0) as avg_order_value
       FROM users u
-      JOIN user_roles r ON u.role_id = r.role_id
-      JOIN account_statuses s ON u.status_id = s.status_id
+      LEFT JOIN user_roles r ON u.role_id = r.role_id
+      LEFT JOIN account_statuses s ON u.status_id = s.status_id
       LEFT JOIN orders o ON u.user_id = o.customer_id
-      WHERE r.role_name = 'customer'
+      WHERE r.role_name = 'customer' OR u.role_id = 2
       GROUP BY u.user_id`);
     res.json({ success: true, reportType: 'customer', report: { customers } });
   } catch (error) {

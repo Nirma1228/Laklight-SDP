@@ -3,12 +3,15 @@ import { useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import { useToast } from '../components/ToastNotification'
+import { config } from '../config'
+import { generatePDFReport } from '../utils/pdfGenerator'
 import './GenerateReports.css'
 
 function GenerateReports() {
   const navigate = useNavigate()
   const [selectedReport, setSelectedReport] = useState('')
   const [dateRange, setDateRange] = useState('month')
+  const [isExporting, setIsExporting] = useState(false)
 
   const reports = [
     { id: 'inventory-raw', name: 'Raw Materials Inventory', description: 'Track fruits and other unprocessed stock', icon: 'fa-solid fa-apple-whole', color: '#e53935' },
@@ -18,11 +21,152 @@ function GenerateReports() {
     { id: 'customer', name: 'Customer Report', description: 'Customer analytics and loyalty metrics', icon: 'fa-solid fa-users', color: '#8e24aa' }
   ]
 
-  const handleReportSelect = (reportId) => {
-    setSelectedReport(reportId)
-  }
+  const { warning, error, success } = useToast()
 
-  const { warning, error } = useToast()
+  const handleExportPDF = async () => {
+    if (!selectedReport) {
+      warning('Please select a report type first.')
+      return
+    }
+
+    setIsExporting(true)
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      let endpoint = '';
+      
+      if (selectedReport.includes('inventory')) {
+        endpoint = 'inventory';
+      } else {
+        endpoint = selectedReport;
+      }
+
+      const res = await fetch(`${config.API_BASE_URL}/reports/${endpoint}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        throw new Error(errorData.message || `Server responded with ${res.status}`);
+      }
+
+      const data = await res.json();
+      if (!data.success || !data.report) throw new Error('Invalid report data received from server');
+
+      const reportDate = new Date().toISOString().split('T')[0];
+
+      if (selectedReport === 'sales') {
+        const orders = data.report.orders || [];
+        const headers = ['Order ID', 'Customer', 'Date', 'Products', 'Total', 'Status'];
+        const tableData = orders.map(o => [
+          o.order_id ? `ORD-${o.order_id}` : 'N/A',
+          o.customer_name || 'Generic Customer',
+          o.order_date ? new Date(o.order_date).toLocaleDateString() : 'N/A',
+          o.product_list || 'Items',
+          `LKR ${Number(o.net_amount || 0).toLocaleString()}`,
+          (o.payment_status || 'PENDING').toUpperCase()
+        ]);
+
+        const totalRev = orders.reduce((sum, o) => sum + Number(o.net_amount || 0), 0);
+
+        generatePDFReport({
+          title: 'Sales Performance Report',
+          subtitle: `Comprehensive sales analysis generated for the ${dateRange} period.`,
+          headers,
+          data: tableData,
+          orientation: 'landscape',
+          filename: `Laklight_Sales_Summary_${reportDate}.pdf`,
+          stats: {
+            'Total Orders': orders.length.toString(),
+            'Total Revenue': `LKR ${totalRev.toLocaleString()}`,
+            'Avg Order': `LKR ${Math.round(totalRev / (orders.length || 1)).toLocaleString()}`
+          }
+        });
+      } else if (selectedReport.startsWith('inventory')) {
+        const type = selectedReport === 'inventory-raw' ? 'rawInventory' : 'finishedInventory';
+        const rawData = data.report[type] || [];
+        const isRaw = selectedReport === 'inventory-raw';
+        
+        const headers = ['ID', 'Name', 'Category', 'Quantity', 'Unit', 'Location', 'Expiry'];
+        const tableData = rawData.map(item => [
+          item.id ? (isRaw ? `RAW-${item.id}` : `FIN-${item.id}`) : 'N/A',
+          isRaw ? (item.material_name || 'Unknown Material') : (item.name || 'Unknown Product'),
+          isRaw ? 'Raw Materials' : 'Processed Products',
+          item.quantity_units || 0,
+          isRaw ? (item.unit_name || 'units') : 'units',
+          item.storage_location || 'Warehouse',
+          item.expiry_date ? new Date(item.expiry_date).toLocaleDateString() : 'N/A'
+        ]);
+
+        generatePDFReport({
+          title: isRaw ? 'Raw Materials Inventory' : 'Finished Products Inventory',
+          subtitle: `Current stock levels as of ${new Date().toLocaleString()}`,
+          headers,
+          data: tableData,
+          orientation: 'landscape',
+          filename: `Laklight_Inventory_${isRaw ? 'Raw' : 'Finished'}_${reportDate}.pdf`,
+          stats: {
+            'Total Items': rawData.length.toString(),
+            'Status': 'Real-time sync'
+          }
+        });
+      } else if (selectedReport === 'supplier') {
+        const suppliers = data.report.suppliers || [];
+        const headers = ['ID', 'Supplier Name', 'Address', 'Products', 'Rating', 'Status'];
+        const tableData = suppliers.map(s => [
+          s.supplier_id ? `SUP-${s.supplier_id}` : 'N/A',
+          s.farm_name || 'Unknown Farm',
+          s.location || 'N/A',
+          s.product_types || 'Produce',
+          `${s.rating || 0}/5.0`,
+          (s.status || 'ACTIVE').toUpperCase()
+        ]);
+
+        generatePDFReport({
+          title: 'Supplier Performance Report',
+          subtitle: 'Directory and performance metrics for all onboarded suppliers.',
+          headers,
+          data: tableData,
+          orientation: 'landscape',
+          filename: `Laklight_Suppliers_${reportDate}.pdf`,
+          stats: {
+            'Total Count': suppliers.length.toString(),
+            'Avg Rating': (suppliers.reduce((sum, s) => sum + parseFloat(s.rating || 0), 0) / (suppliers.length || 1)).toFixed(1)
+          }
+        });
+      } else if (selectedReport === 'customer') {
+        const customers = data.report.customers || [];
+        const headers = ['ID', 'Customer Name', 'Region', 'Orders', 'Spent', 'Status'];
+        const tableData = customers.map(c => [
+          c.user_id ? `CUST-${c.user_id}` : 'N/A',
+          c.full_name || 'Guest User',
+          c.address ? c.address.split(',').pop().trim() : 'N/A',
+          c.order_count || 0,
+          `LKR ${Number(c.total_spent || 0).toLocaleString()}`,
+          (c.status || 'ACTIVE').toUpperCase()
+        ]);
+
+        generatePDFReport({
+          title: 'Customer Analytics Report',
+          subtitle: 'Engagement and lifetime value metrics for registered accounts.',
+          headers,
+          data: tableData,
+          orientation: 'landscape',
+          filename: `Laklight_Customers_${reportDate}.pdf`,
+          stats: {
+            'Total Base': customers.length.toString(),
+            'Active Users': customers.filter(u => u.status?.toLowerCase() === 'active').length.toString()
+          }
+        });
+      }
+
+      success(`${selectedReport.replace('-', ' ').toUpperCase()} downloaded correctly.`);
+    } catch (err) {
+      console.error('Report Generation Error:', err);
+      error(err.message || 'Failed to generate report. Please try again.');
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   const handleGenerate = () => {
     if (!selectedReport) {
@@ -128,10 +272,18 @@ function GenerateReports() {
                 <button
                   className="btn-generate-premium"
                   onClick={handleGenerate}
-                  disabled={!selectedReport}
+                  disabled={!selectedReport || isExporting}
                 >
                   <i className="fa-solid fa-bolt"></i>
-                  PROCEED TO REPORT
+                  PROCEED TO VIEW
+                </button>
+                <button
+                  className="btn-export-secondary"
+                  onClick={handleExportPDF}
+                  disabled={!selectedReport || isExporting}
+                >
+                  <i className={`fa-solid ${isExporting ? 'fa-spinner fa-spin' : 'fa-file-pdf'}`}></i>
+                  {isExporting ? 'EXPORTING...' : 'EXPORT SELECTION'}
                 </button>
                 <p className="helper-text"><i className="fa-solid fa-circle-info"></i> All reports are generated with real-time data</p>
               </div>

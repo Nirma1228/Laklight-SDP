@@ -82,7 +82,14 @@ exports.processCardPayment = async (req, res) => {
 // FR07: Create Stripe Checkout Session
 exports.createCheckoutSession = async (req, res) => {
   try {
-    const { amount, orderId } = req.body;
+    const { amount, orderId, successUrl, cancelUrl } = req.body;
+
+    // Use URLs from request if provided (dynamic origin), otherwise fallback to .env
+    const finalSuccessUrl = successUrl 
+      ? `${successUrl}${successUrl.includes('?') ? '&' : '?'}payment=success&session_id={CHECKOUT_SESSION_ID}`
+      : `${process.env.STRIPE_SUCCESS_URL}&session_id={CHECKOUT_SESSION_ID}`;
+      
+    const finalCancelUrl = cancelUrl || process.env.STRIPE_CANCEL_URL;
 
     const session = await stripe.checkout.sessions.create({
       payment_method_types: ['card'],
@@ -99,8 +106,8 @@ exports.createCheckoutSession = async (req, res) => {
         },
       ],
       mode: 'payment',
-      success_url: `${process.env.STRIPE_SUCCESS_URL}&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: process.env.STRIPE_CANCEL_URL,
+      success_url: finalSuccessUrl,
+      cancel_url: finalCancelUrl,
       metadata: { orderId: orderId?.toString() }
     });
 

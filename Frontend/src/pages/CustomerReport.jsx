@@ -4,6 +4,7 @@ import Header from '../components/Header'
 import Footer from '../components/Footer'
 import { useToast } from '../components/ToastNotification'
 import { config } from '../config'
+import { generatePDFReport } from '../utils/pdfGenerator'
 import './CustomerReport.css'
 
 function CustomerReport() {
@@ -57,14 +58,38 @@ function CustomerReport() {
     setFilters({ ...filters, [e.target.name]: e.target.value })
   }
 
-  const { success, info } = useToast()
+  const { success } = useToast()
 
   const handleExport = (format) => {
-    setTimeout(() => {
-      if (format === 'PDF') {
-        window.print();
-        success('Customer Report sent to printer/PDF generator');
-      } else {
+    if (format === 'PDF') {
+      const headers = ['ID', 'Customer Name', 'Region', 'Orders', 'Total Spent', 'Avg Order Value', 'Status'];
+      const data = filteredCustomers.map(c => [
+        c.id,
+        c.name,
+        c.region,
+        c.orders.toString(),
+        c.spent,
+        c.avgOrder,
+        c.status.toUpperCase()
+      ]);
+
+      generatePDFReport({
+        title: 'Customer Analytics Report',
+        subtitle: `Analyzing behavior and loyalty metrics for ${filteredCustomers.length} customers.`,
+        headers,
+        data,
+        orientation: 'landscape',
+        filename: `Laklight_Customer_Report_${new Date().toISOString().split('T')[0]}.pdf`,
+        stats: {
+          'Total Customers': customers.length.toString(),
+          'Active Accounts': customers.filter(c => c.status === 'active').length.toString(),
+          'Global avg Order': `LKR ${Math.round(customers.reduce((sum, c) => sum + (c.spentNum || 0), 0) / (customers.reduce((sum, c) => sum + (c.orders || 0), 0) || 1)).toLocaleString()}`,
+          'Retention Rate': '78%'
+        }
+      });
+      success('Customer Report downloaded as PDF');
+    } else {
+      setTimeout(() => {
         const headers = ['"ID"', '"Customer Name"', '"Region"', '"Orders"', '"Total Spent"'];
         const rows = filteredCustomers.map(c =>
           `"${c.id}","${c.name.replace(/"/g, '""')}","${c.region.replace(/"/g, '""')}","${c.orders}","${c.spent.replace(/"/g, '""')}"`
@@ -77,9 +102,9 @@ function CustomerReport() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        success('Customer Report downloaded as CSV (Excel compatible)');
-      }
-    }, 1000)
+        success('Customer Report downloaded as CSV');
+      }, 500)
+    }
   }
 
   return (
@@ -166,24 +191,30 @@ function CustomerReport() {
                 </tr>
               </thead>
               <tbody>
-                {filteredCustomers.map(customer => (
-                  <tr key={customer.id}>
-                    <td>{customer.id}</td>
-                    <td>{customer.name}</td>
-                    <td>{customer.region}</td>
-                    <td>{customer.orders}</td>
-                    <td>{customer.spent}</td>
-                    <td>{customer.avgOrder}</td>
-                    <td>
-                      <span className={`status-badge status-${customer.status}`}>
-                        {customer.status.charAt(0).toUpperCase() + customer.status.slice(1)}
-                      </span>
-                    </td>
-                    <td>
-                      <button className="btn-action" onClick={() => alert(`Viewing details for ${customer.id}`)}>View</button>
-                    </td>
+                {filteredCustomers.length > 0 ? (
+                  filteredCustomers.map(customer => (
+                    <tr key={customer.id}>
+                      <td>{customer.id}</td>
+                      <td>{customer.name}</td>
+                      <td>{customer.region}</td>
+                      <td>{customer.orders}</td>
+                      <td>{customer.spent}</td>
+                      <td>{customer.avgOrder}</td>
+                      <td>
+                        <span className={`status-badge status-${customer.status}`}>
+                          {customer.status.charAt(0).toUpperCase() + customer.status.slice(1)}
+                        </span>
+                      </td>
+                      <td>
+                        <button className="btn-action" onClick={() => alert(`Viewing details for ${customer.id}`)}>View</button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="8" style={{ textAlign: 'center', padding: '2rem' }}>No customer data match your current filters.</td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>

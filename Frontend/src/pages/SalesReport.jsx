@@ -4,6 +4,7 @@ import Header from '../components/Header'
 import Footer from '../components/Footer'
 import { useToast } from '../components/ToastNotification'
 import { config } from '../config'
+import { generatePDFReport } from '../utils/pdfGenerator'
 import './SalesReport.css'
 
 function SalesReport() {
@@ -40,23 +41,23 @@ function SalesReport() {
         const data = await res.json();
         if (data.success) {
           setSales(data.report.orders.map(o => ({
-            id: `ORD-${o.order_id}`,
-            customer: o.customer_name,
-            date: new Date(o.order_date).toLocaleDateString(),
-            rawDate: new Date(o.order_date).toISOString().split('T')[0],
+            id: o.order_id ? `ORD-${o.order_id}` : 'N/A',
+            customer: o.customer_name || 'Generic Customer',
+            date: o.order_date ? new Date(o.order_date).toLocaleDateString() : 'N/A',
+            rawDate: o.order_date ? new Date(o.order_date).toISOString().split('T')[0] : '',
             products: o.product_list || 'Items',
             quantity: '-',
-            subtotal: `LKR ${Number(o.total_amount).toLocaleString()}`,
-            discount: o.discount_amount > 0 ? `LKR ${Number(o.discount_amount).toLocaleString()}` : '-',
-            total: `LKR ${Number(o.net_amount).toLocaleString()}`,
-            netAmountRaw: Number(o.net_amount),
-            payment: o.payment_status.toLowerCase(),
+            subtotal: `LKR ${Number(o.total_amount || 0).toLocaleString()}`,
+            discount: o.discount_amount > 0 ? `LKR ${Number(o.discount_amount || 0).toLocaleString()}` : '-',
+            total: `LKR ${Number(o.net_amount || 0).toLocaleString()}`,
+            netAmountRaw: Number(o.net_amount || 0),
+            payment: (o.payment_status || 'pending').toLowerCase(),
             type: o.customer_id ? 'regular' : 'guest',
-            netAmountNum: Number(o.net_amount)
+            netAmountNum: Number(o.net_amount || 0)
           })));
 
-          const totalRev = data.report.orders.reduce((sum, o) => sum + Number(o.net_amount), 0);
-          const totalDisc = data.report.orders.reduce((sum, o) => sum + Number(o.discount_amount), 0);
+          const totalRev = data.report.orders.reduce((sum, o) => sum + Number(o.net_amount || 0), 0);
+          const totalDisc = data.report.orders.reduce((sum, o) => sum + Number(o.discount_amount || 0), 0);
 
           setStats({
             totalRevenue: totalRev,
@@ -84,15 +85,40 @@ function SalesReport() {
     setFilters({ ...filters, [e.target.name]: e.target.value })
   }
 
-  const { success, info } = useToast()
+  const { success } = useToast()
 
   const handleExport = (format) => {
-    setTimeout(() => {
-      if (format === 'PDF') {
-        window.print();
-        success('Sales Report sent to printer/PDF generator');
-      } else {
-        // IMPROVED CSV: Use quotes to prevent "hash marks" and column breaks
+    if (format === 'PDF') {
+      const headers = ['Order ID', 'Customer', 'Date', 'Products', 'Qty', 'Subtotal', 'Discount', 'Total', 'Status'];
+      const data = filteredSales.map(s => [
+        s.id,
+        s.customer,
+        s.date,
+        s.products,
+        s.quantity,
+        s.subtotal,
+        s.discount,
+        s.total,
+        s.payment.toUpperCase()
+      ]);
+
+      generatePDFReport({
+        title: 'Sales Performance Report',
+        subtitle: `Analyzing ${filteredSales.length} transactions based on current filters (${filters.paymentStatus} payments, ${filters.customerType} customers).`,
+        headers,
+        data,
+        orientation: 'landscape',
+        filename: `Laklight_Sales_Report_${new Date().toISOString().split('T')[0]}.pdf`,
+        stats: {
+          'Total Revenue': `LKR ${stats.totalRevenue.toLocaleString()}`,
+          'Total Orders': stats.totalOrders.toString(),
+          'Avg Order Value': `LKR ${Math.round(stats.averageOrderValue).toLocaleString()}`,
+          'Wholesale Discounts': `LKR ${stats.wholesaleDiscounts.toLocaleString()}`
+        }
+      });
+      success('Sales Report downloaded as PDF');
+    } else {
+      setTimeout(() => {
         const headers = ['"Order ID"', '"Customer"', '"Date"', '"Total Amount (LKR)"'];
         const rows = filteredSales.map(s =>
           `"${s.id}","${s.customer.replace(/"/g, '""')}","${s.rawDate}","${s.netAmountRaw}"`
@@ -106,8 +132,8 @@ function SalesReport() {
         link.click();
         document.body.removeChild(link);
         success('Sales Report downloaded as CSV (Excel compatible)');
-      }
-    }, 1000)
+      }, 500)
+    }
   }
 
   return (
@@ -217,32 +243,9 @@ function SalesReport() {
                     </tr>
                   ))
                 ) : (
-                  <>
-                    <tr>
-                      <td>ORD-2245</td>
-                      <td>Kamal Perera</td>
-                      <td>{new Date().toLocaleDateString()}</td>
-                      <td>Mixed Fruit Nectar (500ml)</td>
-                      <td>12</td>
-                      <td>LKR 14,400</td>
-                      <td><span className="discount-badge">LKR 1,440</span></td>
-                      <td>LKR 12,960</td>
-                      <td><span className="payment-badge payment-paid">Paid</span></td>
-                      <td><button className="btn-action">View</button></td>
-                    </tr>
-                    <tr>
-                      <td>ORD-2246</td>
-                      <td>Sunil Jayawardena</td>
-                      <td>{new Date().toLocaleDateString()}</td>
-                      <td>Organic Mango Juice</td>
-                      <td>24</td>
-                      <td>LKR 28,800</td>
-                      <td><span className="discount-badge">LKR 2,880</span></td>
-                      <td>LKR 25,920</td>
-                      <td><span className="payment-badge payment-pending">Pending</span></td>
-                      <td><button className="btn-action">View</button></td>
-                    </tr>
-                  </>
+                  <tr>
+                    <td colSpan="10" style={{ textAlign: 'center', padding: '2rem' }}>No sales data match your current filters.</td>
+                  </tr>
                 )}
               </tbody>
             </table>

@@ -20,7 +20,12 @@ const StripeCheckoutButton = ({ amount, orderId, onSuccess }) => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ amount, orderId })
+        body: JSON.stringify({ 
+          amount, 
+          orderId,
+          successUrl: window.location.origin + window.location.pathname,
+          cancelUrl: window.location.origin + window.location.pathname + '?payment=cancel'
+        })
       });
 
       const data = await response.json();

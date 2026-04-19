@@ -1,4 +1,4 @@
-﻿/* Premium Generate Reports Styles */
+/* Premium Generate Reports Styles */
 :root {
   --primary-green: #2e7d32;
   --light-green: #4caf50;
@@ -223,6 +223,37 @@
   background: #cbd5e0;
   cursor: not-allowed;
   box-shadow: none;
+}
+
+.btn-export-secondary {
+  width: 100%;
+  padding: 1.1rem;
+  border-radius: 14px;
+  background: white;
+  color: var(--primary-green);
+  border: 1.8px solid var(--primary-green);
+  font-weight: 700;
+  font-size: 1rem;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-top: 1rem;
+}
+
+.btn-export-secondary:hover:not(:disabled) {
+  background: #f0faf1;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(46, 125, 50, 0.1);
+}
+
+.btn-export-secondary:disabled {
+  border-color: #cbd5e0;
+  color: #cbd5e0;
+  cursor: not-allowed;
 }
 
 .helper-text {

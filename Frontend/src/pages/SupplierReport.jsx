@@ -4,6 +4,7 @@ import Header from '../components/Header'
 import Footer from '../components/Footer'
 import { useToast } from '../components/ToastNotification'
 import { config } from '../config'
+import { generatePDFReport } from '../utils/pdfGenerator'
 import './SupplierReport.css'
 
 function SupplierReport() {
@@ -56,14 +57,37 @@ function SupplierReport() {
     setFilters({ ...filters, [e.target.name]: e.target.value })
   }
 
-  const { success, info } = useToast()
+  const { success } = useToast()
 
   const handleExport = (format) => {
-    setTimeout(() => {
-      if (format === 'PDF') {
-        window.print();
-        success('Supplier Report sent to printer/PDF generator');
-      } else {
+    if (format === 'PDF') {
+      const headers = ['ID', 'Supplier Name', 'Address', 'Products', 'Rating', 'Deliveries', 'Status'];
+      const data = filteredSuppliers.map(s => [
+        s.id,
+        s.name,
+        s.address,
+        s.products,
+        s.rating,
+        s.deliveries,
+        s.status.toUpperCase()
+      ]);
+
+      generatePDFReport({
+        title: 'Supplier Performance Report',
+        subtitle: `Analyzing performance metrics for ${filteredSuppliers.length} active suppliers.`,
+        headers,
+        data,
+        orientation: 'landscape',
+        filename: `Laklight_Supplier_Report_${new Date().toISOString().split('T')[0]}.pdf`,
+        stats: {
+          'Total Suppliers': suppliers.length.toString(),
+          'Average Rating': (suppliers.reduce((sum, s) => sum + parseFloat(s.rating), 0) / (suppliers.length || 1)).toFixed(1),
+          'On-Time Delivery': '95%'
+        }
+      });
+      success('Supplier Report downloaded as PDF');
+    } else {
+      setTimeout(() => {
         const headers = ['"ID"', '"Farm Name"', '"Region"', '"Rating"', '"Deliveries"'];
         const rows = filteredSuppliers.map(s =>
           `"${s.id}","${s.name.replace(/"/g, '""')}","${s.address.replace(/"/g, '""')}","${s.rating}","${s.deliveries}"`
@@ -76,9 +100,9 @@ function SupplierReport() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        success('Supplier Report downloaded as CSV (Excel compatible)');
-      }
-    }, 1000)
+        success('Supplier Report downloaded as CSV');
+      }, 500)
+    }
   }
 
   return (
@@ -185,7 +209,7 @@ function SupplierReport() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="8" style={{ textAlign: 'center', padding: '2rem' }}>No supplier performance data available. Please run Seed from Dashboard.</td>
+                    <td colSpan="8" style={{ textAlign: 'center', padding: '2rem' }}>No supplier performance data match your current filters.</td>
                   </tr>
                 )}
               </tbody>

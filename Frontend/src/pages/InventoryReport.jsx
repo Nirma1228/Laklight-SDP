@@ -4,6 +4,7 @@ import Header from '../components/Header'
 import Footer from '../components/Footer'
 import { useToast } from '../components/ToastNotification'
 import { config } from '../config'
+import { generatePDFReport } from '../utils/pdfGenerator'
 import './InventoryReport.css'
 
 function InventoryReport() {
@@ -28,29 +29,28 @@ function InventoryReport() {
         });
         const data = await res.json();
         if (data.success) {
-          // Map backend data to frontend model
           const mapped = [
-            ...data.report.rawInventory.map(item => ({
-              id: `RAW-${item.id}`,
-              name: item.material_name,
+            ...(data.report.rawInventory || []).map(item => ({
+              id: item.id ? `RAW-${item.id}` : 'N/A',
+              name: item.material_name || 'Unknown Material',
               category: 'Raw Materials',
-              quantity: item.quantity_units,
-              unit: item.unit_name,
-              location: item.storage_location,
+              quantity: item.quantity_units || 0,
+              unit: item.unit_name || 'units',
+              location: item.storage_location || 'Warehouse',
               expiry: item.expiry_date ? new Date(item.expiry_date).toLocaleDateString() : 'N/A',
               expiryRaw: item.expiry_date ? new Date(item.expiry_date).toISOString().split('T')[0] : 'N/A',
-              status: item.quantity_units < 20 ? 'low' : 'good'
+              status: (item.quantity_units || 0) < 20 ? 'low' : 'good'
             })),
-            ...data.report.finishedInventory.map(item => ({
-              id: `FIN-${item.id}`,
-              name: item.name,
+            ...(data.report.finishedInventory || []).map(item => ({
+              id: item.id ? `FIN-${item.id}` : 'N/A',
+              name: item.name || 'Unknown Product',
               category: 'Processed Products',
-              quantity: item.quantity_units,
+              quantity: item.quantity_units || 0,
               unit: 'units',
-              location: item.storage_location,
+              location: item.storage_location || 'Warehouse',
               expiry: item.expiry_date ? new Date(item.expiry_date).toLocaleDateString() : 'N/A',
               expiryRaw: item.expiry_date ? new Date(item.expiry_date).toISOString().split('T')[0] : 'N/A',
-              status: item.quantity_units < 10 ? 'low' : 'good'
+              status: (item.quantity_units || 0) < 10 ? 'low' : 'good'
             }))
           ];
           setInventory(mapped);
@@ -65,16 +65,9 @@ function InventoryReport() {
   }, [])
 
   const filteredInventory = inventory.filter(item => {
-    // If we are on the specific "Raw Materials" report, only show raw materials
-    if (reportType === 'raw') {
-      return item.category === 'Raw Materials'
-    }
-    // If we are on the specific "Finished Products" report, only show processed products
-    if (reportType === 'finished') {
-      return item.category === 'Processed Products'
-    }
+    if (reportType === 'raw') return item.category === 'Raw Materials'
+    if (reportType === 'finished') return item.category === 'Processed Products'
     
-    // Otherwise use general category filters
     if (filters.category !== 'all' && !item.category.toLowerCase().includes(filters.category)) return false
     if (filters.status !== 'all' && item.status !== filters.status) return false
     if (filters.location !== 'all' && !item.location.toLowerCase().replace(' ', '-').includes(filters.location)) return false
@@ -85,11 +78,37 @@ function InventoryReport() {
     setFilters({ ...filters, [e.target.name]: e.target.value })
   }
 
-  const { success, info } = useToast()
+  const { success } = useToast()
 
   const handleExport = (format) => {
     if (format === 'PDF') {
-      window.print();
+      const headers = ['ID', 'Product Name', 'Category', 'Quantity', 'Unit', 'Location', 'Expiry', 'Status'];
+      const data = filteredInventory.map(i => [
+        i.id,
+        i.name,
+        i.category,
+        i.quantity,
+        i.unit,
+        i.location,
+        i.expiry,
+        i.status.toUpperCase()
+      ]);
+
+      generatePDFReport({
+        title: reportType === 'raw' ? 'Raw Materials Inventory' : (reportType === 'finished' ? 'Finished Products Inventory' : 'Inventory Master Report'),
+        subtitle: `Current stock levels and storage positions for ${filteredInventory.length} items.`,
+        headers,
+        data,
+        orientation: 'landscape',
+        filename: `Laklight_Inventory_${reportType || 'master'}_${new Date().toISOString().split('T')[0]}.pdf`,
+        stats: {
+          'Total Items': filteredInventory.length.toString(),
+          'Items in Stock': filteredInventory.filter(i => i.status === 'good').length.toString(),
+          'Low Stock Alerts': filteredInventory.filter(i => i.status === 'low').length.toString(),
+          'Out of Stock': filteredInventory.filter(i => i.quantity === 0).length.toString()
+        }
+      });
+      success('Inventory Report downloaded as PDF');
     } else {
       setTimeout(() => {
         const headers = ['"ID"', '"Product Name"', '"Category"', '"Quantity"', '"Location"', '"Expiry Date"'];
@@ -104,6 +123,7 @@ function InventoryReport() {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        success('Inventory Report downloaded as CSV');
       }, 500)
     }
   }
@@ -123,7 +143,7 @@ function InventoryReport() {
           </p>
         </div>
 
-        {reportType === 'all' && (
+        {(!reportType || reportType === 'all') && (
           <div className="filters-container">
             <div className="filter-group">
               <label htmlFor="category">Category</label>
@@ -211,11 +231,6 @@ function InventoryReport() {
                         <span className={`stock-badge stock-${item.status}`}>
                           {item.status.toUpperCase()}
                         </span>
-                        {item.status === 'low' && (
-                          <div style={{ color: '#d32f2f', fontSize: '0.75rem', marginTop: '4px', fontWeight: 'bold' }}>
-                            <i className="fa-solid fa-triangle-exclamation"></i> REORDER SOON
-                          </div>
-                        )}
                       </td>
                     </tr>
                   ))
