@@ -13,6 +13,8 @@ function SupplierRelations() {
   const [suppliers, setSuppliers] = useState([]);
   const [applications, setApplications] = useState([]);
   const [supplyHistory, setSupplyHistory] = useState([]);
+  const [selectedSupplierHistory, setSelectedSupplierHistory] = useState([]);
+  const [deliveryStatusFilter, setDeliveryStatusFilter] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchSuppliers = async () => {
@@ -25,7 +27,65 @@ function SupplierRelations() {
       const data = await res.json();
       if (data.success) {
         setSuppliers(data.suppliers.filter(s => s.status === 'Active'));
-        setApplications(data.suppliers.filter(s => s.status === 'Pending'));
+      }
+      
+      const appsRes = await fetch(`${config.API_BASE_URL}/employee/applications`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (appsRes.ok) {
+        const appData = await appsRes.json();
+        const appsRaw = appData.applications || [];
+        const formattedApplications = appsRaw.map(app => {
+          // Parse images robustly (JSON string or array)
+          let parsedImages = [];
+          try {
+            if (Array.isArray(app.images)) {
+              parsedImages = app.images;
+            } else if (typeof app.images === 'string' && app.images) {
+              parsedImages = JSON.parse(app.images);
+            }
+          } catch (e) {
+            parsedImages = [];
+          }
+          return {
+            ...app,
+            id: app.id,
+            farmerName: app.farmerName,
+            product: app.product,
+            quantity: `${app.quantity} ${app.unit || 'kg'}`,
+            price: app.price ? `LKR ${app.price}/kg` : 'N/A',
+            status: app.status || 'under-review',
+            date: app.date ? new Date(app.date).toISOString().split('T')[0] : '—',
+            submitted: app.submitted ? new Date(app.submitted).toISOString().split('T')[0] : '—',
+            transport: app.transport || 'N/A',
+            images: parsedImages,
+          };
+        });
+        setApplications(formattedApplications);
+      }
+
+      // Fetch all deliveries for Supply History (Delivery Schedule)
+      const delRes = await fetch(`${config.API_BASE_URL}/employee/deliveries`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (delRes.ok) {
+        const delData = await delRes.json();
+        const formattedDeliveries = delData.deliveries.map(del => ({
+          id: del.delivery_id || del.id,
+          farmer: del.farmer_name,
+          product: del.product_name,
+          quantity: `${del.quantity}${del.unit || 'kg'}`,
+          quantityVal: del.quantity,
+          price_per_unit: del.custom_price || 0,
+          proposedDate: del.delivery_date ? new Date(del.delivery_date).toISOString().split('T')[0] : 
+                        (del.final_delivery_date ? new Date(del.final_delivery_date).toISOString().split('T')[0] : ''),
+          scheduleDate: del.scheduled_date ? new Date(del.scheduled_date).toISOString().split('T')[0] : 
+                        (del.proposed_reschedule_date ? new Date(del.proposed_reschedule_date).toISOString().split('T')[0] : 
+                        (del.final_delivery_date ? new Date(del.final_delivery_date).toISOString().split('T')[0] : '-')),
+          transport: del.transport_method || 'N/A',
+          status: del.status || 'pending'
+        }));
+        setSupplyHistory(formattedDeliveries);
       }
     } catch (err) {
       console.error('Fetch suppliers error:', err);
@@ -47,7 +107,7 @@ function SupplierRelations() {
       const data = await res.json();
       if (data.success) {
         setSelectedSupplier({ ...supplier, deliveries: data.deliveries.length });
-        setSupplyHistory(data.deliveries);
+        setSelectedSupplierHistory(data.deliveries);
         setShowViewModal(true);
       }
     } catch (err) {
@@ -135,6 +195,51 @@ function SupplierRelations() {
     }
   };
 
+  const handleApproveSubmission = async (id, date) => {
+    if (!window.confirm('Are you sure you want to approve this application?')) return;
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const response = await fetch(`${config.API_BASE_URL}/employee/applications/${id}/approve`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ scheduleDate: date })
+      });
+      const data = await response.json();
+      if (data.success) {
+        alert('Application approved and scheduled!');
+        fetchSuppliers(); // Refresh
+      } else {
+        alert(data.message || 'Failed to approve');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error approving application');
+    }
+  };
+
+  const handleRejectSubmission = async (id) => {
+    const reason = window.prompt("Reason for rejection:");
+    if (!reason) return;
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const response = await fetch(`${config.API_BASE_URL}/employee/applications/${id}/reject`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ rejectionReason: reason })
+      });
+      const data = await response.json();
+      if (data.success) {
+        alert('Application rejected');
+        fetchSuppliers(); // Refresh
+      } else {
+        alert(data.message || 'Failed to reject');
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Error rejecting application');
+    }
+  };
+
   const getRatingClass = (rating) => {
     const r = parseFloat(rating);
     if (r >= 4.5) return 'rating-excellent';
@@ -159,7 +264,9 @@ function SupplierRelations() {
             <div className="stat-label">Active Suppliers</div>
           </div>
           <div className="stat-card pending">
-            <div className="stat-number">12</div>
+            <div className="stat-number">
+              {applications.filter(app => app.status === 'under-review' || app.status_id === 1).length}
+            </div>
             <div className="stat-label">Pending Applications</div>
           </div>
           <div className="stat-card">
@@ -191,12 +298,6 @@ function SupplierRelations() {
             onClick={() => setActiveTab('supply-history')}
           >
             Supply History
-          </button>
-          <button
-            className={`tab-button ${activeTab === 'performance' ? 'active' : ''}`}
-            onClick={() => setActiveTab('performance')}
-          >
-            Performance Reports
           </button>
         </div>
 
@@ -251,173 +352,151 @@ function SupplierRelations() {
         {activeTab === 'applications' && (
           <div className="tab-content">
             <h3 style={{ marginBottom: '1.5rem', color: '#333' }}>Pending Farmer Applications</h3>
-            {applications.map(app => (
+            {applications.filter(app => app.status === 'under-review' || app.status_id === 1).map(app => (
               <div key={app.id} className="application-card">
                 <div className="application-header">
                   <div>
-                    <div className="supplier-name">{app.farm_name}</div>
-                    <div className="supplier-location"> {app.location}</div>
+                    <div className="supplier-name">{app.farmerName}</div>
+                    <div className="supplier-location"> {app.product}</div>
                   </div>
                   <span className="status-badge status-pending">Pending Review</span>
                 </div>
                 <div className="application-info">
                   <div className="detail-item">
-                    <span className="detail-label">Owner Name</span>
-                    <span className="detail-value">{app.owner_name}</span>
-                  </div>
-                  <div className="detail-item">
-                    <span className="detail-label">Contact</span>
-                    <span className="detail-value">{app.phone}</span>
-                  </div>
-                  <div className="detail-item">
                     <span className="detail-label">Product Type</span>
-                    <span className="detail-value">{app.product_types}</span>
+                    <span className="detail-value">{app.product}</span>
                   </div>
                   <div className="detail-item">
-                    <span className="detail-label">Farm Size</span>
-                    <span className="detail-value">{app.farm_size}</span>
+                    <span className="detail-label">Quantity</span>
+                    <span className="detail-value">{app.quantity}</span>
                   </div>
                   <div className="detail-item">
-                    <span className="detail-label">Applied Date</span>
-                    <span className="detail-value">{new Date(app.applied_date).toLocaleDateString()}</span>
+                    <span className="detail-label">Expected Price</span>
+                    <span className="detail-value">{app.price}</span>
                   </div>
                   <div className="detail-item">
-                    <span className="detail-label">Expected Capacity</span>
-                    <span className="detail-value">{app.capacity}</span>
+                    <span className="detail-label">Transport</span>
+                    <span className="detail-value">{app.transport}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Submitted On</span>
+                    <span className="detail-value">{app.submitted}</span>
+                  </div>
+                  <div className="detail-item">
+                    <span className="detail-label">Delivery Date</span>
+                    <span className="detail-value">{app.date}</span>
                   </div>
                 </div>
+
+                {/* Uploaded Images */}
+                <div className="sr-images-section">
+                  <span className="sr-images-label">📷 Submitted Images</span>
+                  <div className="sr-image-gallery">
+                    {(app.images && app.images.length > 0) ? (
+                      app.images.map((img, idx) => (
+                        <img
+                          key={idx}
+                          src={img.startsWith('http') || img.startsWith('data:') ? img : `${config.API_BASE_URL.replace('/api', '')}${img}`}
+                          alt={`Product Image ${idx + 1}`}
+                          className="sr-thumbnail"
+                          onClick={() => window.open(img.startsWith('http') || img.startsWith('data:') ? img : `${config.API_BASE_URL.replace('/api', '')}${img}`, '_blank')}
+                          title="Click to view full size"
+                        />
+                      ))
+                    ) : (
+                      <span className="sr-no-images">No images submitted</span>
+                    )}
+                  </div>
+                </div>
+
                 <div className="supplier-actions">
-                  <button className="btn btn-success btn-small" onClick={() => handleStatusUpdate(app.id, 'Active')}>
-                    ✓ Approve
+                  <button className="btn btn-success btn-small" onClick={() => handleApproveSubmission(app.id, app.date)}>
+                    ✓ Approve & Schedule
                   </button>
-                  <button className="btn btn-danger btn-small" onClick={() => handleStatusUpdate(app.id, 'Rejected')}>
+                  <button className="btn btn-danger btn-small" onClick={() => handleRejectSubmission(app.id)}>
                     ✗ Reject
                   </button>
-                  <button className="btn btn-info btn-small" onClick={() => handleViewDetails(app)}>View Full Details</button>
                 </div>
               </div>
             ))}
+            {applications.filter(app => app.status === 'under-review' || app.status_id === 1).length === 0 && (
+              <div style={{ textAlign: 'center', padding: '2rem', background: '#f8fafc', borderRadius: '12px' }}>
+                <p style={{ color: '#64748b', margin: 0 }}>No pending supplier applications found.</p>
+              </div>
+            )}
           </div>
         )}
 
-        {/* Supply History Tab */}
+        {/* Supply History Tab (Delivery Schedule) */}
         {activeTab === 'supply-history' && (
           <div className="tab-content">
-            <h3 style={{ marginBottom: '1.5rem', color: '#333' }}>Supply History</h3>
-            <div className="supply-history">
-              {supplyHistory.map((item, index) => (
-                <div key={index} className="history-item">
-                  <div className="history-date">{new Date(item.supply_date).toLocaleDateString()}</div>
-                  <div className="history-product">{item.material_name}</div>
-                  <div className="history-quantity">{item.quantity} {item.unit_name}</div>
-                  <div className="history-price">Rs. {Number(item.total_price).toLocaleString()}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Performance Reports Tab */}
-        {activeTab === 'performance' && (
-          <div className="tab-content">
-            <h3 style={{ marginBottom: '1.5rem', color: '#333' }}>Supplier Performance Reports</h3>
-
-            {/* Top Performers */}
-            <div className="supplier-card" style={{ marginBottom: '2rem' }}>
-              <h4 style={{ color: '#2e7d32', marginBottom: '1.5rem', fontSize: '1.2rem' }}>Top Performing Suppliers (This Month)</h4>
-              <div className="performance-list">
-                {suppliers.map((supplier, index) => (
-                  <div key={supplier.id} className="performance-item" style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    padding: '1rem',
-                    marginBottom: '1rem',
-                    background: index === 0 ? '#f1f8e9' : '#fafafa',
-                    borderRadius: '10px',
-                    borderLeft: index === 0 ? '4px solid #4caf50' : '4px solid #ddd'
-                  }}>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                        <span style={{ fontSize: '1.5rem' }}>
-                          {index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉'}
-                        </span>
-                        <span style={{ fontWeight: 'bold', color: '#2e7d32', fontSize: '1.1rem' }}>
-                          {supplier.name}
-                        </span>
-                      </div>
-                      <div style={{ color: '#666', fontSize: '0.9rem' }}>
-                        {supplier.location}
-                      </div>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <div className={`rating-badge ${getRatingClass(supplier.rating)}`} style={{ marginBottom: '0.5rem' }}>
-                        ★ {supplier.rating}
-                      </div>
-                      <div style={{ color: '#666', fontSize: '0.9rem' }}>
-                        {supplier.deliveries} deliveries
-                      </div>
-                    </div>
-                  </div>
-                ))}
+            <div className="section-header-inline">
+              <h3 style={{ margin: 0, color: '#333' }}>Farmer Delivery Schedule</h3>
+              <div className="inventory-filters">
+                <select
+                  className="filter-select"
+                  value={deliveryStatusFilter}
+                  onChange={(e) => setDeliveryStatusFilter(e.target.value)}
+                >
+                  <option value="all">All Delivery Schedules</option>
+                  <option value="scheduled delivery">Scheduled Delivery</option>
+                  <option value="pending">Waiting for Farmer Response</option>
+                  <option value="confirmed">Confirmed (Ready to Complete)</option>
+                  <option value="confirmed schedule">Confirmed Schedule</option>
+                  <option value="completed">Completed</option>
+                </select>
               </div>
             </div>
 
-            {/* Performance Metrics */}
-            <div className="supplier-card" style={{ marginBottom: '2rem' }}>
-              <h4 style={{ color: '#2e7d32', marginBottom: '1.5rem', fontSize: '1.2rem' }}>Performance Metrics</h4>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
-                <div style={{ background: '#e8f5e9', padding: '1rem', borderRadius: '10px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#2e7d32' }}>98.5%</div>
-                  <div style={{ color: '#666', fontSize: '0.9rem' }}>On-Time Delivery Rate</div>
-                </div>
-                <div style={{ background: '#e3f2fd', padding: '1rem', borderRadius: '10px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1976d2' }}>96%</div>
-                  <div style={{ color: '#666', fontSize: '0.9rem' }}>Quality Compliance</div>
-                </div>
-                <div style={{ background: '#fff3e0', padding: '1rem', borderRadius: '10px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#f57c00' }}>4.7</div>
-                  <div style={{ color: '#666', fontSize: '0.9rem' }}>Average Rating</div>
-                </div>
-                <div style={{ background: '#f3e5f5', padding: '1rem', borderRadius: '10px', textAlign: 'center' }}>
-                  <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#7b1fa2' }}>74</div>
-                  <div style={{ color: '#666', fontSize: '0.9rem' }}>Total Deliveries</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Individual Supplier Details*/}
-            <div className="supplier-card">
-              <h4 style={{ color: '#2e7d32', marginBottom: '1.5rem', fontSize: '1.2rem' }}>Detailed Supplier Performance</h4>
-              {suppliers.map(supplier => (
-                <div key={supplier.id} style={{ marginBottom: '1.5rem', paddingBottom: '1.5rem', borderBottom: '1px solid #e0e0e0' }}>
-                  <div style={{ fontWeight: 'bold', fontSize: '1.1rem', color: '#2e7d32', marginBottom: '1rem' }}>
-                    {supplier.name}
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.8rem' }}>
-                    <div className="detail-item">
-                      <span className="detail-label">Rating</span>
-                      <span className="detail-value">★ {supplier.rating}/5.0</span>
-                    </div>
-                    <div className="detail-item">
-                      <span className="detail-label">Total Deliveries</span>
-                      <span className="detail-value">{supplier.deliveries}</span>
-                    </div>
-                    <div className="detail-item">
-                      <span className="detail-label">On-Time Rate</span>
-                      <span className="detail-value" style={{ color: '#4caf50' }}>
-                        {(95 + Math.random() * 4).toFixed(1)}%
-                      </span>
-                    </div>
-                    <div className="detail-item">
-                      <span className="detail-label">Quality Score</span>
-                      <span className="detail-value" style={{ color: '#2196f3' }}>
-                        {(92 + Math.random() * 7).toFixed(1)}%
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))}
+            <div className="table-container" style={{ marginTop: '1.5rem' }}>
+              <table className="delivery-schedule-table">
+                <thead>
+                  <tr>
+                    <th>Delivery ID</th>
+                    <th>Farmer</th>
+                    <th>Product</th>
+                    <th>Quantity</th>
+                    <th>Proposed Date</th>
+                    <th>Schedule Date</th>
+                    <th>Transport</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {supplyHistory.filter(del => deliveryStatusFilter === 'all' || del.status === deliveryStatusFilter).length === 0 ? (
+                    <tr>
+                      <td colSpan="8" style={{ textAlign: 'center', padding: '3rem', color: '#64748b' }}>
+                        No delivery records found matching the criteria.
+                      </td>
+                    </tr>
+                  ) : (
+                    supplyHistory
+                      .filter(del => deliveryStatusFilter === 'all' || del.status === deliveryStatusFilter)
+                      .map(delivery => (
+                        <tr key={delivery.id}>
+                          <td><strong>#{delivery.id}</strong></td>
+                          <td>{delivery.farmer}</td>
+                          <td>{delivery.product}</td>
+                          <td>{delivery.quantity}</td>
+                          <td>{delivery.proposedDate}</td>
+                          <td>{delivery.scheduleDate === '-' ? '-' : <strong>{delivery.scheduleDate}</strong>}</td>
+                          <td>{delivery.transport}</td>
+                          <td>
+                            <span className={`status-badge ${(['action required', 'Action Required', 'pending'].includes(delivery.status)) ? 'status-pending' : `status-${delivery.status.toLowerCase().replace(/\s+/g, '-')}`}`}>
+                              {delivery.status === 'scheduled delivery' && 'Scheduled Delivery'}
+                              {(delivery.status === 'action required' || delivery.status === 'Action Required') && 'Waiting for Farmer Response'}
+                              {delivery.status === 'pending' && 'Waiting for Farmer Response'}
+                              {delivery.status === 'confirmed' && 'Confirmed'}
+                              {delivery.status === 'confirmed schedule' && 'Confirmed Schedule'}
+                              {delivery.status === 'completed' && 'Completed'}
+                              {delivery.status === 'cancelled' && 'Cancelled'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
