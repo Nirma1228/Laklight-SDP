@@ -310,17 +310,34 @@ exports.approveReschedule = async (req, res) => {
 exports.completeDelivery = async (req, res) => {
   try {
     const deliveryId = req.params.id;
-    const statusId = await getId('delivery_statuses', 'delivery_status_id', 'status_name', 'completed');
+    const deliveryStatusId = await getId('delivery_statuses', 'delivery_status_id', 'status_name', 'completed');
 
     await db.query(
       'UPDATE deliveries SET status_id = ?, updated_at = NOW() WHERE delivery_id = ?',
-      [statusId, deliveryId]
+      [deliveryStatusId, deliveryId]
     );
+
+    // Sync original farmer_submissions status to 'completed'
+    const [[delivery]] = await db.query('SELECT submission_id FROM deliveries WHERE delivery_id = ?', [deliveryId]);
+    if (delivery && delivery.submission_id) {
+      let submissionStatusId = await getId('submission_statuses', 'submission_status_id', 'status_name', 'completed');
+      if (!submissionStatusId) {
+        // Fallback fallback to 'completed' string directly or id if missing, though 'completed' is standard.
+        // If getId fails to find completed, we create it or fallback.
+        const [insertRs] = await db.query('INSERT IGNORE INTO submission_statuses (status_name) VALUES (?)', ['completed']);
+        submissionStatusId = await getId('submission_statuses', 'submission_status_id', 'status_name', 'completed');
+      }
+      
+      if (submissionStatusId) {
+        await db.query('UPDATE farmer_submissions SET status_id = ? WHERE submission_id = ?', [submissionStatusId, delivery.submission_id]);
+      }
+    }
 
     res.json({ success: true, message: 'Delivery marked as completed' });
   } catch (error) {
     res.status(500).json({ message: 'Failed to complete delivery', error: error.message });
   }
 };
+
 
 

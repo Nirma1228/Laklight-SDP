@@ -341,7 +341,7 @@ function FarmerDashboard() {
           product: sub.product_name,
           variety: sub.variety || '',
           grade: formatGrade(sub.grade_enum || sub.grade || ''),
-          quantity: `${sub.quantity}${sub.unit || 'kg'}`,
+          quantity: `${sub.quantity}${(sub.unit || 'kg').replace(/bottle/i, 'kg')}`,
           price: `LKR ${sub.custom_price || sub.price || '0'}`,
           harvestDate: sub.harvest_date ? new Date(sub.harvest_date).toISOString().split('T')[0] : '',
           status: sub.status || 'under-review',
@@ -390,22 +390,22 @@ function FarmerDashboard() {
         const formattedDeliveries = data.deliveries.map(del => ({
           id: del.id || `DEL-${del.delivery_id}`,
           product: del.product || (del.product_name ? del.product_name.replace(/organic\s+/i, '') : 'Unknown Product'),
-          quantity: `${del.quantity}${del.unit || 'kg'}`,
+          quantity: `${del.quantity}${(del.unit || 'kg').replace(/bottle/i, 'kg')}`,
           proposedDate: del.proposedDate || '',
           scheduleDate: del.scheduleDate || '',
           transport: formatTransport(del.transport_method || del.transport),
-          status: (del.status || 'pending').toLowerCase(),
+          status: (['confirmed', 'confirmed schedule', 'scheduled delivery'].includes((del.status || '').toLowerCase()) ? 'pending' : (del.status || 'pending').toLowerCase()),
           proposedRescheduleDate: del.proposedRescheduleDate || null,
           sellPrice: del.custom_price || del.unit_price || del.price || 'N/A'
         }));
 
-        // Filter for active (non-completed) deliveries
-        const activeDeliveries = formattedDeliveries.filter(d => d.status !== 'completed' && d.status !== 'delivered');
-        // Filter for completed deliveries for historical records
+        // Set all deliveries to the main deliveries list so they remain visible
+        setDeliveries(formattedDeliveries);
+        
+        // Filter for completed deliveries for historical records (internal use)
         const historicalDeliveries = formattedDeliveries.filter(d => d.status === 'completed' || d.status === 'delivered');
-
-        setDeliveries(activeDeliveries);
         setDeliveryHistory(historicalDeliveries);
+
 
         // Update localStorage as backup
         localStorage.setItem('delivery_list', JSON.stringify(formattedDeliveries));
@@ -416,7 +416,7 @@ function FarmerDashboard() {
       const saved = localStorage.getItem('delivery_list');
       if (saved) {
         const parsed = JSON.parse(saved);
-        setDeliveries(parsed.filter(d => d.status !== 'completed'));
+        setDeliveries(parsed);
         setDeliveryHistory(parsed.filter(d => d.status === 'completed'));
       }
     }
