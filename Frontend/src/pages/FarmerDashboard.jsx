@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Header from '../components/Header'
 import { config } from '../config'
@@ -11,7 +11,69 @@ import {
   faCreditCard, faCog, faSignOutAlt, faQuestionCircle,
   faStar, faSeedling, faBoxes, faChevronRight, faExclamationTriangle
 } from '@fortawesome/free-solid-svg-icons'
+import { formatSriLankanDate } from '../utils/dateFormatter'
 import './FarmerDashboard.css'
+
+// Professional Date Input Component for DD/MM/YYYY
+const CustomDateInput = ({ label, value, onChange, min, required }) => {
+  const [displayDate, setDisplayDate] = useState('DD/MM/YYYY');
+  const dateInputRef = useRef(null);
+
+  useEffect(() => {
+    if (value) {
+      const [year, month, day] = value.split('-');
+      setDisplayDate(`${day}/${month}/${year}`);
+    } else {
+      setDisplayDate('DD/MM/YYYY');
+    }
+  }, [value]);
+
+  const handleContainerClick = () => {
+    if (dateInputRef.current) {
+      try {
+        if (typeof dateInputRef.current.showPicker === 'function') {
+          dateInputRef.current.showPicker();
+        } else {
+          dateInputRef.current.click();
+        }
+      } catch (e) {
+        dateInputRef.current.click();
+      }
+    }
+  };
+
+  return (
+    <div className="sri-lankan-date-container-v2">
+      {label && <label className="sri-lankan-date-label-v2">{label}</label>}
+      <div className="sri-lankan-date-box-v2" onClick={handleContainerClick}>
+        <span className={!value ? 'placeholder' : ''}>{displayDate}</span>
+        <FontAwesomeIcon icon={faCalendarAlt} className="calendar-icon-v2" />
+        <input
+          type="date"
+          ref={dateInputRef}
+          value={value || ''}
+          min={min}
+          required={required}
+          onChange={(e) => onChange(e.target.value)}
+          className="date-input-hidden-v2"
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: 'absolute',
+            top: '50%',
+            right: '1.25rem',
+            transform: 'translateY(-50%)',
+            width: '30px',
+            height: '30px',
+            opacity: 0,
+            cursor: 'pointer',
+            zIndex: 10
+          }}
+        />
+      </div>
+    </div>
+  );
+};
+
 
 // Utility: get today's date in YYYY-MM-DD
 const getToday = () => new Date().toISOString().slice(0, 10);
@@ -124,7 +186,7 @@ function FarmerDashboard() {
       title,
       message,
       type,
-      date: new Date().toLocaleString(),
+      date: formatSriLankanDate(new Date()),
       isRead: false
     };
     setNotifications(prev => [newNotif, ...prev]);
@@ -178,7 +240,7 @@ function FarmerDashboard() {
         const user = data.user;
         setFarmerProfile({
           fullName: user.full_name,
-          farmName: user.farmName || 'Laklight Supplier', 
+          farmName: user.farmName || 'Laklight Supplier',
           email: user.email,
           phone: user.phone,
           address: user.address,
@@ -186,8 +248,8 @@ function FarmerDashboard() {
           postalCode: user.postal_code,
           district: user.district,
           licenseNumber: user.licenseNumber || `F-${user.id.toString().padStart(4, '0')}`,
-          memberSince: new Date(user.join_date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
-          qualityRating: '4.8/5.0' 
+          memberSince: formatSriLankanDate(user.join_date),
+          qualityRating: '4.8/5.0'
         });
       }
     } catch (error) {
@@ -401,7 +463,7 @@ function FarmerDashboard() {
 
         // Set all deliveries to the main deliveries list so they remain visible
         setDeliveries(formattedDeliveries);
-        
+
         // Filter for completed deliveries for historical records (internal use)
         const historicalDeliveries = formattedDeliveries.filter(d => d.status === 'completed' || d.status === 'delivered');
         setDeliveryHistory(historicalDeliveries);
@@ -508,12 +570,12 @@ function FarmerDashboard() {
 
       const res = await fetch(`${config.API_BASE_URL}/farmer/deliveries/${selectedDelivery.id}`, {
         method: 'PUT',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ 
-          rescheduleDate: newDeliveryDate 
+        body: JSON.stringify({
+          rescheduleDate: newDeliveryDate
         })
       });
 
@@ -566,18 +628,6 @@ function FarmerDashboard() {
     setProducts(prevProducts => prevProducts.map(p => {
       if (p.id !== id) return p;
 
-      // Check for duplicate dates when updating delivery options
-      if (field === 'deliveryDate' || field === 'proposedDate2' || field === 'proposedDate3') {
-        const otherDates = [];
-        if (field !== 'deliveryDate') otherDates.push(p.deliveryDate);
-        if (field !== 'proposedDate2') otherDates.push(p.proposedDate2);
-        if (field !== 'proposedDate3') otherDates.push(p.proposedDate3);
-
-        if (value && otherDates.includes(value)) {
-          toast.warning('This date is already selected as another delivery option. Please pick a different date.');
-          return p;
-        }
-      }
 
       return { ...p, [field]: value };
     }));
@@ -690,13 +740,13 @@ function FarmerDashboard() {
 
       const res = await fetch(`${config.API_BASE_URL}/farmer/deliveries/${delivery.id}`, {
         method: 'PUT',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({ status: 'confirmed' })
       });
-      
+
       if (res.ok) {
         toast.success('Delivery confirmed!');
         // Refresh deliveries from database
@@ -729,7 +779,8 @@ function FarmerDashboard() {
   };
 
   return (
-    <div className="farmer-dashboard">
+    <>
+      <div className="farmer-dashboard">
       {/* Dashboard Main Layout */}
       <div className="dashboard-container-v2">
         {/* Sidebar */}
@@ -840,9 +891,9 @@ function FarmerDashboard() {
                           <div key={n.id} className={`notif-item-v2 ${n.type} ${!n.isRead ? 'unread' : ''}`} onClick={() => markAsRead(n.id)}>
                             <div className="notif-icon-v3">
                               <FontAwesomeIcon icon={
-                                n.type === 'success' ? faCheckCircle : 
-                                n.type === 'error' ? faExclamationTriangle : 
-                                n.type === 'warning' ? faExclamationTriangle : faInfoCircle
+                                n.type === 'success' ? faCheckCircle :
+                                  n.type === 'error' ? faExclamationTriangle :
+                                    n.type === 'warning' ? faExclamationTriangle : faInfoCircle
                               } />
                             </div>
                             <div className="notif-content-v3">
@@ -964,7 +1015,7 @@ function FarmerDashboard() {
                             <div className="activity-icon-v2"><FontAwesomeIcon icon={faHistory} /></div>
                             <div className="activity-details-v2">
                               <p className="activity-text-v2">Submitted {sub.product} ({sub.quantity})</p>
-                              <span className="activity-date-v2">{sub.date}</span>
+                              <span className="activity-date-v2">{formatSriLankanDate(sub.date)}</span>
                             </div>
                             <span className={`status-tag-v2 ${sub.status}`}>{sub.status}</span>
                           </div>
@@ -1081,12 +1132,11 @@ function FarmerDashboard() {
                             </div>
 
                             <div className="form-group-v2">
-                              <label>Harvest Date *</label>
-                              <input
-                                type="date"
-                                required
-                                value={product.harvestDate || ''}
-                                onChange={(e) => updateProduct(product.id, 'harvestDate', e.target.value)}
+                              <CustomDateInput
+                                label="Harvest Date *"
+                                required={true}
+                                value={product.harvestDate}
+                                onChange={(val) => updateProduct(product.id, 'harvestDate', val)}
                               />
                             </div>
 
@@ -1108,51 +1158,39 @@ function FarmerDashboard() {
                             <div className="form-group-v2">
                               <label>Preferred Delivery Dates (Pick 3) - After Harvest Date</label>
                               <div className="date-selection-v2" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                                <div>
-                                  <small style={{ display: 'block', color: '#666' }}>Delivery Date 1</small>
-                                  <input
-                                    type="date"
-                                    required
-                                    min={product.harvestDate ? product.harvestDate : getToday()}
-                                    value={product.deliveryDate}
-                                    onChange={(e) => {
-                                      const val = e.target.value;
-                                      if (val) {
-                                        const d2 = getFutureDate(1, val);
-                                        const d3 = getFutureDate(2, val);
-                                        // Update all three dates together to bypass individual validation conflicts
-                                        // that occur when suggested dates overlap with previous manual selections
-                                        setProducts(prev => prev.map(p => 
-                                          p.id === product.id 
-                                            ? { ...p, deliveryDate: val, proposedDate2: d2, proposedDate3: d3 }
-                                            : p
-                                        ));
-                                      } else {
-                                        updateProduct(product.id, 'deliveryDate', val);
-                                      }
-                                    }}
-                                  />
-                                </div>
-                                <div>
-                                  <small style={{ display: 'block', color: '#666' }}>Delivery Date 2</small>
-                                  <input
-                                    type="date"
-                                    required
-                                    min={product.harvestDate ? product.harvestDate : getToday()}
-                                    value={product.proposedDate2}
-                                    onChange={(e) => updateProduct(product.id, 'proposedDate2', e.target.value)}
-                                  />
-                                </div>
-                                <div>
-                                  <small style={{ display: 'block', color: '#666' }}>Delivery Date 3</small>
-                                  <input
-                                    type="date"
-                                    required
-                                    min={product.harvestDate ? product.harvestDate : getToday()}
-                                    value={product.proposedDate3}
-                                    onChange={(e) => updateProduct(product.id, 'proposedDate3', e.target.value)}
-                                  />
-                                </div>
+                                <CustomDateInput
+                                  label="Delivery Date 1"
+                                  required={true}
+                                  min={product.harvestDate ? product.harvestDate : getToday()}
+                                  value={product.deliveryDate}
+                                  onChange={(val) => {
+                                    if (val) {
+                                      const d2 = getFutureDate(1, val);
+                                      const d3 = getFutureDate(2, val);
+                                      setProducts(prev => prev.map(p =>
+                                        p.id === product.id
+                                          ? { ...p, deliveryDate: val, proposedDate2: d2, proposedDate3: d3 }
+                                          : p
+                                      ));
+                                    } else {
+                                      updateProduct(product.id, 'deliveryDate', val);
+                                    }
+                                  }}
+                                />
+                                <CustomDateInput
+                                  label="Delivery Date 2"
+                                  required={true}
+                                  min={product.harvestDate ? product.harvestDate : getToday()}
+                                  value={product.proposedDate2}
+                                  onChange={(val) => updateProduct(product.id, 'proposedDate2', val)}
+                                />
+                                <CustomDateInput
+                                  label="Delivery Date 3"
+                                  required={true}
+                                  min={product.harvestDate ? product.harvestDate : getToday()}
+                                  value={product.proposedDate3}
+                                  onChange={(val) => updateProduct(product.id, 'proposedDate3', val)}
+                                />
                               </div>
                             </div>
                           </div>
@@ -1243,8 +1281,8 @@ function FarmerDashboard() {
                           </div>
                           <div className="sub-info-row-v2">
                             <span>Price: <strong>{sub.price}</strong></span>
-                            <span>Harvest: <strong>{sub.harvestDate}</strong></span>
-                            <span>&nbsp;&nbsp;Delivery: <strong>{sub.deliveryDate}</strong></span>
+                            <span>Harvest: <strong>{formatSriLankanDate(sub.harvestDate)}</strong></span>
+                            <span>&nbsp;&nbsp;Delivery: <strong>{formatSriLankanDate(sub.deliveryDate)}</strong></span>
                           </div>
                           {sub.storageInstructions && (
                             <div className="sub-info-row-v2" style={{ marginTop: '5px' }}>
@@ -1260,10 +1298,10 @@ function FarmerDashboard() {
                                   const parsedImages = typeof sub.images === 'string' ? JSON.parse(sub.images) : sub.images;
                                   if (Array.isArray(parsedImages)) {
                                     return parsedImages.map((img, idx) => (
-                                      <img 
-                                        key={idx} 
-                                        src={`${config.API_BASE_URL.replace('/api', '')}${img}`} 
-                                        alt={`Product ${idx}`} 
+                                      <img
+                                        key={idx}
+                                        src={`${config.API_BASE_URL.replace('/api', '')}${img}`}
+                                        alt={`Product ${idx}`}
                                         style={{ width: '50px', height: '50px', objectFit: 'cover', borderRadius: '4px', border: '1px solid #ddd' }}
                                         onClick={() => window.open(`${config.API_BASE_URL.replace('/api', '')}${img}`, '_blank')}
                                       />
@@ -1279,13 +1317,13 @@ function FarmerDashboard() {
                         <div className="sub-footer-v2">
                           {sub.status === 'selected' && sub.scheduleDate && (
                             <div className="confirmed-date-v2">
-                              <p>Confirmed Pickup: {sub.scheduleDate}</p>
+                              <p>Confirmed Pickup: {formatSriLankanDate(sub.scheduleDate)}</p>
                               <small className="notice-text">Review and manage in Delivery Schedule tab</small>
                             </div>
                           )}
                           {sub.status === 'confirmed' && (
                             <div className="schedule-confirmed-v2">
-                              <FontAwesomeIcon icon={faCheckCircle} /> Scheduled for {sub.scheduleDate}
+                              <FontAwesomeIcon icon={faCheckCircle} /> Scheduled for {formatSriLankanDate(sub.scheduleDate)}
                             </div>
                           )}
                           {sub.status === 'not-selected' && sub.rejectionReason && (
@@ -1322,7 +1360,7 @@ function FarmerDashboard() {
                           <div className="td-v2 font-bold">{history.product}</div>
                           <div className="td-v2">{history.quantity}</div>
                           <div className="td-v2">LKR {history.sellPrice}</div>
-                          <div className="td-v2">{history.scheduleDate || 'N/A'}</div>
+                          <div className="td-v2">{history.scheduleDate ? formatSriLankanDate(history.scheduleDate) : 'N/A'}</div>
                           <div className="td-v2">{formatTransport(history.transport)}</div>
                           <div className="td-v2">
                             <span className="delivery-tag-v2 completed">Completed</span>
@@ -1360,7 +1398,7 @@ function FarmerDashboard() {
                           <div className="td-v2 font-bold">{delivery.product}</div>
                           <div className="td-v2">{delivery.quantity}</div>
                           <div className="td-v2">LKR {delivery.sellPrice}</div>
-                          <div className="td-v2">{delivery.scheduleDate || 'TBD'}</div>
+                          <div className="td-v2">{delivery.scheduleDate ? formatSriLankanDate(delivery.scheduleDate) : 'TBD'}</div>
                           <div className="td-v2">{formatTransport(delivery.transport)}</div>
                           <div className="td-v2">
                             <span className={`delivery-tag-v2 ${delivery.status}`}>{delivery.status}</span>
@@ -1381,7 +1419,7 @@ function FarmerDashboard() {
                               <div className="reschedule-action-box">
                                 <div className="reschedule-info">
                                   <FontAwesomeIcon icon={faExclamationTriangle} className="warn-icon" />
-                                  <span>Employee proposed: <strong>{delivery.proposedRescheduleDate}</strong></span>
+                                  <span>Employee proposed: <strong>{formatSriLankanDate(delivery.proposedRescheduleDate)}</strong></span>
                                 </div>
                                 <div className="action-btns-v2 compact">
                                   <button className="btn-confirm-v2" onClick={() => handleConfirmClick(delivery)}>
@@ -1421,8 +1459,7 @@ function FarmerDashboard() {
         </main>
       </div>
 
-      {/* Wrap the following in a fragment to fix adjacent JSX error */}
-      <>
+
         {/* Reschedule Modal */}
         {isRescheduleModalOpen && (
           <div className="modal-overlay" onClick={() => setIsRescheduleModalOpen(false)}>
@@ -1442,18 +1479,16 @@ function FarmerDashboard() {
                     <p><strong>Delivery ID:</strong> {selectedDelivery?.id}</p>
                     <p><strong>Product:</strong> {selectedDelivery?.product}</p>
                     <p><strong>Quantity:</strong> {selectedDelivery?.quantity}</p>
-                    <p><strong>Current Scheduled Date:</strong> {selectedDelivery?.scheduleDate}</p>
-                  </div>
-                  <div className="form-group">
-                    <label htmlFor="newDeliveryDate">Select New Delivery Date *</label>
-                    <input
-                      type="date"
-                      id="newDeliveryDate"
-                      value={newDeliveryDate}
-                      onChange={(e) => setNewDeliveryDate(e.target.value)}
-                      min={new Date().toISOString().split('T')[0]}
-                      required
-                    />
+                    <p><strong>Current Scheduled Date:</strong> {formatSriLankanDate(selectedDelivery?.scheduleDate)}</p>
+                    <div className="form-group">
+                      <CustomDateInput
+                        label="Select New Delivery Date *"
+                        required={true}
+                        min={new Date().toISOString().split('T')[0]}
+                        value={newDeliveryDate}
+                        onChange={(val) => setNewDeliveryDate(val)}
+                      />
+                    </div>
                   </div>
                   <p className="reschedule-note">
                     ⓘ Your reschedule request will be sent to the employee dashboard for approval.
@@ -1660,8 +1695,7 @@ function FarmerDashboard() {
             <p>&copy; 2024 Laklight Food Products. All rights reserved.</p>
           </div>
         </div>
-        {/* Adjacent JSX fix with fragment closure */}
-      </>
+
 
       {/* Bank Details Modal */}
       {isBankModalOpen && (
@@ -1731,6 +1765,8 @@ function FarmerDashboard() {
         </div>
       )}
     </div>
+    </>
+
   )
 }
 

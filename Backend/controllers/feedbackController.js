@@ -16,10 +16,11 @@ exports.submitFeedback = async (req, res) => {
 
     const [result] = await db.query(
       `INSERT INTO feedback 
-       (customer_id, product_quality, packaging, delivery_time, customer_service, value_for_money, feedback_text, improvements)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       (customer_id, order_id, product_quality, packaging, delivery_time, customer_service, value_for_money, feedback_text, improvements)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         customerId,
+        req.body.orderId || null,
         productQuality,
         packaging,
         deliveryTime,
@@ -187,9 +188,10 @@ exports.getFeedbackStats = async (req, res) => {
 exports.getAllFeedback = async (req, res) => {
   try {
     const [feedback] = await db.query(`
-      SELECT f.*, u.full_name as customer_name, u.email as customer_email
+      SELECT f.*, u.full_name as customer_name, u.email as customer_email, CONCAT('ORD-', o.order_id) as order_number
       FROM feedback f
       JOIN users u ON f.customer_id = u.user_id
+      LEFT JOIN orders o ON f.order_id = o.order_id
       ORDER BY f.created_at DESC
     `);
 

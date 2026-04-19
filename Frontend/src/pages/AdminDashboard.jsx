@@ -4,6 +4,7 @@ import Header from '../components/Header'
 import { config } from '../config'
 import Footer from '../components/Footer'
 import { useToast } from '../components/ToastNotification'
+import { formatSriLankanDate } from '../utils/dateFormatter'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { 
   faChartLine, faShoppingCart, faUsers, faTruckLoading,
@@ -256,11 +257,7 @@ function AdminDashboard() {
 
   // Format date
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    })
+    return formatSriLankanDate(dateString);
   }
 
   const handleApproveUser = (userId) => {
@@ -526,7 +523,7 @@ function AdminDashboard() {
                       <div key={user.id} className="alert-item alert-info" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div>
                           <p style={{ fontWeight: 600, margin: 0 }}>{user.full_name}</p>
-                          <small style={{ textTransform: 'capitalize' }}>{user.user_type} • {new Date(user.join_date).toLocaleDateString()}</small>
+                          <small style={{ textTransform: 'capitalize' }}>{user.user_type} • {formatSriLankanDate(user.join_date)}</small>
                         </div>
                         <div className="action-buttons-mini" style={{ display: 'flex', gap: '8px' }}>
                           <button
@@ -578,7 +575,14 @@ function AdminDashboard() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
                       <div>
                         <h4 style={{ margin: 0, color: 'var(--text-dark)' }}>{item.customer_name}</h4>
-                        <small style={{ color: 'var(--text-light)' }}>{formatDate(item.created_at)}</small>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <small style={{ color: 'var(--text-light)' }}>{formatDate(item.created_at)}</small>
+                          {item.order_number && (
+                            <span style={{ fontSize: '0.7rem', background: '#e2e8f0', padding: '1px 6px', borderRadius: '4px', fontWeight: 'bold', color: '#475569' }}>
+                              Order #{item.order_number}
+                            </span>
+                          )}
+                        </div>
                       </div>
                       <div className="overall-rating-badge" style={{ background: '#fef3c7', color: '#92400e', padding: '4px 10px', borderRadius: '20px', fontSize: '0.85rem', fontWeight: '700' }}>
                         ★ {((item.product_quality + item.packaging + item.delivery_time + item.customer_service + item.value_for_money) / 5).toFixed(1)}

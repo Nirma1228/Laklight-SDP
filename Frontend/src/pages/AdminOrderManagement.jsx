@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import { config } from '../config';
+import { formatSriLankanDate, formatSriLankanDateTime } from '../utils/dateFormatter';
 import './AdminOrderManagement.css';
 
 function AdminOrderManagement() {
@@ -45,8 +46,8 @@ function AdminOrderManagement() {
             amount: Number(o.net_amount),
             payment: o.payment_status ? (o.payment_status.charAt(0).toUpperCase() + o.payment_status.slice(1)) : 'Unpaid',
             status: currentStatus,
-            date: new Date(o.order_date).toLocaleDateString(),
-            dateTime: new Date(o.order_date).toLocaleString(),
+            date: formatSriLankanDate(o.order_date),
+            dateTime: formatSriLankanDateTime(o.order_date),
             paymentMethod: o.payment_method || 'Cash on Delivery'
           };
         });

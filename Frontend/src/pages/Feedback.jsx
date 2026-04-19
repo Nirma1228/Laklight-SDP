@@ -1,10 +1,13 @@
-import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { config } from '../config'
 import './Feedback.css'
 
 function Feedback() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const [order, setOrder] = useState(location.state?.order || null)
+  
   const [ratings, setRatings] = useState({
     productQuality: 0,
     packaging: 0,
@@ -17,6 +20,13 @@ function Feedback() {
   const [submitted, setSubmitted] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // If no order in state, try to redirect or show message
+  useEffect(() => {
+    if (!order) {
+      setError('No order selected for feedback. Please select an order from your dashboard.')
+    }
+  }, [order])
 
   const improvementOptions = [
     'Faster Delivery',
@@ -71,7 +81,8 @@ function Feedback() {
           customerService: ratings.customerService,
           valueForMoney: ratings.valueForMoney,
           feedbackText: feedback,
-          improvements: improvements
+          improvements: improvements,
+          orderId: order?.order_id || order?.id
         })
       })
 
@@ -148,28 +159,32 @@ function Feedback() {
             <div className="order-details">
               <div className="order-detail-item">
                 <label>Order ID</label>
-                <span>#O002</span>
+                <span>#{order?.order_number || order?.order_id || 'N/A'}</span>
               </div>
               <div className="order-detail-item">
                 <label>Order Date</label>
-                <span>Oct 16, 2025</span>
+                <span>{order?.order_date ? new Date(order.order_date).toLocaleDateString() : 'N/A'}</span>
               </div>
               <div className="order-detail-item">
-                <label>Delivery Date</label>
-                <span>Oct 18, 2025</span>
+                <label>Status</label>
+                <span className={`order-status status-${(order?.order_status || '').toLowerCase()}`}>{order?.order_status}</span>
               </div>
               <div className="order-detail-item">
                 <label>Total Amount</label>
-                <span>LKR 2,400.00</span>
+                <span>LKR {(parseFloat(order?.net_amount) || 0).toFixed(2)}</span>
               </div>
             </div>
-            <div className="product-list">
-              <h4>Ordered Products</h4>
-              <div className="product-item">
-                <span className="product-name">Mixed Jam Collection</span>
-                <span className="product-qty">8 items</span>
+            {order?.items && order.items.length > 0 && (
+              <div className="product-list">
+                <h4>Ordered Products</h4>
+                {order.items.map((item, idx) => (
+                  <div key={idx} className="product-item">
+                    <span className="product-name">{item.product_name || item.name}</span>
+                    <span className="product-qty">{item.quantity} items</span>
+                  </div>
+                ))}
               </div>
-            </div>
+            )}
           </div>
 
           <form onSubmit={handleSubmit}>

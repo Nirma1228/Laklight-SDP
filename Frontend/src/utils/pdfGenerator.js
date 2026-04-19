@@ -1,5 +1,6 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { formatSriLankanDate } from './dateFormatter';
 
 /**
  * Generates a PDF report with a standardized project header and table.
@@ -47,7 +48,7 @@ export const generatePDFReport = ({ title, subtitle, headers, data, filename, st
   doc.setFontSize(10);
   doc.setTextColor(TEXT_LIGHT);
   doc.setFont('helvetica', 'normal');
-  doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 45);
+  doc.text(`Generated on: ${formatSriLankanDate(new Date())}`, 14, 45);
 
   // Subtitle
   if (subtitle) {

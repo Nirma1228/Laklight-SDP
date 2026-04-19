@@ -5,6 +5,7 @@ import Footer from '../components/Footer'
 import { useToast } from '../components/ToastNotification'
 import { config } from '../config'
 import { generatePDFReport } from '../utils/pdfGenerator'
+import { formatSriLankanDate } from '../utils/dateFormatter'
 import './GenerateReports.css'
 
 function GenerateReports() {
@@ -60,7 +61,7 @@ function GenerateReports() {
         const tableData = orders.map(o => [
           o.order_id ? `ORD-${o.order_id}` : 'N/A',
           o.customer_name || 'Generic Customer',
-          o.order_date ? new Date(o.order_date).toLocaleDateString() : 'N/A',
+          formatSriLankanDate(o.order_date),
           o.product_list || 'Items',
           `LKR ${Number(o.net_amount || 0).toLocaleString()}`,
           (o.payment_status || 'PENDING').toUpperCase()
@@ -94,7 +95,7 @@ function GenerateReports() {
           item.quantity_units || 0,
           isRaw ? (item.unit_name || 'units') : 'units',
           item.storage_location || 'Warehouse',
-          item.expiry_date ? new Date(item.expiry_date).toLocaleDateString() : 'N/A'
+          formatSriLankanDate(item.expiry_date)
         ]);
 
         generatePDFReport({

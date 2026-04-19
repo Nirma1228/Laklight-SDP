@@ -7,6 +7,7 @@ import StripeCheckoutButton from '../components/StripeCheckoutButton'
 import { useToast } from '../components/ToastNotification'
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome'
 import { faShoppingBag, faBoxOpen, faUser, faShoppingCart } from '@fortawesome/free-solid-svg-icons'
+import { formatSriLankanDate } from '../utils/dateFormatter'
 import './CustomerDashboard.css'
 
 // Product Card Component
@@ -623,12 +624,17 @@ const CustomerDashboard = () => {
                     <div key={order.order_id} className="order-item">
                       <div className="order-details">
                         <div className="order-id">Order #{order.order_number || order.order_id}</div>
-                        <div>{order.order_date ? new Date(order.order_date).toLocaleDateString() : 'N/A'}</div>
+                        <div>{formatSriLankanDate(order.order_date)}</div>
                         <div>Total: LKR {(parseFloat(order.net_amount) || 0).toFixed(2)}</div>
                       </div>
                       <div className="order-actions-status" style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
                         {(order.order_status || '').toLowerCase() === 'delivered' ? (
-                          <Link to="/feedback" className={`order-status status-${(order.order_status || '').toLowerCase()}`} style={{ textDecoration: 'none' }}>
+                          <Link 
+                            to="/feedback" 
+                            state={{ order: order }}
+                            className={`order-status status-${(order.order_status || '').toLowerCase()}`} 
+                            style={{ textDecoration: 'none' }}
+                          >
                             {order.order_status}
                           </Link>
                         ) : (

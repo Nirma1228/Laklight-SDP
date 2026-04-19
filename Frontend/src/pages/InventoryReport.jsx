@@ -5,6 +5,7 @@ import Footer from '../components/Footer'
 import { useToast } from '../components/ToastNotification'
 import { config } from '../config'
 import { generatePDFReport } from '../utils/pdfGenerator'
+import { formatSriLankanDate } from '../utils/dateFormatter'
 import './InventoryReport.css'
 
 function InventoryReport() {
@@ -37,7 +38,7 @@ function InventoryReport() {
               quantity: item.quantity_units || 0,
               unit: item.unit_name || 'units',
               location: item.storage_location || 'Warehouse',
-              expiry: item.expiry_date ? new Date(item.expiry_date).toLocaleDateString() : 'N/A',
+               expiry: formatSriLankanDate(item.expiry_date),
               expiryRaw: item.expiry_date ? new Date(item.expiry_date).toISOString().split('T')[0] : 'N/A',
               status: (item.quantity_units || 0) < 20 ? 'low' : 'good'
             })),
@@ -48,7 +49,7 @@ function InventoryReport() {
               quantity: item.quantity_units || 0,
               unit: 'units',
               location: item.storage_location || 'Warehouse',
-              expiry: item.expiry_date ? new Date(item.expiry_date).toLocaleDateString() : 'N/A',
+               expiry: formatSriLankanDate(item.expiry_date),
               expiryRaw: item.expiry_date ? new Date(item.expiry_date).toISOString().split('T')[0] : 'N/A',
               status: (item.quantity_units || 0) < 10 ? 'low' : 'good'
             }))

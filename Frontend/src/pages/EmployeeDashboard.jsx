@@ -13,6 +13,7 @@ import {
   faImage, faCheck, faTimes, faShoppingCart, faMoneyBillWave, faSeedling,
   faBox, faPrint, faMinus, faUsers, faShieldAlt, faTrash, faPaperPlane
 } from '@fortawesome/free-solid-svg-icons'
+import { formatSriLankanDate } from '../utils/dateFormatter'
 import './EmployeeDashboard.css'
 
 const EmployeeDashboard = () => {
@@ -88,7 +89,7 @@ const EmployeeDashboard = () => {
         title: extraData.title || 'System Notification',
         message: extraData.message || message,
         type: type === 'success' ? 'success' : 'info',
-        date: new Date().toLocaleString(),
+        date: formatSriLankanDate(new Date()),
         isRead: false
       };
       localStorage.setItem('farmer_notifications', JSON.stringify([newNotif, ...farmerNotifs]));
@@ -543,11 +544,7 @@ const EmployeeDashboard = () => {
           payment: o.payment_status,
           method: o.payment_method,
           status: o.order_status,
-          date: new Date(o.order_date).toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-          })
+          date: formatSriLankanDate(o.order_date)
         }));
         setOrders(formattedOrders);
       }

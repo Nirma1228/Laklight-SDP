@@ -5,6 +5,7 @@ import Footer from '../components/Footer'
 import { useToast } from '../components/ToastNotification'
 import { config } from '../config'
 import { generatePDFReport } from '../utils/pdfGenerator'
+import { formatSriLankanDate } from '../utils/dateFormatter'
 import './SalesReport.css'
 
 function SalesReport() {
@@ -43,7 +44,7 @@ function SalesReport() {
           setSales(data.report.orders.map(o => ({
             id: o.order_id ? `ORD-${o.order_id}` : 'N/A',
             customer: o.customer_name || 'Generic Customer',
-            date: o.order_date ? new Date(o.order_date).toLocaleDateString() : 'N/A',
+            date: formatSriLankanDate(o.order_date),
             rawDate: o.order_date ? new Date(o.order_date).toISOString().split('T')[0] : '',
             products: o.product_list || 'Items',
             quantity: '-',
