@@ -40,6 +40,7 @@ function App() {
 
       {/* Admin Routes */}
       <Route path="/admin/dashboard" element={<AdminDashboard />} />
+      <Route path="/admin-dashboard" element={<AdminDashboard />} />
       <Route path="/admin/inventory" element={<AdminInventory />} />
       <Route path="/admin/orders" element={<AdminOrderManagement />} />
       <Route path="/admin/users" element={<UserManagement />} />

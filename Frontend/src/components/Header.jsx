@@ -79,7 +79,7 @@ function Header({ isLoggedIn = false, customLinks = null, children = null }) {
                   {link.label}
                 </button>
               ) : (
-                <Link to={link.path}>{link.label}</Link>
+                <Link to={link.path} state={link.state}>{link.label}</Link>
               )}
             </li>
           ))}

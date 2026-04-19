@@ -278,6 +278,32 @@ function UserManagement() {
     setShowConfirmModal(true)
   }
 
+  const handleToggleStatus = async (user) => {
+    const newStatus = user.status === 'active' ? 'inactive' : 'active';
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+      const response = await fetch(`${config.API_BASE_URL}/admin/users/${user.id}/status`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
+      
+      const data = await response.json();
+      if (response.ok || data.success) {
+        success(`Account status updated to ${newStatus}`);
+        setUsers(users.map(u => u.id === user.id ? { ...u, status: newStatus } : u));
+      } else {
+        error(data.message || 'Status update failed');
+      }
+    } catch (err) {
+      console.error('Toggle status error:', err);
+      error('Error updating status');
+    }
+  };
+
   const filteredUsers = users.filter(user => {
     if (!user) return false;
     const name = user.name ? user.name.toLowerCase() : '';
@@ -375,6 +401,7 @@ function UserManagement() {
                   <th>User Profile</th>
                   <th>Contact Info</th>
                   <th>Role & Status</th>
+                  <th>Account Status</th>
                   <th>Primary Address</th>
                   <th>Join Date</th>
                   <th>Actions</th>
@@ -409,6 +436,21 @@ function UserManagement() {
                         </span>
                         <span className={`status-badge status-${user.status.toLowerCase()}`} style={{ fontSize: '0.7rem' }}>
                           {user.status}
+                        </span>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="status-toggle-container">
+                        <label className="status-toggle">
+                          <input 
+                            type="checkbox" 
+                            checked={user.status === 'active'}
+                            onChange={() => handleToggleStatus(user)}
+                          />
+                          <span className="slider round"></span>
+                        </label>
+                        <span className={`status-text ${user.status}`}>
+                          {user.status === 'active' ? 'Active' : 'Inactive'}
                         </span>
                       </div>
                     </td>

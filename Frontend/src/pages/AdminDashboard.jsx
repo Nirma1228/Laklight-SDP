@@ -11,7 +11,8 @@ import {
   faChartBar, faStore, faBoxOpen, faUser, faHandshake,
   faBox, faExclamationTriangle, faClock, faCheckCircle,
   faTags, faHourglassHalf, faSync, faStar, faMoneyBillWave,
-  faShieldAlt, faDesktop, faLock, faLeaf, faCubes
+  faShieldAlt, faDesktop, faLock, faLeaf, faCubes, faBell,
+  faExclamationCircle, faHome, faSignOutAlt
 } from '@fortawesome/free-solid-svg-icons'
 import './AdminDashboard.css'
 
@@ -22,12 +23,17 @@ function AdminDashboard() {
   const [recentOrders, setRecentOrders] = useState([])
   const [pendingUsers, setPendingUsers] = useState([])
   const [customerFeedback, setCustomerFeedback] = useState([])
+  const [farmerProducts, setFarmerProducts] = useState([])
+  const [finishedProducts, setFinishedProducts] = useState([])
+  const [alertCount, setAlertCount] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [dashboardAlerts, setDashboardAlerts] = useState([])
   const [adminName, setAdminName] = useState(localStorage.getItem('userName') || 'Administrator');
   const [showRecentOrders, setShowRecentOrders] = useState(false)
   const [showPendingRegistrations, setShowPendingRegistrations] = useState(false)
   const [showCustomerFeedback, setShowCustomerFeedback] = useState(false)
+  const [showNotificationPanel, setShowNotificationPanel] = useState(false)
   const [confirmModal, setConfirmModal] = useState({
     show: false,
     title: '',
@@ -138,7 +144,99 @@ function AdminDashboard() {
       }
     }
 
-    fetchFeedback()
+    const fetchInventoryAlerts = async () => {
+      try {
+        const token = getAuthToken();
+        const [resF, resP] = await Promise.all([
+          fetch(`${config.API_BASE_URL}/admin/inventory/farmer-products`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`${config.API_BASE_URL}/admin/inventory/finished-products`, { headers: { 'Authorization': `Bearer ${token}` } })
+        ]);
+
+        if (resF.ok && resP.ok) {
+          const [dataF, dataP] = await Promise.all([resF.json(), resP.json()]);
+          const fp = dataF.products || [];
+          const pp = dataP.products || [];
+          setFarmerProducts(fp);
+          setFinishedProducts(pp);
+
+          // Calculate alert count correctly using unique IDs (with prefixes to avoid collision between categories)
+          const lowStockFarmer = fp.filter(p => (p.total_stock || p.batches.reduce((s, b) => s + (b.stockRaw || 0), 0)) < 50);
+          const lowStockFinished = pp.filter(p => (p.total_stock || p.batches.reduce((s, b) => s + (b.quantity || 0), 0)) < 50);
+          
+          const expiringFarmer = fp.filter(p => p.batches.some(b => b.daysUntilExpiry <= 7));
+          const expiringFinished = pp.filter(p => p.batches.some(b => {
+            if (!b.bestBefore) return false;
+            const days = Math.ceil((new Date(b.bestBefore) - new Date()) / (1000 * 60 * 60 * 24));
+            return days <= 7;
+          }));
+
+          const uniqueAlertIds = new Set([
+            ...lowStockFarmer.map(p => `f_${p.productId || p.id}`),
+            ...lowStockFinished.map(p => `p_${p.productId || p.id}`),
+            ...expiringFarmer.map(p => `f_${p.productId || p.id}`),
+            ...expiringFinished.map(p => `p_${p.productId || p.id}`)
+          ]);
+
+          setAlertCount(uniqueAlertIds.size);
+
+          // Generate dashboard alerts like employee dashboard
+          const alerts = [];
+          const today = new Date();
+          
+          // Low stock (Raw)
+          lowStockFarmer.forEach(p => {
+            alerts.push({
+              id: `low-raw-${p.productId || p.id}`,
+              type: 'danger',
+              title: 'CRITICALLY LOW STOCK',
+              message: `${p.name}: only ${p.total_stock || 0}kg remaining. Restock urgently.`,
+              icon: faExclamationTriangle,
+              color: '#d32f2f'
+            });
+          });
+
+          // Low stock (Finished)
+          lowStockFinished.forEach(p => {
+            alerts.push({
+              id: `low-fin-${p.productId || p.id}`,
+              type: 'danger',
+              title: 'LOW STOCK: FINISHED GOODS',
+              message: `${p.productName || p.name}: only ${p.total_stock || 0} units left in inventory.`,
+              icon: faExclamationCircle,
+              color: '#d32f2f'
+            });
+          });
+
+          // Expiry alerts
+          expiringFarmer.forEach(p => {
+            alerts.push({
+              id: `exp-raw-${p.productId || p.id}`,
+              type: 'warning',
+              title: 'EXPIRY ALERT: RAW MATERIAL',
+              message: `${p.name} batch is expiring within 7 days. Use immediately.`,
+              icon: faClock,
+              color: '#ed6c02'
+            });
+          });
+
+          expiringFinished.forEach(p => {
+            alerts.push({
+              id: `exp-fin-${p.productId || p.id}`,
+              type: 'warning',
+              title: 'EXPIRING SOON: FINISHED PRODUCT',
+              message: `${p.productName || p.name} is reaching its best before date soon.`,
+              icon: faHourglassHalf,
+              color: '#ed6c02'
+            });
+          });
+
+          setDashboardAlerts(alerts);
+        }
+      } catch (err) { console.error('Alert fetch error:', err); }
+    };
+
+    fetchFeedback();
+    fetchInventoryAlerts();
   }, [])
 
   const handleLogout = () => {
@@ -249,16 +347,100 @@ function AdminDashboard() {
           { label: 'Inventory', path: '/admin/inventory' },
           { label: 'Orders', path: '/admin/orders' },
           { label: 'Suppliers', path: '/admin/suppliers' },
-          { label: 'Reports', path: '/admin/reports' }
+          { label: 'Reports', path: '/admin/reports' },
         ]}
       />
 
+      {/* Notification Dropdown Panel */}
+      {showNotificationPanel && (
+        <div className="notif-dropdown-panel" onClick={(e) => e.stopPropagation()}>
+          <div className="notif-panel-header">
+            <h3>System Notifications</h3>
+            <button className="close-panel-btn" onClick={() => setShowNotificationPanel(false)}>&times;</button>
+          </div>
+          <div className="notif-panel-content">
+            {alertCount === 0 ? (
+              <div className="no-notifications">
+                <i className="fas fa-check-circle"></i>
+                <p>No critical issues detected.</p>
+              </div>
+            ) : (
+              <>
+                {/* Low Stock Section */}
+                {[...farmerProducts.filter(p => (p.total_stock || 0) < 50), 
+                  ...finishedProducts.filter(p => (p.total_stock || 0) < 50)].length > 0 && (
+                  <div className="notif-section">
+                    <h4 className="section-type low-stock"><i className="fas fa-exclamation-triangle"></i> Low Stock Items</h4>
+                    {[...farmerProducts.filter(p => (p.total_stock || 0) < 50), 
+                      ...finishedProducts.filter(p => (p.total_stock || 0) < 50)].map((item, idx) => (
+                      <div key={`low-${idx}`} className="notif-item" onClick={() => navigate('/admin/inventory')}>
+                        <span className="item-name">{item.name || item.productName}</span>
+                        <span className="item-status status-critical">Only {item.total_stock} left</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Expiring Section */}
+                {[...farmerProducts.filter(p => p.batches?.some(b => b.daysUntilExpiry <= 7)),
+                  ...finishedProducts.filter(p => p.batches?.some(b => {
+                    if (!b.bestBefore) return false;
+                    const days = Math.ceil((new Date(b.bestBefore) - new Date()) / (1000 * 60 * 60 * 24));
+                    return days <= 7;
+                  }))].length > 0 && (
+                  <div className="notif-section">
+                    <h4 className="section-type expire-soon"><i className="fas fa-hourglass-half"></i> Expiring Soon</h4>
+                    {[...farmerProducts.filter(p => p.batches?.some(b => b.daysUntilExpiry <= 7)),
+                      ...finishedProducts.filter(p => p.batches?.some(b => {
+                        if (!b.bestBefore) return false;
+                        const days = Math.ceil((new Date(b.bestBefore) - new Date()) / (1000 * 60 * 60 * 24));
+                        return days <= 7;
+                      }))].map((item, idx) => (
+                      <div key={`exp-${idx}`} className="notif-item" onClick={() => navigate('/admin/inventory')}>
+                        <span className="item-name">{item.name || item.productName}</span>
+                        <span className="item-status status-warning">Expires in 7 days or less</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          <div className="notif-panel-footer">
+            <button className="view-all-btn" onClick={() => navigate('/admin/inventory')}>View All Inventory</button>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <main className="admin-dashboard-content">
+        {/* Inventory Critical Alerts like Employee Dashboard */}
+        {dashboardAlerts.length > 0 && (
+          <div className="dashboard-alerts-section">
+            <h2 className="alerts-heading">
+              <FontAwesomeIcon icon={faExclamationTriangle} color="#d32f2f" />
+              Critical Inventory Alerts
+            </h2>
+            <div className="dashboard-alerts-container">
+              {dashboardAlerts.map(alert => (
+                <div key={alert.id} className={`dashboard-alert card-alert-${alert.type}`} onClick={() => navigate('/admin/inventory')}>
+                  <div className="alert-header">
+                    <FontAwesomeIcon icon={alert.icon} />
+                    <span className="alert-title">{alert.title}</span>
+                  </div>
+                  <p className="alert-body">{alert.message}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className="page-header-section">
-          <div>
-            <h1>Admin Dashboard</h1>
-            <p>Complete system overview and management controls for Laklight Food Products digital platform.</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+            <div>
+              <h1>Admin Dashboard</h1>
+              <p>Complete system overview and management controls for Laklight Food Products digital platform.</p>
+            </div>
           </div>
           <div className="page-header-actions">
             <button className={`btn-toggle-view ${showRecentOrders ? 'active' : ''}`} onClick={() => setShowRecentOrders(!showRecentOrders)}>
@@ -472,28 +654,10 @@ function AdminDashboard() {
               </div>
               <p className="management-description">Manage customers, suppliers, and employees accounts</p>
               <div className="management-stats">
-                <div className="management-stat">
-                  <span className="management-stat-number">{dashboardData?.users?.customers || 1523}</span>
-                  <span className="management-stat-label">
-                    <FontAwesomeIcon icon={faUser} /> Customers
-                  </span>
-                </div>
-                <div className="management-stat">
-                  <span className="management-stat-number">{dashboardData?.users?.farmers || 234}</span>
-                  <span className="management-stat-label">
-                    <FontAwesomeIcon icon={faHandshake} /> Suppliers
-                  </span>
-                </div>
-                <div className="management-stat">
-                  <span className="management-stat-number">{dashboardData?.users?.employees || 45}</span>
-                  <span className="management-stat-label">
-                    <FontAwesomeIcon icon={faUserTie} /> Employees
-                  </span>
-                </div>
               </div>
             </div>
 
-            <div className="management-card" onClick={() => navigate('/admin/inventory')}>
+            <div className="management-card" style={{ border: '2px solid #ef4444' }} onClick={() => navigate('/admin/inventory')}>
               <div className="management-card-header">
                 <div className="icon-circle icon-green">
                   <FontAwesomeIcon icon={faBoxes} />
@@ -502,24 +666,32 @@ function AdminDashboard() {
               </div>
               <p className="management-description">Monitor stock levels, warehouse locations, and product expiry</p>
               <div className="management-stats">
-                <div className="management-stat">
-                  <span className="management-stat-number">{Math.round(dashboardData?.products?.farmer_products_stock || 0)} kg</span>
-                  <span className="management-stat-label">
-                    <FontAwesomeIcon icon={faLeaf} /> Farmer Raw
-                  </span>
-                </div>
-                <div className="management-stat">
-                  <span className="management-stat-number">{dashboardData?.products?.finished_products_stock || 0} Units</span>
-                  <span className="management-stat-label">
-                    <FontAwesomeIcon icon={faCubes} /> Finished
-                  </span>
-                </div>
-                <div className="management-stat">
-                  <span className="management-stat-number">{dashboardData?.products?.low_stock_products || 0}</span>
-                  <span className="management-stat-label">
-                    <FontAwesomeIcon icon={faExclamationTriangle} /> Low Stock
-                  </span>
-                </div>
+              </div>
+              <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #eee' }}>
+                <button 
+                  style={{
+                    width: '100%',
+                    padding: '0.8rem',
+                    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: 'bold',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '10px',
+                    cursor: 'pointer',
+                    boxShadow: '0 4px 12px rgba(239, 68, 68, 0.2)'
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    navigate('/admin/inventory', { state: { filter: 'low-stock' } });
+                  }}
+                >
+                  <FontAwesomeIcon icon={faBell} />
+                  View Low Stock & Expire Notifications
+                </button>
               </div>
             </div>
 
@@ -532,24 +704,6 @@ function AdminDashboard() {
               </div>
               <p className="management-description">Add, edit, and manage products with pricing controls</p>
               <div className="management-stats">
-                <div className="management-stat">
-                  <span className="management-stat-number">156</span>
-                  <span className="management-stat-label">
-                    <FontAwesomeIcon icon={faBox} /> Total
-                  </span>
-                </div>
-                <div className="management-stat">
-                  <span className="management-stat-number">142</span>
-                  <span className="management-stat-label">
-                    <FontAwesomeIcon icon={faCheckCircle} /> Active
-                  </span>
-                </div>
-                <div className="management-stat">
-                  <span className="management-stat-number">8</span>
-                  <span className="management-stat-label">
-                    <FontAwesomeIcon icon={faTags} /> Categories
-                  </span>
-                </div>
               </div>
             </div>
 
@@ -562,24 +716,6 @@ function AdminDashboard() {
               </div>
               <p className="management-description">Process orders, manage delivery, and track payments</p>
               <div className="management-stats">
-                <div className="management-stat">
-                  <span className="management-stat-number">{dashboardData?.orders?.total_orders || 1847}</span>
-                  <span className="management-stat-label">
-                    <FontAwesomeIcon icon={faClipboardList} /> Total
-                  </span>
-                </div>
-                <div className="management-stat">
-                  <span className="management-stat-number">{dashboardData?.orders?.pending_orders || 23}</span>
-                  <span className="management-stat-label">
-                    <FontAwesomeIcon icon={faHourglassHalf} /> Pending
-                  </span>
-                </div>
-                <div className="management-stat">
-                  <span className="management-stat-number">15</span>
-                  <span className="management-stat-label">
-                    <FontAwesomeIcon icon={faSync} /> Processing
-                  </span>
-                </div>
               </div>
             </div>
 
@@ -592,24 +728,6 @@ function AdminDashboard() {
               </div>
               <p className="management-description">Review applications, manage contracts, and quality control</p>
               <div className="management-stats">
-                <div className="management-stat">
-                  <span className="management-stat-number">234</span>
-                  <span className="management-stat-label">
-                    <FontAwesomeIcon icon={faCheckCircle} /> Active
-                  </span>
-                </div>
-                <div className="management-stat">
-                  <span className="management-stat-number">18</span>
-                  <span className="management-stat-label">
-                    <FontAwesomeIcon icon={faHourglassHalf} /> Pending
-                  </span>
-                </div>
-                <div className="management-stat">
-                  <span className="management-stat-number">98%</span>
-                  <span className="management-stat-label">
-                    <FontAwesomeIcon icon={faStar} /> Quality
-                  </span>
-                </div>
               </div>
             </div>
 
@@ -622,18 +740,6 @@ function AdminDashboard() {
               </div>
               <p className="management-description">Generate business insights, sales reports, and performance metrics</p>
               <div className="management-stats">
-                <div className="management-stat">
-                  <span className="management-stat-number">Rs. 2.4M</span>
-                  <span className="management-stat-label">
-                    <FontAwesomeIcon icon={faMoneyBillWave} /> Revenue
-                  </span>
-                </div>
-                <div className="management-stat">
-                  <span className="management-stat-number">99.5%</span>
-                  <span className="management-stat-label">
-                    <FontAwesomeIcon icon={faClock} /> Uptime
-                  </span>
-                </div>
               </div>
             </div>
 

@@ -21,7 +21,7 @@ function ProductCatalog() {
         setProducts(data.products.map(p => ({
           id: p.id || p.product_id, // Use correct ID field
           name: p.name,
-          category: p.category_name?.toLowerCase() || 'other',
+          category: p.category || p.category_name || 'other',
           price: parseFloat(p.price),
           unit: p.unit || p.unit_name || 'unit',
           stock: p.stock_quantity,
@@ -38,10 +38,13 @@ function ProductCatalog() {
   }
 
   const [showModal, setShowModal] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [productToDelete, setProductToDelete] = useState(null)
   const [editingProduct, setEditingProduct] = useState(null)
   const [categoryFilter, setCategoryFilter] = useState('all')
   const [priceFilter, setPriceFilter] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
+  const [uploading, setUploading] = useState(false)
 
   const [formData, setFormData] = useState({
     name: '',
@@ -53,6 +56,37 @@ function ProductCatalog() {
     image: '',
     availability: 'in-stock'
   })
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    setUploading(true)
+    const data = new FormData()
+    data.append('image', file)
+
+    try {
+      const response = await fetch('http://localhost:5000/api/products/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('adminToken')}`
+        },
+        body: data
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        setFormData({ ...formData, image: result.url })
+      } else {
+        alert('Failed to upload image')
+      }
+    } catch (err) {
+      console.error('Upload error:', err)
+      alert('Error uploading image')
+    } finally {
+      setUploading(false)
+    }
+  }
 
   const openAddModal = () => {
     setEditingProduct(null)
@@ -70,10 +104,16 @@ function ProductCatalog() {
   }
 
   const openEditModal = (product) => {
+    // Determine internal category name from display name
+    let categoryValue = product.category?.toLowerCase() || ''
+    if (categoryValue.includes('beverage') || categoryValue.includes('juice')) categoryValue = 'beverages'
+    else if (categoryValue.includes('dessert') || categoryValue.includes('jelly') || categoryValue.includes('jam')) categoryValue = 'desserts'
+    else if (categoryValue.includes('sauce') || categoryValue.includes('other')) categoryValue = 'other'
+
     setEditingProduct(product)
     setFormData({
       name: product.name || '',
-      category: product.category || '',
+      category: categoryValue,
       price: product.price || 0,
       unit: product.unit || 'kg',
       stock: product.stock || 0,
@@ -89,10 +129,14 @@ function ProductCatalog() {
     
     // Prepare the update object with exact numeric types
     const updatedData = {
-      ...formData,
+      name: formData.name,
+      category: formData.category,
       price: Number(formData.price),
+      unit: formData.unit,
       stock: Number(formData.stock),
-      id: editingProduct ? editingProduct.id : Date.now()
+      description: formData.description,
+      image_url: formData.image,
+      availability: formData.availability === 'in-stock' ? 'In Stock' : 'Out of Stock'
     }
 
     try {
@@ -109,7 +153,8 @@ function ProductCatalog() {
         unit: updatedData.unit,
         stock: updatedData.stock,
         description: updatedData.description,
-        image_url: updatedData.image
+        image_url: updatedData.image_url,
+        availability: formData.availability // Pass raw value instead of mapped "In Stock" text
       }
 
       console.log('Sending update:', bodyContent)
@@ -143,15 +188,42 @@ function ProductCatalog() {
     }
   }
 
-  const handleDelete = (id) => {
-    if (confirm('Are you sure you want to delete this product?')) {
-      setProducts(products.filter(p => p.id !== id))
+  const handleDeleteClick = (product) => {
+    setProductToDelete(product)
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDelete = async () => {
+    if (!productToDelete) return
+
+    try {
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+      const response = await fetch(`${config.API_BASE_URL}/products/${productToDelete.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+
+      if (response.ok) {
+        setProducts(products.filter(p => p.id !== productToDelete.id))
+      } else {
+        const errorData = await response.json()
+        alert(`Failed to delete: ${errorData.message || 'Unknown error'}`)
+      }
+    } catch (err) {
+      console.error('Delete error:', err)
+      // Fallback
+      setProducts(products.filter(p => p.id !== productToDelete.id))
+    } finally {
+      setShowDeleteConfirm(false)
+      setProductToDelete(null)
     }
   }
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = categoryFilter === 'all' || product.category === categoryFilter
+    const matchesCategory = categoryFilter === 'all' || product.category?.toLowerCase() === categoryFilter.toLowerCase()
     const matchesPrice = priceFilter === 'all' ||
       (priceFilter === 'low' && product.price < 300) ||
       (priceFilter === 'medium' && product.price >= 300 && product.price < 700) ||
@@ -287,7 +359,7 @@ function ProductCatalog() {
                 </div>
                 <div className="product-actions">
                   <button className="btn btn-warning btn-small" onClick={() => openEditModal(product)}>Edit</button>
-                  <button className="btn btn-danger btn-small" onClick={() => handleDelete(product.id)}>Delete</button>
+                  <button className="btn btn-danger btn-small" onClick={() => handleDeleteClick(product)}>Delete</button>
                 </div>
               </div>
             </div>
@@ -376,6 +448,48 @@ function ProductCatalog() {
               </div>
               <div className="form-row full-width">
                 <div className="form-group">
+                  <label>Product Image</label>
+                  <div className="image-upload-container">
+                    {uploading ? (
+                      <div className="upload-loading">
+                        <div className="spinner"></div>
+                        <span>Uploading...</span>
+                      </div>
+                    ) : formData.image ? (
+                      <div className="image-preview-wrapper">
+                        <img 
+                          src={formData.image.startsWith('http') ? formData.image : `http://localhost:5000${formData.image}`} 
+                          alt="Preview" 
+                          className="preview-img" 
+                        />
+                        <button 
+                          type="button" 
+                          className="remove-img-btn"
+                          onClick={() => setFormData({ ...formData, image: '' })}
+                        >
+                          &times;
+                        </button>
+                      </div>
+                    ) : (
+                      <label className="upload-label-wrapper">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          style={{ display: 'none' }}
+                        />
+                        <div className="upload-icon">
+                          <i className="fas fa-cloud-upload-alt"></i>
+                        </div>
+                        <div className="upload-text">Click to upload product image</div>
+                        <div className="upload-hint">PNG, JPG or WebP (Max 5MB)</div>
+                      </label>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="form-row full-width">
+                <div className="form-group">
                   <label>Description</label>
                   <textarea
                     value={formData.description}
@@ -389,6 +503,37 @@ function ProductCatalog() {
                 <button type="submit" className="btn btn-primary">Save Product</button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="confirm-modal-overlay">
+          <div className="confirm-modal-content">
+            <div className="confirm-modal-icon">
+              <i className="fas fa-exclamation-triangle"></i>
+            </div>
+            <h3>Delete Product?</h3>
+            <p>
+              Are you sure you want to delete <strong>{productToDelete?.name}</strong>? 
+              This action cannot be undone.
+            </p>
+            <div className="confirm-modal-actions">
+              <button 
+                className="btn-modal-cancel" 
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                No, Keep it
+              </button>
+              <button 
+                className="btn-modal-confirm" 
+                style={{ backgroundColor: '#dc2626' }}
+                onClick={confirmDelete}
+              >
+                Yes, Delete
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -78,7 +78,7 @@ function Footer() {
 
       <div className="footer-bottom-premium">
         <div className="container bottom-flex">
-          <p className="copyright">&copy; 2025 <strong>Laklight Food Products</strong>. All rights reserved.</p>
+          <p className="copyright">&copy; 2026 <strong>Laklight Food Products</strong>. All rights reserved.</p>
           <div className="developer-tag">
             <span className="dot"></span>
             Designed by <strong>Nirma Bandara</strong>

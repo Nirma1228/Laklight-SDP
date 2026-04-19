@@ -149,13 +149,17 @@ function GenerateReports() {
                   key={report.id}
                   className={`report-type-card ${selectedReport === report.id ? 'selected' : ''}`}
                   onClick={() => handleReportSelect(report.id)}
-                  style={selectedReport === report.id ? { '--accent-color': report.color } : {}}
                 >
-                  <div className="report-icon" style={{ backgroundColor: `${report.color}15`, color: report.color }}>
+                  <div className="report-card-icon" style={{ backgroundColor: `${report.color}15`, color: report.color }}>
                     <i className={report.icon}></i>
                   </div>
-                  <h3>{report.name}</h3>
-                  <p>{report.description}</p>
+                  <div className="report-card-name">{report.name}</div>
+                  <div className="report-card-desc">{report.description}</div>
+                  {selectedReport === report.id && (
+                    <div className="selection-indicator">
+                      <i className="fa-solid fa-circle-check"></i>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

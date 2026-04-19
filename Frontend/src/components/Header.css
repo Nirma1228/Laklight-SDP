@@ -299,3 +299,74 @@
     display: flex;
   }
 }
+/* Aggressively remove EVERY possible background shape/icon in the header */
+.header *,
+.header::before,
+.header::after,
+.nav-container *,
+.nav-container::before,
+.nav-container::after,
+.logo *,
+.logo::before,
+.logo::after,
+.nav-menu *,
+.nav-menu::before,
+.nav-menu::after {
+  background-image: none !important;
+}
+
+/* Specifically target the white half-circles/blobs in screenshot */
+.header::before, 
+.header::after,
+.nav-container::before, 
+.nav-container::after,
+.nav-menu li::before,
+.nav-menu li::after,
+[class*="header"]::before,
+[class*="header"]::after,
+[class*="nav"]::before,
+[class*="nav"]::after {
+  display: none !important;
+  content: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+
+/* Aggressively remove EVERY possible background shape/icon in the header */
+.header *,
+.header::before,
+.header::after,
+.nav-container *,
+.nav-container::before,
+.nav-container::after,
+.logo *,
+.logo::before,
+.logo::after,
+.nav-menu *,
+.nav-menu::before,
+.nav-menu::after {
+  background-image: none !important;
+}
+
+/* Specifically target the white half-circles/blobs in screenshot */
+.header::before, 
+.header::after,
+.nav-container::before, 
+.nav-container::after,
+.nav-menu li::before,
+.nav-menu li::after,
+[class*="header"]::before,
+[class*="header"]::after,
+[class*="nav"]::before,
+[class*="nav"]::after {
+  display: none !important;
+  content: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+

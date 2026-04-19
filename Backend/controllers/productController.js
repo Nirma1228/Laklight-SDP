@@ -73,8 +73,8 @@ exports.addProduct = async (req, res) => {
     if (!categoryId || !unitId) return res.status(400).json({ message: 'Invalid category or unit' });
 
     const [result] = await db.query(
-      'INSERT INTO products (name, category_id, description, price, unit_id, stock_quantity) VALUES (?, ?, ?, ?, ?, ?)',
-      [name, categoryId, description, price, unitId, stock || 0]
+      'INSERT INTO products (name, category_id, description, price, unit_id, stock_quantity, image_url, is_available) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [name, categoryId, description, price, unitId, stock || 0, req.body.image_url || null, availability === 'In Stock' ? 1 : 0]
     );
 
     res.status(201).json({ success: true, productId: result.insertId });
@@ -96,12 +96,16 @@ exports.updateProduct = async (req, res) => {
     if (price !== undefined) { items.push('price = ?'); params.push(price); }
     if (stock !== undefined) { items.push('stock_quantity = ?'); params.push(stock); }
     if (description) { items.push('description = ?'); params.push(description); }
-    if (availability !== undefined) { items.push('is_available = ?'); params.push(availability === 'In Stock'); }
+    if (availability !== undefined) { 
+      items.push('is_available = ?'); 
+      params.push(availability === 'In Stock' || availability === 'in-stock' ? 1 : 0); 
+    }
+    if (req.body.image_url !== undefined) { items.push('image_url = ?'); params.push(req.body.image_url); }
 
     if (items.length === 0) return res.status(400).json({ message: 'No fields to update' });
 
     params.push(req.params.id);
-    await db.query(`UPDATE products SET ${items.join(', ')} WHERE id = ?`, params);
+    await db.query(`UPDATE products SET ${items.join(', ')} WHERE product_id = ?`, params);
     res.json({ success: true, message: 'Updated successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Update failed', error: error.message });

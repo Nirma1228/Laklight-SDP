@@ -59,8 +59,6 @@ function SupplierReport() {
   const { success, info } = useToast()
 
   const handleExport = (format) => {
-    info(`Preparing ${format} export...`)
-
     setTimeout(() => {
       if (format === 'PDF') {
         window.print();
