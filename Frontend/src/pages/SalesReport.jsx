@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import { useToast } from '../components/ToastNotification'
@@ -10,8 +10,13 @@ import './SalesReport.css'
 
 function SalesReport() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const queryParams = new URLSearchParams(location.search)
+  
   const [filters, setFilters] = useState({
-    dateRange: 'month',
+    dateRange: queryParams.get('rangeType') || 'month',
+    startDate: queryParams.get('startDate') || '',
+    endDate: queryParams.get('endDate') || '',
     paymentStatus: 'all',
     customerType: 'all'
   })
@@ -34,9 +39,19 @@ function SalesReport() {
 
   useEffect(() => {
     const fetchReport = async () => {
+      // Validation: Don't fetch if custom range is invalid
+      if (filters.startDate && filters.endDate && new Date(filters.startDate) > new Date(filters.endDate)) {
+        return; 
+      }
+
+      setIsLoading(true);
       try {
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-        const res = await fetch(`${config.API_BASE_URL}/reports/sales`, {
+        const url = new URL(`${config.API_BASE_URL}/reports/sales`);
+        if (filters.startDate) url.searchParams.append('startDate', filters.startDate);
+        if (filters.endDate) url.searchParams.append('endDate', filters.endDate);
+
+        const res = await fetch(url.toString(), {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
@@ -74,7 +89,7 @@ function SalesReport() {
       }
     };
     fetchReport();
-  }, [])
+  }, [filters.startDate, filters.endDate])
 
   const filteredSales = sales.filter(sale => {
     if (filters.paymentStatus !== 'all' && sale.payment !== filters.paymentStatus) return false
@@ -83,7 +98,54 @@ function SalesReport() {
   })
 
   const handleFilterChange = (e) => {
-    setFilters({ ...filters, [e.target.name]: e.target.value })
+    const { name, value } = e.target;
+    
+    if (name === 'dateRange' && value !== 'custom') {
+      const today = new Date();
+      let start = new Date();
+      
+      switch (value) {
+        case 'today':
+          start.setHours(0, 0, 0, 0);
+          break;
+        case 'week':
+          start.setDate(today.getDate() - today.getDay());
+          start.setHours(0, 0, 0, 0);
+          break;
+        case 'month':
+          start.setMonth(today.getMonth(), 1);
+          start.setHours(0, 0, 0, 0);
+          break;
+        case 'quarter':
+          start.setMonth(Math.floor(today.getMonth() / 3) * 3, 1);
+          start.setHours(0, 0, 0, 0);
+          break;
+        case 'year':
+          start.setMonth(0, 1);
+          start.setHours(0, 0, 0, 0);
+          break;
+        default:
+          break;
+      }
+      
+      setFilters({
+        ...filters,
+        dateRange: value,
+        startDate: start.toISOString().split('T')[0],
+        endDate: today.toISOString().split('T')[0]
+      });
+    } else {
+      setFilters({ ...filters, [name]: value });
+      
+      // Immediate feedback for invalid custom range
+      if (name === 'startDate' || name === 'endDate') {
+        const newStart = name === 'startDate' ? value : filters.startDate;
+        const newEnd = name === 'endDate' ? value : filters.endDate;
+        if (newStart && newEnd && new Date(newStart) > new Date(newEnd)) {
+          error('Start date cannot be after end date.');
+        }
+      }
+    }
   }
 
   const { success } = useToast()
@@ -153,14 +215,35 @@ function SalesReport() {
         <div className="filters-container">
           <div className="filter-group">
             <label htmlFor="dateRange">Date Range</label>
-            <select id="dateRange" name="dateRange" value={filters.dateRange} onChange={handleFilterChange}>
-              <option value="today">Today</option>
-              <option value="week">This Week</option>
-              <option value="month">This Month</option>
-              <option value="quarter">This Quarter</option>
-              <option value="year">This Year</option>
-              <option value="custom">Custom Range</option>
-            </select>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <select id="dateRange" name="dateRange" value={filters.dateRange} onChange={handleFilterChange}>
+                <option value="today">Today</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
+                <option value="quarter">This Quarter</option>
+                <option value="year">This Year</option>
+                <option value="custom">Custom Range</option>
+              </select>
+              {filters.dateRange === 'custom' && (
+                <>
+                  <input 
+                    type="date" 
+                    name="startDate" 
+                    value={filters.startDate} 
+                    onChange={handleFilterChange}
+                    className="date-input-beautified"
+                  />
+                  <input 
+                    type="date" 
+                    name="endDate" 
+                    value={filters.endDate} 
+                    min={filters.startDate}
+                    onChange={handleFilterChange}
+                    className="date-input-beautified"
+                  />
+                </>
+              )}
+            </div>
           </div>
           <div className="filter-group">
             <label htmlFor="paymentStatus">Payment Status</label>

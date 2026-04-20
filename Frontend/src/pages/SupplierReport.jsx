@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import { useToast } from '../components/ToastNotification'
@@ -9,19 +9,32 @@ import './SupplierReport.css'
 
 function SupplierReport() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const queryParams = new URLSearchParams(location.search)
+  
   const [filters, setFilters] = useState({
     status: 'all',
     rating: 'all',
-    region: 'all'
+    region: 'all',
+    startDate: queryParams.get('startDate') || '',
+    endDate: queryParams.get('endDate') || ''
   })
   const [suppliers, setSuppliers] = useState([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     const fetchReport = async () => {
+      if (filters.startDate && filters.endDate && new Date(filters.startDate) > new Date(filters.endDate)) {
+        return; 
+      }
+      setIsLoading(true);
       try {
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-        const res = await fetch(`${config.API_BASE_URL}/reports/supplier`, {
+        const url = new URL(`${config.API_BASE_URL}/reports/supplier`);
+        if (filters.startDate) url.searchParams.append('startDate', filters.startDate);
+        if (filters.endDate) url.searchParams.append('endDate', filters.endDate);
+
+        const res = await fetch(url.toString(), {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
@@ -44,7 +57,7 @@ function SupplierReport() {
       }
     };
     fetchReport();
-  }, [])
+  }, [filters.startDate, filters.endDate])
 
   const filteredSuppliers = suppliers.filter(supplier => {
     if (filters.status !== 'all' && supplier.status !== filters.status) return false

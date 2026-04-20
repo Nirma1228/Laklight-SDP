@@ -3,7 +3,8 @@ const db = require('../config/database');
 // FR17: Sales Report
 exports.getSalesReport = async (req, res) => {
   try {
-    const [orders] = await db.query(`
+    const { startDate, endDate } = req.query;
+    let query = `
       SELECT o.order_id, u.full_name as customer_name, o.order_date, 
              o.total_amount, o.discount_amount, o.net_amount, ps.status_name as payment_status,
              (SELECT GROUP_CONCAT(p.name SEPARATOR ', ') FROM order_items oi 
@@ -12,7 +13,21 @@ exports.getSalesReport = async (req, res) => {
       FROM orders o
       LEFT JOIN users u ON o.customer_id = u.user_id
       LEFT JOIN payment_statuses ps ON o.payment_status_id = ps.payment_status_id
-      ORDER BY o.order_date DESC`);
+      WHERE 1=1`;
+    
+    const params = [];
+    if (startDate) {
+      query += ` AND o.order_date >= ?`;
+      params.push(startDate);
+    }
+    if (endDate) {
+      query += ` AND o.order_date <= ?`;
+      params.push(endDate + ' 23:59:59'); // Include the whole end day
+    }
+    
+    query += ` ORDER BY o.order_date DESC`;
+
+    const [orders] = await db.query(query, params);
 
     res.json({
       success: true,
@@ -28,7 +43,9 @@ exports.getSalesReport = async (req, res) => {
 // FR17: Inventory Report
 exports.getInventoryReport = async (req, res) => {
   try {
-    const [rawInventory] = await db.query(`
+    const { startDate, endDate } = req.query;
+    
+    let rawQuery = `
       SELECT
         ir.raw_inventory_id AS id,
         COALESCE(fs.product_name, ir.material_name) AS material_name,
@@ -42,9 +59,19 @@ exports.getInventoryReport = async (req, res) => {
       LEFT JOIN farmer_submissions fs ON ir.submission_id = fs.submission_id
       LEFT JOIN measurement_units mu ON ir.unit_id = mu.unit_id
       LEFT JOIN quality_grades qg ON ir.grade_id = qg.grade_id
-    `);
+      WHERE 1=1`;
+    
+    const rawParams = [];
+    if (startDate) {
+      rawQuery += ` AND ir.received_date >= ?`;
+      rawParams.push(startDate);
+    }
+    if (endDate) {
+      rawQuery += ` AND ir.received_date <= ?`;
+      rawParams.push(endDate + ' 23:59:59');
+    }
 
-    const [finishedInventory] = await db.query(`
+    let finishedQuery = `
       SELECT
         ifin.finished_inventory_id AS id,
         p.name,
@@ -55,7 +82,20 @@ exports.getInventoryReport = async (req, res) => {
         ifin.manufactured_date
       FROM inventory_finished ifin
       JOIN products p ON ifin.product_id = p.product_id
-    `);
+      WHERE 1=1`;
+    
+    const finishedParams = [];
+    if (startDate) {
+      finishedQuery += ` AND ifin.manufactured_date >= ?`;
+      finishedParams.push(startDate);
+    }
+    if (endDate) {
+      finishedQuery += ` AND ifin.manufactured_date <= ?`;
+      finishedParams.push(endDate + ' 23:59:59');
+    }
+
+    const [rawInventory] = await db.query(rawQuery, rawParams);
+    const [finishedInventory] = await db.query(finishedQuery, finishedParams);
 
     res.json({
       success: true,
@@ -70,9 +110,23 @@ exports.getInventoryReport = async (req, res) => {
 // FR17: Supplier Report
 exports.getSupplierReport = async (req, res) => {
   try {
+    const { startDate, endDate } = req.query;
+    
+    let subquery = `SELECT COUNT(*) FROM supply_history sh WHERE sh.supplier_id = s.supplier_id`;
+    const subParams = [];
+    if (startDate) {
+      subquery += ` AND sh.supply_date >= ?`;
+      subParams.push(startDate);
+    }
+    if (endDate) {
+      subquery += ` AND sh.supply_date <= ?`;
+      subParams.push(endDate + ' 23:59:59');
+    }
+
     const [suppliers] = await db.query(`
-      SELECT s.*, (SELECT COUNT(*) FROM supply_history sh WHERE sh.supplier_id = s.supplier_id) as delivery_count
-      FROM suppliers s`);
+      SELECT s.*, (${subquery}) as delivery_count
+      FROM suppliers s`, subParams);
+      
     res.json({ success: true, reportType: 'supplier', report: { suppliers } });
   } catch (error) {
     res.status(500).json({ message: 'Report failed', error: error.message });
@@ -175,17 +229,30 @@ exports.downloadReport = async (req, res) => {
 // FR17: Customer Report
 exports.getCustomerReport = async (req, res) => {
   try {
+    const { startDate, endDate } = req.query;
+    
+    let orderWhere = 'WHERE 1=1';
+    const orderParams = [];
+    if (startDate) {
+      orderWhere += ` AND o2.order_date >= ?`;
+      orderParams.push(startDate);
+    }
+    if (endDate) {
+      orderWhere += ` AND o2.order_date <= ?`;
+      orderParams.push(endDate + ' 23:59:59');
+    }
+
     const [customers] = await db.query(`
       SELECT u.user_id, u.full_name, u.email, u.phone, u.address, COALESCE(s.status_name, 'active') as status,
-             COUNT(o.order_id) as order_count, 
-             COALESCE(SUM(o.net_amount), 0) as total_spent,
-             COALESCE(AVG(o.net_amount), 0) as avg_order_value
+             (SELECT COUNT(*) FROM orders o2 WHERE o2.customer_id = u.user_id ${orderWhere}) as order_count, 
+             (SELECT COALESCE(SUM(o2.net_amount), 0) FROM orders o2 WHERE o2.customer_id = u.user_id ${orderWhere}) as total_spent,
+             (SELECT COALESCE(AVG(o2.net_amount), 0) FROM orders o2 WHERE o2.customer_id = u.user_id ${orderWhere}) as avg_order_value
       FROM users u
       LEFT JOIN user_roles r ON u.role_id = r.role_id
       LEFT JOIN account_statuses s ON u.status_id = s.status_id
-      LEFT JOIN orders o ON u.user_id = o.customer_id
       WHERE r.role_name = 'customer' OR u.role_id = 2
-      GROUP BY u.user_id`);
+      GROUP BY u.user_id`, [...orderParams, ...orderParams, ...orderParams]);
+      
     res.json({ success: true, reportType: 'customer', report: { customers } });
   } catch (error) {
     res.status(500).json({ message: 'Report failed', error: error.message });

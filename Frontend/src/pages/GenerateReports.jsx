@@ -16,6 +16,8 @@ function GenerateReports() {
   const navigate = useNavigate()
   const [selectedReport, setSelectedReport] = useState('')
   const [dateRange, setDateRange] = useState('month')
+  const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0])
+  const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0])
   const [isExporting, setIsExporting] = useState(false)
   const [filterText, setFilterText] = useState('')
 
@@ -29,10 +31,61 @@ function GenerateReports() {
 
   const { warning, error, success } = useToast()
 
+  const getDates = () => {
+    if (dateRange !== 'custom') {
+      const today = new Date();
+      let start = new Date();
+      
+      switch (dateRange) {
+        case 'today':
+          start.setHours(0, 0, 0, 0);
+          break;
+        case 'week':
+          start.setDate(today.getDate() - today.getDay());
+          start.setHours(0, 0, 0, 0);
+          break;
+        case 'month':
+          start.setMonth(today.getMonth(), 1);
+          start.setHours(0, 0, 0, 0);
+          break;
+        case 'quarter':
+          start.setMonth(Math.floor(today.getMonth() / 3) * 3, 1);
+          start.setHours(0, 0, 0, 0);
+          break;
+        case 'year':
+          start.setMonth(0, 1);
+          start.setHours(0, 0, 0, 0);
+          break;
+        default:
+          return { start: null, end: null };
+      }
+      return { 
+        start: start.toISOString().split('T')[0], 
+        end: today.toISOString().split('T')[0] 
+      };
+    }
+    return { start: startDate, end: endDate };
+  };
+
   const handleExportPDF = async () => {
     if (!selectedReport) {
       warning('Please select a report type first.')
       return
+    }
+
+    if (dateRange === 'custom') {
+      if (!startDate || !endDate) {
+        warning('Please select both start and end dates for custom range.')
+        return
+      }
+      if (new Date(startDate) > new Date(endDate)) {
+        error('Start date cannot be after end date.')
+        return
+      }
+      if (new Date(startDate) > new Date()) {
+        warning('Start date cannot be in the future.')
+        return
+      }
     }
 
     setIsExporting(true)
@@ -46,7 +99,8 @@ function GenerateReports() {
         endpoint = selectedReport;
       }
 
-      const res = await fetch(`${config.API_BASE_URL}/reports/${endpoint}`, {
+      const { start, end } = getDates();
+      const res = await fetch(`${config.API_BASE_URL}/reports/${endpoint}?startDate=${start || ''}&endDate=${end || ''}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
@@ -59,6 +113,9 @@ function GenerateReports() {
       if (!data.success || !data.report) throw new Error('Invalid report data received from server');
 
       const reportDate = new Date().toISOString().split('T')[0];
+      const rangeSubtitle = dateRange === 'custom' 
+        ? `Period: ${startDate} to ${endDate}`
+        : `Comprehensive analysis generated for the ${dateRange} period.`;
 
       if (selectedReport === 'sales') {
         const orders = data.report.orders || [];
@@ -76,7 +133,7 @@ function GenerateReports() {
 
         generatePDFReport({
           title: 'Sales Performance Report',
-          subtitle: `Comprehensive sales analysis generated for the ${dateRange} period.`,
+          subtitle: rangeSubtitle,
           headers,
           data: tableData,
           orientation: 'landscape',
@@ -105,7 +162,7 @@ function GenerateReports() {
 
         generatePDFReport({
           title: isRaw ? 'Raw Materials Inventory' : 'Finished Products Inventory',
-          subtitle: `Current stock levels as of ${new Date().toLocaleString()}`,
+          subtitle: rangeSubtitle,
           headers,
           data: tableData,
           orientation: 'landscape',
@@ -129,7 +186,7 @@ function GenerateReports() {
 
         generatePDFReport({
           title: 'Supplier Performance Report',
-          subtitle: 'Directory and performance metrics for all onboarded suppliers.',
+          subtitle: rangeSubtitle,
           headers,
           data: tableData,
           orientation: 'landscape',
@@ -153,7 +210,7 @@ function GenerateReports() {
 
         generatePDFReport({
           title: 'Customer Analytics Report',
-          subtitle: 'Engagement and lifetime value metrics for registered accounts.',
+          subtitle: rangeSubtitle,
           headers,
           data: tableData,
           orientation: 'landscape',
@@ -180,22 +237,40 @@ function GenerateReports() {
       return
     }
 
+    if (dateRange === 'custom') {
+      if (!startDate || !endDate) {
+        warning('Please select both start and end dates for custom range.')
+        return
+      }
+      if (new Date(startDate) > new Date(endDate)) {
+        error('Start date cannot be after end date.')
+        return
+      }
+      if (new Date(startDate) > new Date()) {
+        warning('Start date cannot be in the future.')
+        return
+      }
+    }
+
+    const { start, end } = getDates();
+    const queryParams = `?startDate=${start || ''}&endDate=${end || ''}&rangeType=${dateRange}`;
+
     // Navigate to the specific report page
     switch (selectedReport) {
       case 'inventory-raw':
-        navigate('/admin/reports/inventory?type=raw')
+        navigate(`/admin/reports/inventory${queryParams}&type=raw`)
         break
       case 'inventory-finished':
-        navigate('/admin/reports/inventory?type=finished')
+        navigate(`/admin/reports/inventory${queryParams}&type=finished`)
         break
       case 'sales':
-        navigate('/admin/reports/sales')
+        navigate(`/admin/reports/sales${queryParams}`)
         break
       case 'supplier':
-        navigate('/admin/reports/supplier')
+        navigate(`/admin/reports/supplier${queryParams}`)
         break
       case 'customer':
-        navigate('/admin/reports/customer')
+        navigate(`/admin/reports/customer${queryParams}`)
         break
       default:
         error('Report type configuration not found.')
@@ -317,6 +392,49 @@ function GenerateReports() {
                   <i className="fa-solid fa-calendar-alt select-arrow"></i>
                 </div>
               </div>
+
+              {dateRange === 'custom' && (
+                <div className="custom-date-range animate-fade-in" style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '12px',
+                  marginTop: '10px',
+                  padding: '12px',
+                  background: '#f8fafc',
+                  borderRadius: '10px',
+                  border: '1px solid #e2e8f0'
+                }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748b' }}>FROM</label>
+                    <input 
+                      type="date" 
+                      value={startDate} 
+                      onChange={(e) => setStartDate(e.target.value)}
+                      style={{
+                        padding: '8px',
+                        borderRadius: '6px',
+                        border: '1.5px solid #cbd5e1',
+                        fontSize: '0.85rem'
+                      }}
+                    />
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <label style={{ fontSize: '0.75rem', fontWeight: '600', color: '#64748b' }}>TO</label>
+                    <input 
+                      type="date" 
+                      value={endDate} 
+                      min={startDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      style={{
+                        padding: '8px',
+                        borderRadius: '6px',
+                        border: '1.5px solid #cbd5e1',
+                        fontSize: '0.85rem'
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
 
               <div className="form-group-beautified">
                 <label>Output Format</label>

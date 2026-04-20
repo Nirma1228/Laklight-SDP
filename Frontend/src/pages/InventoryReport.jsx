@@ -16,16 +16,26 @@ function InventoryReport() {
   const [filters, setFilters] = useState({
     category: reportType === 'raw' ? 'raw' : (reportType === 'finished' ? 'processed' : 'all'),
     status: 'all',
-    location: 'all'
+    location: 'all',
+    startDate: searchParams.get('startDate') || '',
+    endDate: searchParams.get('endDate') || ''
   })
   const [inventory, setInventory] = useState([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
     const fetchReport = async () => {
+      if (filters.startDate && filters.endDate && new Date(filters.startDate) > new Date(filters.endDate)) {
+        return; 
+      }
+      setIsLoading(true);
       try {
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-        const res = await fetch(`${config.API_BASE_URL}/reports/inventory`, {
+        const url = new URL(`${config.API_BASE_URL}/reports/inventory`);
+        if (filters.startDate) url.searchParams.append('startDate', filters.startDate);
+        if (filters.endDate) url.searchParams.append('endDate', filters.endDate);
+
+        const res = await fetch(url.toString(), {
           headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
@@ -38,7 +48,7 @@ function InventoryReport() {
               quantity: item.quantity_units || 0,
               unit: item.unit_name || 'units',
               location: item.storage_location || 'Warehouse',
-               expiry: formatSriLankanDate(item.expiry_date),
+              expiry: formatSriLankanDate(item.expiry_date),
               expiryRaw: item.expiry_date ? new Date(item.expiry_date).toISOString().split('T')[0] : 'N/A',
               status: (item.quantity_units || 0) < 20 ? 'low' : 'good'
             })),
@@ -49,7 +59,7 @@ function InventoryReport() {
               quantity: item.quantity_units || 0,
               unit: 'units',
               location: item.storage_location || 'Warehouse',
-               expiry: formatSriLankanDate(item.expiry_date),
+              expiry: formatSriLankanDate(item.expiry_date),
               expiryRaw: item.expiry_date ? new Date(item.expiry_date).toISOString().split('T')[0] : 'N/A',
               status: (item.quantity_units || 0) < 10 ? 'low' : 'good'
             }))
@@ -63,7 +73,7 @@ function InventoryReport() {
       }
     };
     fetchReport();
-  }, [])
+  }, [filters.startDate, filters.endDate])
 
   const filteredInventory = inventory.filter(item => {
     if (reportType === 'raw') return item.category === 'Raw Materials'
