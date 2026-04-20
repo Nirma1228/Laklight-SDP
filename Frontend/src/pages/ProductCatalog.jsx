@@ -28,7 +28,7 @@ function ProductCatalog() {
           unit: p.unit || p.unit_name || 'unit',
           stock: p.stock_quantity,
           description: p.description,
-          availability: p.stock_quantity > 10 ? 'in-stock' : p.stock_quantity > 0 ? 'low-stock' : 'out-of-stock',
+          availability: p.is_available === 0 ? 'out-of-stock' : (p.stock_quantity > 0 ? 'in-stock' : 'out-of-stock'),
           image: p.image_url ? (p.image_url.startsWith('http') ? p.image_url : `${BACKEND_URL}${p.image_url}`) : null
         })))
       }
@@ -111,7 +111,13 @@ function ProductCatalog() {
     let categoryValue = product.category?.toLowerCase() || ''
     if (categoryValue.includes('beverage') || categoryValue.includes('juice')) categoryValue = 'beverages'
     else if (categoryValue.includes('dessert') || categoryValue.includes('jelly') || categoryValue.includes('jam')) categoryValue = 'desserts'
-    else if (categoryValue.includes('sauce') || categoryValue.includes('other')) categoryValue = 'other'
+    else if (categoryValue.includes('sauce') || categoryValue.includes('other')) categoryValue = 'sauce'
+
+    // Normalize availability value for the select dropdown
+    let availabilityValue = product.availability?.toLowerCase() || 'in-stock'
+    if (availabilityValue === 'in stock') availabilityValue = 'in-stock'
+    if (availabilityValue === 'out of stock') availabilityValue = 'out-of-stock'
+    if (availabilityValue === 'low stock') availabilityValue = 'low-stock'
 
     setEditingProduct(product)
     setFormData({
@@ -122,7 +128,7 @@ function ProductCatalog() {
       stock: product.stock || 0,
       description: product.description || '',
       image: product.image || '',
-      availability: product.availability || 'in-stock'
+      availability: availabilityValue
     })
     setShowModal(true)
   }
@@ -136,6 +142,7 @@ function ProductCatalog() {
       : formData.image
 
     const updatedData = {
+      id: editingProduct ? editingProduct.id : Date.now(), // Preserve ID
       name: formData.name,
       category: formData.category,
       price: Number(formData.price),
@@ -143,7 +150,7 @@ function ProductCatalog() {
       stock: Number(formData.stock),
       description: formData.description,
       image_url: imageUrlToSave,
-      availability: formData.availability === 'in-stock' ? 'In Stock' : 'Out of Stock'
+      availability: formData.availability // Store the raw value consistently (in-stock, low-stock, out-of-stock)
     }
 
     try {
@@ -256,7 +263,6 @@ function ProductCatalog() {
           </div>
           <div className="user-info">
             <span className="admin-badge">ADMIN</span>
-            <span>Administrator</span>
             <button className="btn btn-secondary" onClick={() => navigate('/admin-dashboard')}>Dashboard</button>
           </div>
         </div>
@@ -272,7 +278,6 @@ function ProductCatalog() {
           </div>
           <div className="quick-actions">
             <button className="btn btn-primary" onClick={openAddModal}>+ Add Product</button>
-            <button className="btn btn-secondary" onClick={() => alert('Export feature')}>Export</button>
           </div>
         </div>
 
@@ -312,9 +317,9 @@ function ProductCatalog() {
               <label>Category</label>
               <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
                 <option value="all">All Categories</option>
-                <option value="beverages">Beverages</option>
-                <option value="desserts">Desserts</option>
-                <option value="other">Sauce & Other</option>
+                <option value="beverages">Beverages (Juice)</option>
+                <option value="desserts">Desserts (Jelly/Jam)</option>
+                <option value="sauce">Sauce & Others</option>
               </select>
             </div>
             <div className="form-group">
@@ -403,7 +408,7 @@ function ProductCatalog() {
                     <option value="">Select category</option>
                     <option value="beverages">Beverages (Juice)</option>
                     <option value="desserts">Desserts (Jelly/Jam)</option>
-                    <option value="other">Sauce & Others</option>
+                    <option value="sauce">Sauce & Others</option>
                   </select>
                 </div>
               </div>
@@ -448,7 +453,6 @@ function ProductCatalog() {
                     onChange={(e) => setFormData({ ...formData, availability: e.target.value })}
                   >
                     <option value="in-stock">In Stock</option>
-                    <option value="low-stock">Low Stock</option>
                     <option value="out-of-stock">Out of Stock</option>
                   </select>
                 </div>

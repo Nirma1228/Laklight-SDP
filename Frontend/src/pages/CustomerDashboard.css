@@ -517,8 +517,24 @@
 }
 
 .product-img {
-  background: #f8fafc !important;
-  height: 200px !important;
+  width: 100% !important;
+  height: 220px !important;
+  background: #dbf5e3 !important; /* Slightly darker mint green */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 1rem !important;
+}
+
+.product-img img {
+  max-width: 90% !important;
+  max-height: 90% !important;
+  object-fit: contain !important;
+  background: white !important;
+  padding: 0.8rem !important;
+  border-radius: 16px !important;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.06) !important;
+  transition: transform 0.4s ease !important;
 }
 
 .product-name {
@@ -573,14 +589,12 @@
 
 .product-img {
   width: 100% !important;
-  height: 100px !important;
-  background: linear-gradient(135deg, #81c784, #c8e6c9);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2rem;
-  color: white;
-  flex-shrink: 0;
+  height: 200px !important;
+  background: #dbf5e3 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 1rem !important;
 }
 
 .product-info {
@@ -865,7 +879,9 @@
   border-radius: 0 0 15px 15px;
   display: flex;
   justify-content: flex-end;
+  align-items: center;
   gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .btn-cancel {
@@ -1029,13 +1045,18 @@
   margin-top: 2rem;
 }
 
-.payment-btn-container .btn {
-  flex: 1;
-  padding: 1rem;
-  border-radius: 12px;
-  font-weight: 600;
-  font-size: 1rem;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+.modal-footer .btn {
+  padding: 1rem 2.5rem;
+  font-weight: 800;
+  border-radius: 14px;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  width: auto !important;
+  white-space: nowrap;
+  flex: none;
+  min-width: 160px;
 }
 
 .payment-btn-container .btn-primary {

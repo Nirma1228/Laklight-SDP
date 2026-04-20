@@ -93,9 +93,26 @@ exports.updateSystemSettings = async (req, res) => {
 };
 
 exports.deleteUser = async (req, res) => {
-  if (parseInt(req.params.id) === req.user.userId) return res.status(400).json({ message: 'Self-delete blocked' });
-  await db.query('DELETE FROM users WHERE user_id = ?', [req.params.id]);
-  res.json({ success: true, message: 'User removed' });
+  try {
+    if (parseInt(req.params.id) === req.user.userId) {
+      return res.status(400).json({ success: false, message: 'Self-delete blocked' });
+    }
+    
+    // Check if user has active orders or submissions before deleting
+    // Or just let the database error catch it
+    await db.query('DELETE FROM users WHERE user_id = ?', [req.params.id]);
+    res.json({ success: true, message: 'User removed' });
+  } catch (error) {
+    console.error('deleteUser error:', error.message);
+    if (error.code === 'ER_ROW_IS_REFERENCED_2') {
+      res.status(400).json({ 
+        success: false, 
+        message: 'Cannot delete user because they have existing records (Orders, Feedback, or Submissions). Please deactivate them instead.' 
+      });
+    } else {
+      res.status(500).json({ success: false, message: 'Delete failed', error: error.message });
+    }
+  }
 };
 // FR15: Admin User Management
 exports.createUser = async (req, res) => {
@@ -122,13 +139,38 @@ exports.getUserDetails = async (req, res) => {
 
 exports.updateUser = async (req, res) => {
   try {
-    const { fullName, phone, address, city, postalCode, district } = req.body;
-    await db.query(
-      'UPDATE users SET full_name = ?, phone = ?, address = ?, city = ?, postal_code = ?, district = ? WHERE id = ?', 
-      [fullName, phone, address, city, postalCode, district, req.params.id]
-    );
+    const { fullName, phone, address, city, postalCode, district, role, status } = req.body;
+    
+    let updates = [];
+    let params = [];
+
+    if (fullName) { updates.push('full_name = ?'); params.push(fullName); }
+    if (phone) { updates.push('phone = ?'); params.push(phone); }
+    if (address !== undefined) { updates.push('address = ?'); params.push(address); }
+    if (city !== undefined) { updates.push('city = ?'); params.push(city); }
+    if (postalCode !== undefined) { updates.push('postal_code = ?'); params.push(postalCode); }
+    if (district !== undefined) { updates.push('district = ?'); params.push(district); }
+
+    if (role) {
+      const roleId = await getId('user_roles', 'role_id', 'role_name', role);
+      if (roleId) { updates.push('role_id = ?'); params.push(roleId); }
+    }
+
+    if (status) {
+      const statusId = await getId('account_statuses', 'status_id', 'status_name', status);
+      if (statusId) { updates.push('status_id = ?'); params.push(statusId); }
+    }
+
+    if (updates.length === 0) return res.json({ success: true, message: 'No changes made' });
+
+    params.push(req.params.id);
+    await db.query(`UPDATE users SET ${updates.join(', ')} WHERE user_id = ?`, params);
+    
     res.json({ success: true, message: 'User updated' });
-  } catch (error) { res.status(500).json({ message: 'Update failed', error: error.message }); }
+  } catch (error) {
+    console.error('updateUser error:', error.message);
+    res.status(500).json({ message: 'Update failed', error: error.message }); 
+  }
 };
 
 exports.changeUserRole = async (req, res) => {

@@ -27,14 +27,14 @@ const ProductCard = ({ product, onAddToCart, onImageClick, backendUrl }) => {
   }
 
   const imageUrl = product.image_url || product.image;
-  const displayImage = imageUrl 
+  const displayImage = imageUrl
     ? (imageUrl.startsWith('http') ? imageUrl : `${backendUrl}${imageUrl}`)
     : '/images/placeholder.png';
 
   return (
     <div className="product-card">
-      <div 
-        className="product-img cursor-zoom-in" 
+      <div
+        className="product-img cursor-zoom-in"
         style={{ height: '100px', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
         onClick={() => onImageClick(displayImage)}
       >
@@ -93,7 +93,7 @@ const CustomerDashboard = () => {
   const [featuredSort, setFeaturedSort] = useState('')
   const [activeDashboardView, setActiveDashboardView] = useState('none')
   const [selectedZoomImage, setSelectedZoomImage] = useState(null)
-  
+
   const backendUrl = config.API_BASE_URL.replace('/api', '')
 
   // Load user data from localStorage and Database
@@ -166,7 +166,7 @@ const CustomerDashboard = () => {
     postalCode: '',
     orderNotes: ''
   })
-  const [paymentMethod, setPaymentMethod] = useState('visa') // default to VISA
+  const [paymentMethod, setPaymentMethod] = useState('card') // default to Card Payment (VISA/MasterCard)
   const [dbProducts, setDbProducts] = useState([])
   const [dbOrders, setDbOrders] = useState([])
   const [activeOrderId, setActiveOrderId] = useState(null)
@@ -266,7 +266,7 @@ const CustomerDashboard = () => {
     const confirmPaymentOnBackend = async (id) => {
       try {
         const token = localStorage.getItem('token') || sessionStorage.getItem('token');
-        
+
         const response = await fetch(`${config.API_BASE_URL}/payments/confirm-stripe`, {
           method: 'POST',
           headers: {
@@ -280,9 +280,9 @@ const CustomerDashboard = () => {
           setCart([])
           // Clear local cart persistent state too
           localStorage.removeItem('laklight_customer_cart_v1');
-          
+
           toast.success('🎉 Payment successful! Your order has been placed and is now being processed.');
-          
+
           // Refresh the dashboard data
           fetchOrders();
           setIsPaymentOpen(false);
@@ -317,12 +317,11 @@ const CustomerDashboard = () => {
   const handleCheckoutSubmit = async (e) => {
     e.preventDefault()
 
-    // Create order in DB first
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       const orderData = {
         items: cart.map(item => ({
-          productId: item.id, // This is mapped to product_id in fetchCart
+          productId: item.id,
           quantity: item.quantity
         })),
         deliveryAddress: `${checkoutData.deliveryAddress}, ${checkoutData.city}, ${checkoutData.postalCode}`,
@@ -340,7 +339,8 @@ const CustomerDashboard = () => {
 
       const data = await res.json();
       if (data.success) {
-        setActiveOrderId(data.orderId);
+        // Order created successfully, now open payment selection
+        setActiveOrderId(data.orderId || data.id);
         setIsCheckoutOpen(false);
         setIsPaymentOpen(true);
       } else {
@@ -369,7 +369,7 @@ const CustomerDashboard = () => {
         toast.error('Could not identify product ID');
         return;
       }
-      
+
       const res = await fetch(`${config.API_BASE_URL}/cart/add`, {
         method: 'POST',
         headers: {
@@ -467,7 +467,7 @@ const CustomerDashboard = () => {
     try {
       const token = localStorage.getItem('token') || sessionStorage.getItem('token');
       const fullName = `${profileData.firstName} ${profileData.lastName}`;
-      
+
       const response = await fetch(`${config.API_BASE_URL}/auth/profile`, {
         method: 'PUT',
         headers: {
@@ -509,7 +509,7 @@ const CustomerDashboard = () => {
       const itemSubtotal = item.price * item.quantity;
       subtotal += itemSubtotal;
       totalItems += item.quantity;
-      
+
       // Give 10% discount for a specific product if purchased 12+ times
       if (item.quantity >= 12) {
         discount += itemSubtotal * 0.1;
@@ -556,14 +556,14 @@ const CustomerDashboard = () => {
         customLinks={[
           { label: 'DASHBOARD', path: '/home' },
           { label: 'PRODUCTS', onClick: () => document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' }) },
-          { 
-            label: 'MY ORDERS', 
+          {
+            label: 'MY ORDERS',
             onClick: () => {
               setActiveDashboardView('orders');
               setTimeout(() => {
                 document.getElementById('recent-orders')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
               }, 100);
-            } 
+            }
           },
           { label: 'PROFILE', onClick: () => setIsEditProfileOpen(true) }
         ]}
@@ -629,10 +629,10 @@ const CustomerDashboard = () => {
                       </div>
                       <div className="order-actions-status" style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-end' }}>
                         {(order.order_status || '').toLowerCase() === 'delivered' ? (
-                          <Link 
-                            to="/feedback" 
+                          <Link
+                            to="/feedback"
                             state={{ order: order }}
-                            className={`order-status status-${(order.order_status || '').toLowerCase()}`} 
+                            className={`order-status status-${(order.order_status || '').toLowerCase()}`}
                             style={{ textDecoration: 'none' }}
                           >
                             {order.order_status}
@@ -664,7 +664,7 @@ const CustomerDashboard = () => {
             <div className="dashboard-card animated fadeIn" id="account-summary" style={{ gridColumn: '1 / -1' }}>
               <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h2 className="card-title">Account Summary</h2>
-                <button 
+                <button
                   className="btn btn-small btn-secondary"
                   onClick={() => setIsEditProfileOpen(true)}
                 >
@@ -715,12 +715,10 @@ const CustomerDashboard = () => {
                 value={featuredCategory}
                 onChange={(e) => setFeaturedCategory(e.target.value)}
               >
-                <option value="">All Categories</option>
-                <option value="beverages">Beverages</option>
-                <option value="desserts">Desserts</option>
-                <option value="fruits">Fruits</option>
-                <option value="vegetables">Vegetables</option>
-                <option value="other">Other</option>
+                <option value="">Select category</option>
+                <option value="beverages">Beverages (Juice)</option>
+                <option value="desserts">Desserts (Jelly/Jam)</option>
+                <option value="sauce">Sauce & Others</option>
               </select>
               <select
                 className="filter-select"
@@ -793,16 +791,16 @@ const CustomerDashboard = () => {
                       <div className="cart-item-price">LKR {item.price.toFixed(2)}</div>
                       <div className="cart-item-quantity" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div style={{ display: 'flex', alignItems: 'center', background: '#f1f5f9', borderRadius: '50px', padding: '0.25rem 0.75rem' }}>
-                          <button 
-                            className="quantity-btn" 
+                          <button
+                            className="quantity-btn"
                             style={{ background: 'transparent', border: 'none', color: '#1a5d1a', cursor: 'pointer', fontSize: '1.2rem', fontWeight: 'bold' }}
                             onClick={() => updateQuantity(item.cart_id, -1)}
                           >
                             −
                           </button>
                           <span style={{ padding: '0 1rem', fontWeight: '800', minWidth: '35px', textAlign: 'center' }}>{item.quantity}</span>
-                          <button 
-                            className="quantity-btn" 
+                          <button
+                            className="quantity-btn"
                             style={{ background: 'transparent', border: 'none', color: '#1a5d1a', cursor: 'pointer', fontSize: '1.2rem', fontWeight: 'bold' }}
                             onClick={() => updateQuantity(item.cart_id, 1)}
                           >
@@ -1114,6 +1112,8 @@ const CustomerDashboard = () => {
                   </div>
                 </div>
 
+                {/* Payment Method selection removed as per request - Defaults to COD */}
+
                 <div className="form-group">
                   <label>Order Notes (Optional)</label>
                   <textarea
@@ -1133,7 +1133,7 @@ const CustomerDashboard = () => {
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  Continue to Payment
+                  PLACE ORDER
                 </button>
               </div>
             </form>
@@ -1156,24 +1156,31 @@ const CustomerDashboard = () => {
                 <select
                   value={paymentMethod}
                   onChange={e => setPaymentMethod(e.target.value)}
+                  className="filter-select"
+                  style={{ width: '100%', marginBottom: '1.5rem', appearance: 'auto' }}
                   required
                 >
-                  <option value="visa">VISA</option>
-                  <option value="mastercard">MasterCard</option>
+                  <option value="card">Card Payment (VISA / MasterCard)</option>
                   <option value="cod">Cash on Delivery</option>
                 </select>
               </div>
-              {['visa', 'mastercard'].includes(paymentMethod) ? (
-                <StripeCheckoutButton amount={total} orderId={activeOrderId} />
+              {paymentMethod === 'card' ? (
+                <div style={{ marginTop: '1rem' }}>
+                  <p style={{ marginBottom: '1.5rem', fontSize: '0.9rem', color: '#666' }}>
+                    Pay securely using your credit or debit card via Stripe.
+                  </p>
+                  <StripeCheckoutButton amount={total} orderId={activeOrderId} />
+                </div>
               ) : (
                 <>
                   <p>You selected <strong>Cash on Delivery</strong>. Your order will be placed and you can pay upon delivery.</p>
                   <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => {
                     setIsPaymentOpen(false);
                     setCart([]);
-                    alert('Order placed! Please pay cash upon delivery.');
+                    success('Order placed! Please pay cash upon delivery.');
+                    fetchOrders();
                   }}>
-                    Place Order (Cash on Delivery)
+                    PLACE ORDER (CASH ON DELIVERY)
                   </button>
                 </>
               )}
@@ -1184,20 +1191,20 @@ const CustomerDashboard = () => {
 
       {/* Image Zoom Modal */}
       {selectedZoomImage && (
-        <div 
+        <div
           className="zoom-overlay"
           onClick={() => setSelectedZoomImage(null)}
         >
           <div className="zoom-content" onClick={(e) => e.stopPropagation()}>
-            <button 
+            <button
               className="zoom-close"
               onClick={() => setSelectedZoomImage(null)}
             >
               ×
             </button>
-            <img 
-              src={selectedZoomImage} 
-              alt="Product Zoomed" 
+            <img
+              src={selectedZoomImage}
+              alt="Product Zoomed"
               className="zoom-image"
             />
           </div>

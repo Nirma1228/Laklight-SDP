@@ -1288,7 +1288,7 @@ const EmployeeDashboard = () => {
       // 3. 'confirmed schedule' - Farmer confirmed employee's reschedule
       // 4. 'completed' - Delivery done
 
-      const validStatuses = ['pending', 'scheduled delivery', 'confirmed', 'confirmed schedule', 'completed', 'action required', 'Action Required'];
+      const validStatuses = ['pending', 'scheduled delivery', 'confirmed', 'confirmed schedule', 'completed', 'action required', 'Action Required', 'rejected'];
 
       // If a specific status filter is selected
       if (deliveryStatusFilter !== 'all') {
@@ -2749,6 +2749,7 @@ const EmployeeDashboard = () => {
                   <option value="confirmed">Confirmed (Ready to Complete)</option>
                   <option value="confirmed schedule">Confirmed Schedule</option>
                   <option value="completed">Completed</option>
+                  <option value="rejected">Farmer Rejected</option>
                 </select>
               </div>
 
@@ -2798,6 +2799,7 @@ const EmployeeDashboard = () => {
                               {delivery.status === 'confirmed schedule' && 'Confirmed Schedule'}
                               {delivery.status === 'completed' && 'Completed'}
                               {delivery.status === 'cancelled' && 'Cancelled'}
+                              {delivery.status === 'rejected' && 'Farmer Rejected'}
                             </span>
                           </td>
                           <td>
@@ -2957,6 +2959,11 @@ const EmployeeDashboard = () => {
                                 >
                                   Mark Complete
                                 </button>
+                              </div>
+                            )}
+                            {delivery.status === 'rejected' && (
+                              <div className="action-btn-group">
+                                {/* Actions hidden for rejected */}
                               </div>
                             )}
                             {delivery.status === 'completed' && (
@@ -3357,21 +3364,23 @@ const EmployeeDashboard = () => {
                       {selectedOrder.payment}
                     </span>
                   </div>
-                  <button
-                    onClick={() => togglePaymentStatus(selectedOrder.id)}
-                    style={{
-                      background: 'white',
-                      border: '1px solid #cbd5e1',
-                      padding: '0.5rem',
-                      borderRadius: '6px',
-                      fontSize: '0.8rem',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      color: '#475569'
-                    }}
-                  >
-                    Mark as {selectedOrder.payment.toLowerCase() === 'paid' ? 'unpaid' : 'paid'}
-                  </button>
+                  {selectedOrder.payment.toLowerCase() !== 'paid' && (
+                    <button
+                      onClick={() => togglePaymentStatus(selectedOrder.id)}
+                      style={{
+                        background: 'white',
+                        border: '1px solid #cbd5e1',
+                        padding: '0.5rem',
+                        borderRadius: '6px',
+                        fontSize: '0.8rem',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        color: '#475569'
+                      }}
+                    >
+                      Mark as paid
+                    </button>
+                  )}
                 </div>
               </div>
 

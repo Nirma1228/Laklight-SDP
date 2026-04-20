@@ -1754,7 +1754,7 @@ box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   color: #2563eb;
 }
 
-.delivery-tag-v2.cancelled {
+.delivery-tag-v2.cancelled, .delivery-tag-v2.rejected {
   background: #fef2f2;
   color: #dc2626;
 }

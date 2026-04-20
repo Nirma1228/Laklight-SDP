@@ -339,13 +339,7 @@ function AdminDashboard() {
     <div className="admin-dashboard-container">
       <Header
         isLoggedIn={true}
-        customLinks={[
-          { label: 'User Management', path: '/admin/users' },
-          { label: 'Inventory', path: '/admin/inventory' },
-          { label: 'Orders', path: '/admin/orders' },
-          { label: 'Suppliers', path: '/admin/suppliers' },
-          { label: 'Reports', path: '/admin/reports' },
-        ]}
+        customLinks={[]}
       />
 
       {/* Notification Dropdown Panel */}

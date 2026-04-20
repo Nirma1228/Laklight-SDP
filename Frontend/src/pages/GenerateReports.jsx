@@ -250,9 +250,14 @@ function GenerateReports() {
     }
   ]
 
+  const userTypeRaw = localStorage.getItem('userType') || sessionStorage.getItem('userType');
+  const userType = userTypeRaw ? userTypeRaw.toLowerCase() : '';
+  const isAdmin = userType === 'admin' || userType === 'administrator';
+  const dashboardPath = isAdmin ? '/admin/dashboard' : '/employee/dashboard';
+
   return (
     <div>
-      <Header isLoggedIn={true} customLinks={adminNavLinks} />
+      <Header isLoggedIn={true} customLinks={isAdmin ? adminNavLinks : []} />
       <div className="main-content">
         <div className="page-header decorative-header">
           <div className="header-info">
@@ -264,7 +269,7 @@ function GenerateReports() {
             </h1>
             <p className="page-description">Generate comprehensive business intelligence and operational insights</p>
           </div>
-          <button className="btn-back-dashboard" onClick={() => navigate('/admin-dashboard')}>
+          <button className="btn-back-dashboard" onClick={() => navigate(dashboardPath)}>
             <i className="fa-solid fa-house"></i>
             <span>Back to Dashboard</span>
           </button>
@@ -347,18 +352,39 @@ function GenerateReports() {
           <div className="report-display-main">
             <div className="display-header">
               <h2><i className="fa-solid fa-cubes"></i> Available Analytical Modules</h2>
-              <div className="search-reports">
-                <i className="fa-solid fa-magnifying-glass"></i>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                background: 'white',
+                border: '1.5px solid #e2e8f0',
+                borderRadius: '30px',
+                padding: '0 16px',
+                width: '300px',
+                height: '44px',
+                boxSizing: 'border-box'
+              }}>
+                <FontAwesomeIcon icon={faChartBar} style={{ color: '#a0aec0', fontSize: '14px', flexShrink: 0, display: 'none' }} />
+                <span style={{ color: '#a0aec0', fontSize: '14px', flexShrink: 0 }}>🔍</span>
                 <input
                   type="text"
                   placeholder="Filter report types..."
                   value={filterText}
                   onChange={(e) => setFilterText(e.target.value)}
+                  style={{
+                    flex: 1,
+                    border: 'none',
+                    outline: 'none',
+                    fontSize: '14px',
+                    background: 'transparent',
+                    color: '#2d3748',
+                    minWidth: 0
+                  }}
                 />
                 {filterText && (
                   <button
                     onClick={() => setFilterText('')}
-                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: '0.85rem', marginLeft: '4px' }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: '16px', flexShrink: 0, lineHeight: 1 }}
                     title="Clear filter"
                   >
                     ✕

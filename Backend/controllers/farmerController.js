@@ -189,7 +189,7 @@ exports.updateDelivery = async (req, res) => {
       const [rows] = await db.query('SELECT delivery_status_id FROM delivery_statuses WHERE status_name = ?', ['confirmed']);
       if (rows.length > 0) deliveryStatusId = rows[0].delivery_status_id;
     } else if (status === 'rejected') {
-      const [rows] = await db.query('SELECT delivery_status_id FROM delivery_statuses WHERE status_name = ?', ['Action Required']);
+      const [rows] = await db.query('SELECT delivery_status_id FROM delivery_statuses WHERE status_name = ?', ['rejected']);
       if (rows.length > 0) deliveryStatusId = rows[0].delivery_status_id;
     }
 

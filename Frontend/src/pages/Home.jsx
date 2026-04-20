@@ -23,27 +23,9 @@ import './Home.css'
 
 function Home() {
   const location = useLocation()
-  const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [selectedImage, setSelectedImage] = useState(null)
 
-  useEffect(() => {
-    const fetchFeaturedProducts = async () => {
-      try {
-        const res = await fetch(`${config.API_BASE_URL}/products`)
-        const data = await res.json()
-        if (data.success) {
-          // Take only first 5 products for "Featured"
-          setProducts(data.products.slice(0, 5))
-        }
-      } catch (err) {
-        console.error('Failed to fetch products:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchFeaturedProducts()
-  }, [])
 
   useEffect(() => {
     if (location.hash) {
@@ -269,74 +251,7 @@ function Home() {
         </div>
       </section>
 
-      {/* Featured Products Part */}
-      <section id="featured-products" className="py-20 bg-gray-50">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Featured Products</h2>
-            <div className="w-24 h-1 bg-green-600 mx-auto rounded-full"></div>
-            <p className="text-gray-600 mt-4 max-w-2xl mx-auto">
-              Discover our fresh, locally-sourced organic products delivered straight to your doorstep.
-            </p>
-          </div>
-
-          {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-600"></div>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-              {products.map((product) => (
-                <div key={product.product_id || product.id} className="bg-white rounded-xl shadow-lg overflow-hidden transition-all hover:-translate-y-2 hover:shadow-xl border border-gray-100 flex flex-col">
-                  <div 
-                    className="h-64 overflow-hidden bg-gradient-to-b from-green-50 to-green-100 relative group flex items-center justify-center p-2 cursor-zoom-in"
-                    onClick={() => setSelectedImage(product.image_url ? (product.image_url.startsWith('http') ? product.image_url : product.image_url) : '/images/placeholder.png')}
-                  >
-                    <img 
-                      src={product.image_url ? (product.image_url.startsWith('http') ? product.image_url : product.image_url) : '/images/placeholder.png'} 
-                      alt={product.name}
-                      className="w-full h-full object-contain transition-all duration-500 group-hover:scale-125 drop-shadow-xl group-hover:rotate-2"
-                      onError={(e) => {
-                        e.target.src = '/images/placeholder.png'; // Fallback if image fails
-                        e.target.onerror = null;
-                      }}
-                    />
-                    {product.stock_quantity <= 5 && (
-                      <span className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full font-bold">
-                        Only {product.stock_quantity} Left
-                      </span>
-                    )}
-                  </div>
-                  <div className="p-5 flex-grow flex flex-col">
-                    <h3 className="text-lg font-bold text-gray-900 mb-1 leading-tight">{product.name}</h3>
-                    <p className="text-sm text-gray-500 mb-3">{product.category_name || 'Organic Produce'}</p>
-                    <div className="flex items-center justify-between mt-auto">
-                      <p className="text-xl font-bold text-green-700">Rs. {Number(product.price).toFixed(2)}</p>
-                      <Link 
-                        to="/login" 
-                        state={{ from: '/customer-dashboard' }}
-                        className="bg-green-600 hover:bg-green-700 text-white p-2 rounded-lg transition-colors flex items-center gap-2 group shadow-sm hover:shadow-md"
-                        title="Sign in to add to cart"
-                      >
-                        <FontAwesomeIcon icon={faShoppingCart} />
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          <div className="text-center mt-12">
-            <Link 
-              to="/login"
-              className="inline-flex items-center gap-2 text-green-700 font-bold hover:text-green-800 border-b-2 border-green-200 hover:border-green-600 transition-all pb-1"
-            >
-              View Full Product Catalog <FontAwesomeIcon icon={faArrowRight} />
-            </Link>
-          </div>
-        </div>
-      </section>
+      {/* Featured Products Part removed */}
 
       {/* Image Zoom Modal */}
       {selectedImage && (

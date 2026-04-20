@@ -136,7 +136,7 @@ function UserManagement() {
     e.preventDefault()
     setLoading(true)
     try {
-      const token = localStorage.getItem('token')
+      const token = localStorage.getItem('token') || sessionStorage.getItem('token')
       let response;
       if (editingUser) {
         // Update existing user
@@ -148,7 +148,9 @@ function UserManagement() {
           },
           body: JSON.stringify({
             fullName: formData.name,
-            phone: formData.phone
+            phone: formData.phone,
+            role: formData.role,
+            status: formData.status
           })
         })
       } else {
@@ -197,7 +199,7 @@ function UserManagement() {
       type: 'success',
       onConfirm: async () => {
         try {
-          const token = localStorage.getItem('token')
+          const token = localStorage.getItem('token') || sessionStorage.getItem('token')
           const response = await fetch(`${config.API_BASE_URL}/admin/users/${id}/status`, {
             method: 'PUT',
             headers: {
@@ -229,7 +231,7 @@ function UserManagement() {
       type: 'warning',
       onConfirm: async () => {
         try {
-          const token = localStorage.getItem('token')
+          const token = localStorage.getItem('token') || sessionStorage.getItem('token')
           const response = await fetch(`${config.API_BASE_URL}/admin/users/${id}/status`, {
             method: 'PUT',
             headers: {
@@ -261,16 +263,17 @@ function UserManagement() {
       type: 'danger',
       onConfirm: async () => {
         try {
-          const token = localStorage.getItem('token')
+          const token = localStorage.getItem('token') || sessionStorage.getItem('token')
           const response = await fetch(`${config.API_BASE_URL}/admin/users/${id}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
           })
+          const data = await response.json();
           if (response.ok) {
             success('User deleted successfully');
             setUsers(users.filter(u => u.id !== id))
           } else {
-            error('Failed to delete user');
+            error(data.message || 'Failed to delete user');
           }
         } catch (err) { 
           console.error(err); 

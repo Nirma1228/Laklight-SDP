@@ -137,9 +137,13 @@ function SalesReport() {
     }
   }
 
+  const userTypeRaw = localStorage.getItem('userType') || sessionStorage.getItem('userType');
+  const userType = userTypeRaw ? userTypeRaw.toLowerCase() : '';
+  const isAdmin = userType === 'admin' || userType === 'administrator';
+
   return (
     <div>
-      <Header isLoggedIn={true} customLinks={adminLinks} />
+      <Header isLoggedIn={true} customLinks={isAdmin ? adminLinks : []} />
       <div className="container">
         <div className="page-header">
           <h1>Sales Report</h1>

@@ -1734,7 +1734,7 @@
   border: 1px solid #dbeafe;
 }
 
-.status-cancelled {
+.status-cancelled, .status-rejected {
   background: #fef2f2;
   color: #dc2626;
   border: 1px solid #fee2e2;

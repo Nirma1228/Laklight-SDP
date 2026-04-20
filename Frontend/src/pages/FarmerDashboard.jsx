@@ -15,7 +15,7 @@ import { formatSriLankanDate } from '../utils/dateFormatter'
 import './FarmerDashboard.css'
 
 // Professional Date Input Component for DD/MM/YYYY
-const CustomDateInput = ({ label, value, onChange, min, required }) => {
+const CustomDateInput = ({ label, value, onChange, min, max, required }) => {
   const [displayDate, setDisplayDate] = useState('DD/MM/YYYY');
   const dateInputRef = useRef(null);
 
@@ -53,6 +53,7 @@ const CustomDateInput = ({ label, value, onChange, min, required }) => {
           ref={dateInputRef}
           value={value || ''}
           min={min}
+          max={max}
           required={required}
           onChange={(e) => onChange(e.target.value)}
           className="date-input-hidden-v2"
@@ -140,7 +141,7 @@ function FarmerDashboard() {
     harvestDate: '',
     grade: '',
     transport: '',
-    deliveryDate: getFutureDate(3),
+    deliveryDate: '',
     proposedDate2: '',
     proposedDate3: '',
     storage: '',
@@ -166,6 +167,8 @@ function FarmerDashboard() {
   const [activeTab, setActiveTab] = useState('home') // 'home', 'submit', 'submissions', 'deliveries'
   const [isNotificationOpen, setIsNotificationOpen] = useState(false)
   const [notifications, setNotifications] = useState([])
+  const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false)
+  const [confirmModalData, setConfirmModalData] = useState({ title: '', message: '', onConfirm: () => {} })
 
   // Load notifications from localStorage
   useEffect(() => {
@@ -596,6 +599,40 @@ function FarmerDashboard() {
     }
   }
 
+  // Reject delivery date handler
+  const handleRejectDate = (delivery) => {
+    setConfirmModalData({
+      title: 'Reject Proposed Date',
+      message: `Are you sure you want to reject the proposed delivery date for ${delivery.product}? This will notify the employee.`,
+      onConfirm: async () => {
+        try {
+          const token = getAuthToken();
+          const res = await fetch(`${config.API_BASE_URL}/farmer/deliveries/${delivery.id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ status: 'rejected' })
+          });
+
+          if (res.ok) {
+            toast.info('Date rejected. The operations team has been notified.');
+            fetchDeliveries();
+            setIsConfirmModalOpen(false);
+          } else {
+            const data = await res.json();
+            toast.error(data.message || 'Failed to reject date.');
+          }
+        } catch (err) {
+          console.error('Error rejecting date:', err);
+          toast.error('Connection error.');
+        }
+      }
+    });
+    setIsConfirmModalOpen(true);
+  };
+
   const addProduct = () => {
     const newProduct = {
       id: products.length + 1,
@@ -1024,21 +1061,6 @@ function FarmerDashboard() {
                     </div>
                   </div>
 
-                  <div className="grid-side-v2">
-                    <div className="section-card-v2">
-                      <div className="section-header-v2">
-                        <h3>Important Notices</h3>
-                      </div>
-                      <div className="notices-list-v2">
-                        {!bankDetails.accountNumber && (
-                          <div className="notice-item-v2 warning" onClick={() => setIsBankModalOpen(true)}>
-                            <FontAwesomeIcon icon={faExclamationTriangle} />
-                            <span>Missing bank details for payments</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
                 </div>
               </div>
             )}
@@ -1075,13 +1097,12 @@ function FarmerDashboard() {
                                 <option value="fruits">Fruits</option>
                                 <option value="vegetables">Vegetables</option>
                                 <option value="dairy">Dairy</option>
-                                <option value="grains">Grains</option>
-                                <option value="other">Other</option>
+                                <option value="other">Other Resources</option>
                               </select>
                             </div>
 
                             <div className="form-group-v2">
-                              <label>Produce Name *</label>
+                              <label>Product Name</label>
                               <input
                                 type="text"
                                 required
@@ -1133,9 +1154,7 @@ function FarmerDashboard() {
 
                             <div className="form-group-v2">
                               <CustomDateInput
-                                label="Harvest Date *"
-                                required={true}
-                                value={product.harvestDate}
+                                label="Harvest Date *" required={true} max={getToday()} value={product.harvestDate}
                                 onChange={(val) => updateProduct(product.id, 'harvestDate', val)}
                               />
                             </div>
@@ -1161,7 +1180,7 @@ function FarmerDashboard() {
                                 <CustomDateInput
                                   label="Delivery Date 1"
                                   required={true}
-                                  min={product.harvestDate ? product.harvestDate : getToday()}
+                                  min={getToday()}
                                   value={product.deliveryDate}
                                   onChange={(val) => {
                                     if (val) {
@@ -1180,14 +1199,14 @@ function FarmerDashboard() {
                                 <CustomDateInput
                                   label="Delivery Date 2"
                                   required={true}
-                                  min={product.harvestDate ? product.harvestDate : getToday()}
+                                  min={getToday()}
                                   value={product.proposedDate2}
                                   onChange={(val) => updateProduct(product.id, 'proposedDate2', val)}
                                 />
                                 <CustomDateInput
                                   label="Delivery Date 3"
                                   required={true}
-                                  min={product.harvestDate ? product.harvestDate : getToday()}
+                                  min={getToday()}
                                   value={product.proposedDate3}
                                   onChange={(val) => updateProduct(product.id, 'proposedDate3', val)}
                                 />
@@ -1393,12 +1412,24 @@ function FarmerDashboard() {
                     {deliveries.length === 0 ? (
                       <div className="table-empty-v2">No active deliveries scheduled.</div>
                     ) : (
-                      deliveries.map(delivery => (
+                      [...deliveries].sort((a, b) => {
+                        const statusA = (a.status || '').toLowerCase();
+                        const statusB = (b.status || '').toLowerCase();
+                        if (statusA === 'action required' && statusB !== 'action required') return -1;
+                        if (statusA !== 'action required' && statusB === 'action required') return 1;
+                        return 0;
+                      }).map(delivery => (
                         <div key={delivery.id} className={`table-row-v2 ${delivery.status}`}>
                           <div className="td-v2 font-bold">{delivery.product}</div>
                           <div className="td-v2">{delivery.quantity}</div>
                           <div className="td-v2">LKR {delivery.sellPrice}</div>
-                          <div className="td-v2">{delivery.scheduleDate ? formatSriLankanDate(delivery.scheduleDate) : 'TBD'}</div>
+                          <div className="td-v2 text-center">
+                            {delivery.scheduleDate 
+                              ? formatSriLankanDate(delivery.scheduleDate) 
+                              : (delivery.proposedRescheduleDate 
+                                ? formatSriLankanDate(delivery.proposedRescheduleDate) 
+                                : formatSriLankanDate(delivery.proposedDate))}
+                          </div>
                           <div className="td-v2">{formatTransport(delivery.transport)}</div>
                           <div className="td-v2">
                             <span className={`delivery-tag-v2 ${delivery.status}`}>{delivery.status}</span>
@@ -1425,8 +1456,8 @@ function FarmerDashboard() {
                                   <button className="btn-confirm-v2" onClick={() => handleConfirmClick(delivery)}>
                                     Accept Date
                                   </button>
-                                  <button className="btn-reschedule-v2" onClick={() => handleRescheduleClick(delivery)}>
-                                    Reschedule Again
+                                  <button className="btn-reschedule-v2" onClick={() => handleRejectDate(delivery)}>
+                                    Reject
                                   </button>
                                 </div>
                               </div>
@@ -1764,10 +1795,33 @@ function FarmerDashboard() {
           </div>
         </div>
       )}
-    </div>
+
+        {/* Confirmation Modal */}
+        {isConfirmModalOpen && (
+          <div className="modal-overlay" onClick={() => setIsConfirmModalOpen(false)}>
+            <div className="modal-content confirm-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h3>{confirmModalData.title}</h3>
+                <button className="close-btn" onClick={() => setIsConfirmModalOpen(false)}>×</button>
+              </div>
+              <div className="modal-body">
+                <div className="confirm-icon-wrapper">
+                  <FontAwesomeIcon icon={faExclamationTriangle} className="confirm-warn-icon" />
+                </div>
+                <p>{confirmModalData.message}</p>
+              </div>
+              <div className="modal-footer">
+                <button className="btn btn-cancel" onClick={() => setIsConfirmModalOpen(false)}>Cancel</button>
+                <button className="btn btn-danger" onClick={confirmModalData.onConfirm}>Confirm Action</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </>
 
   )
 }
 
 export default FarmerDashboard
+
