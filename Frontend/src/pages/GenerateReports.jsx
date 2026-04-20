@@ -409,6 +409,7 @@ function GenerateReports() {
                     <input 
                       type="date" 
                       value={startDate} 
+                      max={new Date().toISOString().split('T')[0]}
                       onChange={(e) => setStartDate(e.target.value)}
                       style={{
                         padding: '8px',
@@ -424,6 +425,7 @@ function GenerateReports() {
                       type="date" 
                       value={endDate} 
                       min={startDate}
+                      max={new Date().toISOString().split('T')[0]}
                       onChange={(e) => setEndDate(e.target.value)}
                       style={{
                         padding: '8px',

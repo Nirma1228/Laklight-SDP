@@ -230,6 +230,7 @@ function SalesReport() {
                     type="date" 
                     name="startDate" 
                     value={filters.startDate} 
+                    max={new Date().toISOString().split('T')[0]}
                     onChange={handleFilterChange}
                     className="date-input-beautified"
                   />
@@ -238,6 +239,7 @@ function SalesReport() {
                     name="endDate" 
                     value={filters.endDate} 
                     min={filters.startDate}
+                    max={new Date().toISOString().split('T')[0]}
                     onChange={handleFilterChange}
                     className="date-input-beautified"
                   />
